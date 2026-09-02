@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hi Ma - Female Creator Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #f91970;
+            --primary-light: #ffebf2;
+            --text-dark: #1f2937;
+            --text-gray: #6b7280;
+            --bg-main: #f3f4f6;
+            --bg-card: #ffffff;
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: #e5e7eb;
+            display: flex;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 414px;
+            height: 100%;
+            background-color: var(--bg-main);
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            background-color: var(--bg-card);
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e5e7eb;
+            z-index: 10;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .header-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-profile img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid var(--primary);
+            object-fit: cover;
+        }
+
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            padding-bottom: 90px;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            border: 1px solid rgba(255,255,255,0.5);
+        }
+
+        .toggle-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .toggle-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .toggle-label {
+            font-weight: 500;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .toggle-label i {
+            color: var(--primary);
+            width: 20px;
+            text-align: center;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 28px;
+        }
+
+        .switch input { opacity: 0; width: 0; height: 0; }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px; width: 20px;
+            left: 4px; bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        input:checked + .slider { background-color: var(--success); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        .earnings-card {
+            background: linear-gradient(135deg, var(--primary), #ff4d8d);
+            color: white;
+            text-align: center;
+        }
+
+        .earnings-card h2 {
+            font-size: 36px;
+            margin: 10px 0;
+            font-weight: 700;
+        }
+
+        .earnings-card p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .request-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .request-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-info img {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .user-info h4 {
+            color: var(--text-dark);
+            font-size: 16px;
+        }
+
+        .user-info p {
+            color: var(--text-gray);
+            font-size: 13px;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-accept {
+            background-color: var(--primary-light);
+            color: var(--primary);
+        }
+        
+        .btn-accept:hover {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-reject {
+            background-color: #f3f4f6;
+            color: var(--text-gray);
+        }
+
+        .bottom-nav {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background-color: var(--bg-card);
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 0 20px 0;
+            box-shadow: 0 -2px 15px rgba(0,0,0,0.05);
+            z-index: 10;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--text-gray);
+            text-decoration: none;
+            font-size: 12px;
+            gap: 4px;
+            cursor: pointer;
+            transition: 0.2s;
+            width: 25%;
+        }
+
+        .nav-item i { font-size: 20px; }
+        .nav-item.active { color: var(--primary); font-weight: 600; }
+        .nav-item.active i { transform: scale(1.1); }
+
+        .btn-primary {
+            width: 100%;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: 0.2s;
+        }
+
+        .btn-primary:active { transform: scale(0.98); }
+        
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; margin-bottom: 8px; font-size: 14px; color: var(--text-gray); }
+        .input-group input, .input-group textarea {
+            width: 100%; padding: 12px 15px; border: 1px solid #e5e7eb; border-radius: 10px; font-size: 16px; outline: none;
+        }
+        .input-group input:focus, .input-group textarea:focus { border-color: var(--primary); }
+        .section-title { font-size: 18px; font-weight: 600; margin-bottom: 15px; color: var(--text-dark); }
+        
+        /* Sub-Screens (Slide-in) */
+        .sub-screen {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: var(--bg-main);
+            z-index: 50;
+            transform: translateX(100%);
+            transition: transform 0.3s ease-in-out;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .sub-screen.active {
+            transform: translateX(0);
+        }
+        
+        .sub-header {
+            background-color: var(--bg-card);
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .sub-header i { font-size: 20px; color: var(--text-dark); cursor: pointer; }
+        .sub-header h2 { font-size: 18px; font-weight: 600; color: var(--text-dark); }
+        
+        .sub-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .upload-box {
+            border: 2px dashed #ccc;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            color: var(--text-gray);
+            cursor: pointer;
+            background: #fafafa;
+            margin-bottom: 15px;
+        }
+        
+        .upload-box i { font-size: 30px; color: var(--primary); margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    
+    <div class="header">
+        <h1>Hi Ma</h1>
+        <div class="header-profile">
+            <span style="font-size: 14px; color: var(--text-gray); font-weight: 500;">Hi, Yamuna</span>
+            <img src="https://i.pravatar.cc/150?img=5" alt="Yamuna">
+        </div>
+    </div>
+
+    <div class="content">
+
+        <!-- TAB: HOME -->
+        <div id="tab-home" class="tab-content active">
+            
+            <div class="card earnings-card">
+                <p>Today's Earnings</p>
+                <h2>₹ 2,450</h2>
+                <p><i class="fa-solid fa-coins"></i> 4,900 Coins Earned</p>
+            </div>
+
+            <div class="card">
+                <div class="toggle-row">
+                    <div class="toggle-label"><i class="fa-solid fa-phone"></i> Voice Calls</div>
+                    <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                </div>
+                <div style="height: 1px; background: #f3f4f6; margin: 15px 0;"></div>
+                <div class="toggle-row">
+                    <div class="toggle-label"><i class="fa-solid fa-video"></i> Video Calls</div>
+                    <label class="switch"><input type="checkbox"><span class="slider"></span></label>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="section-title">New Chat Requests</h3>
+                
+                <div class="request-item">
+                    <div class="user-info">
+                        <img src="https://i.pravatar.cc/150?img=11" alt="Rahul">
+                        <div>
+                            <h4>Rahul Verma</h4>
+                            <p>Sent 5 mins ago</p>
+                        </div>
+                    </div>
+                    <div class="action-btns">
+                        <button class="btn-icon btn-accept" onclick="acceptReq(this)"><i class="fa-solid fa-check"></i></button>
+                        <button class="btn-icon btn-reject" onclick="rejectReq(this)"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                </div>
+
+                <div class="request-item">
+                    <div class="user-info">
+                        <img src="https://i.pravatar.cc/150?img=12" alt="Amit">
+                        <div>
+                            <h4>Amit K.</h4>
+                            <p>Sent 1 hour ago</p>
+                        </div>
+                    </div>
+                    <div class="action-btns">
+                        <button class="btn-icon btn-accept" onclick="acceptReq(this)"><i class="fa-solid fa-check"></i></button>
+                        <button class="btn-icon btn-reject" onclick="rejectReq(this)"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+
+        <!-- TAB: CALLS -->
+        <div id="tab-calls" class="tab-content">
+            <h2 style="margin-bottom: 20px;">Call History</h2>
+            
+            <div class="card" style="padding: 0; overflow: hidden;">
+                <div style="padding: 15px; border-bottom: 1px solid #f3f4f6; display: flex; justify-content: space-between; align-items: center;">
+                    <div class="user-info">
+                        <div style="width: 40px; height: 40px; background: #ffe4e6; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--primary);">
+                            <i class="fa-solid fa-phone"></i>
+                        </div>
+                        <div>
+                            <h4 style="font-size: 15px;">Rahul Verma</h4>
+                            <p>Today, 10:30 AM</p>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <h4 style="color: var(--success);">+150 Coins</h4>
+                        <p style="font-size: 12px; color: var(--text-gray);">15 mins</p>
+                    </div>
+                </div>
+
+                <div style="padding: 15px; border-bottom: 1px solid #f3f4f6; display: flex; justify-content: space-between; align-items: center;">
+                    <div class="user-info">
+                        <div style="width: 40px; height: 40px; background: #e0e7ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #4f46e5;">
+                            <i class="fa-solid fa-video"></i>
+                        </div>
+                        <div>
+                            <h4 style="font-size: 15px;">Karan S.</h4>
+                            <p>Yesterday, 8:15 PM</p>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <h4 style="color: var(--success);">+300 Coins</h4>
+                        <p style="font-size: 12px; color: var(--text-gray);">5 mins</p>
+                    </div>
+                </div>
+                
+                <div style="padding: 15px; display: flex; justify-content: space-between; align-items: center;">
+                    <div class="user-info">
+                        <div style="width: 40px; height: 40px; background: #fee2e2; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--danger);">
+                            <i class="fa-solid fa-phone-slash"></i>
+                        </div>
+                        <div>
+                            <h4 style="font-size: 15px;">Amit K.</h4>
+                            <p>Yesterday, 2:00 PM</p>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <h4 style="color: var(--danger);">Missed</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: WALLET -->
+        <div id="tab-wallet" class="tab-content">
+            <h2 style="margin-bottom: 20px;">Wallet & Earnings</h2>
+
+            <div class="card" style="text-align: center; padding: 30px 20px; background: linear-gradient(135deg, var(--primary), #ff4d8d); color: white;">
+                <p style="opacity: 0.9; margin-bottom: 5px;">Total Available Balance</p>
+                <h1 style="font-size: 42px; font-weight: 700; margin-bottom: 5px; color: white;">₹ 12,500</h1>
+                <p style="font-weight: 600; margin-bottom: 25px;"><i class="fa-solid fa-coins"></i> 25,000 Coins</p>
+                
+                <div style="display: flex; justify-content: center; gap: 15px; margin-bottom: 25px; font-size: 13px;">
+                    <span>Payable: ₹ 10,000</span>
+                    <span>•</span>
+                    <span>Rank: #12</span>
+                </div>
+
+                <button class="btn-primary" style="background: white; color: var(--primary); box-shadow: none;" onclick="openScreen('screen-withdraw')">Withdraw Now</button>
+            </div>
+            
+            <h3 class="section-title">Earnings Summary</h3>
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
+                <div style="flex: 1; min-width: 45%; background: var(--bg-card); padding: 15px; border-radius: 12px; border: 1px solid #e5e7eb;">
+                    <p style="font-size: 12px; color: var(--text-gray);">Lifetime</p>
+                    <h3 style="color: var(--text-dark);">₹ 1,45,000</h3>
+                </div>
+                <div style="flex: 1; min-width: 45%; background: var(--bg-card); padding: 15px; border-radius: 12px; border: 1px solid #e5e7eb;">
+                    <p style="font-size: 12px; color: var(--text-gray);">This Month</p>
+                    <h3 style="color: var(--text-dark);">₹ 32,500</h3>
+                </div>
+                <div style="flex: 1; min-width: 45%; background: var(--bg-card); padding: 15px; border-radius: 12px; border: 1px solid #e5e7eb;">
+                    <p style="font-size: 12px; color: var(--text-gray);">This Week</p>
+                    <h3 style="color: var(--text-dark);">₹ 8,400</h3>
+                </div>
+                <div style="flex: 1; min-width: 45%; background: var(--bg-card); padding: 15px; border-radius: 12px; border: 1px solid #e5e7eb;">
+                    <p style="font-size: 12px; color: var(--text-gray);">Today</p>
+                    <h3 style="color: var(--text-dark);">₹ 2,450</h3>
+                </div>
+            </div>
+
+            <h3 class="section-title">Quick Actions</h3>
+            <div class="card" style="padding: 0;">
+                <div style="padding: 15px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; justify-content: space-between; cursor: pointer;" onclick="openScreen('screen-earnings')">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="width: 36px; height: 36px; background: var(--primary-light); color: var(--primary); border-radius: 8px; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-clipboard-list"></i></div>
+                        <div>
+                            <h4 style="font-size: 15px; color: var(--text-dark);">Session Earnings</h4>
+                            <p style="font-size: 12px; color: var(--text-gray);">View per-session breakdown</p>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right" style="color: var(--text-gray);"></i>
+                </div>
+                <div style="padding: 15px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; justify-content: space-between; cursor: pointer;" onclick="openScreen('screen-bank')">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="width: 36px; height: 36px; background: var(--primary-light); color: var(--primary); border-radius: 8px; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-building-columns"></i></div>
+                        <div>
+                            <h4 style="font-size: 15px; color: var(--text-dark);">Bank Details</h4>
+                            <p style="font-size: 12px; color: var(--text-gray);">Manage payout accounts & images</p>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right" style="color: var(--text-gray);"></i>
+                </div>
+                <div style="padding: 15px; display: flex; align-items: center; justify-content: space-between; cursor: pointer;" onclick="openScreen('screen-history')">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="width: 36px; height: 36px; background: var(--primary-light); color: var(--primary); border-radius: 8px; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                        <div>
+                            <h4 style="font-size: 15px; color: var(--text-dark);">Withdrawal History</h4>
+                            <p style="font-size: 12px; color: var(--text-gray);">Track your past payouts</p>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right" style="color: var(--text-gray);"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: SETTINGS -->
+        <div id="tab-settings" class="tab-content">
+            <h2 style="margin-bottom: 20px;">Settings & Support</h2>
+            
+            <div class="card" style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;" onclick="openScreen('screen-edit-profile')">
+                <div class="user-info">
+                    <img src="https://i.pravatar.cc/150?img=5" alt="Yamuna">
+                    <div>
+                        <h4 style="font-size: 16px; color: var(--text-dark);">Yamuna Devi</h4>
+                        <p style="font-size: 13px; color: var(--text-gray);">Tap to edit avatar & bio</p>
+                    </div>
+                </div>
+                <i class="fa-solid fa-chevron-right" style="color: var(--text-gray);"></i>
+            </div>
+
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h3 class="section-title" style="margin: 0;">My Call Rates</h3>
+                    <span style="font-size: 11px; background: #f3f4f6; color: var(--text-gray); padding: 3px 8px; border-radius: 10px;">Fixed by Admin</span>
+                </div>
+                <div style="display: flex; gap: 15px;">
+                    <div style="flex: 1; background: var(--bg-main); padding: 15px; border-radius: 12px; text-align: center;">
+                        <i class="fa-solid fa-phone" style="color: var(--primary); margin-bottom: 8px;"></i>
+                        <h4 style="color: var(--text-dark); font-size: 15px;">10 Coins / min</h4>
+                        <p style="font-size: 11px; color: var(--text-gray);">Voice Call</p>
+                    </div>
+                    <div style="flex: 1; background: var(--bg-main); padding: 15px; border-radius: 12px; text-align: center;">
+                        <i class="fa-solid fa-video" style="color: #4f46e5; margin-bottom: 8px;"></i>
+                        <h4 style="color: var(--text-dark); font-size: 15px;">60 Coins / min</h4>
+                        <p style="font-size: 11px; color: var(--text-gray);">Video Call</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card" style="padding: 0;">
+                <div style="padding: 15px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; justify-content: space-between; cursor: pointer;" onclick="alert('Opening Support Tickets...')">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="width: 36px; height: 36px; background: var(--primary-light); color: var(--primary); border-radius: 8px; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-headset"></i></div>
+                        <h4 style="font-size: 15px; color: var(--text-dark);">Help & Support Tickets</h4>
+                    </div>
+                    <i class="fa-solid fa-chevron-right" style="color: var(--text-gray);"></i>
+                </div>
+                <div style="padding: 15px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; justify-content: space-between; cursor: pointer;" onclick="alert('Opening Privacy Policy...')">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="width: 36px; height: 36px; background: #e0e7ff; color: #4f46e5; border-radius: 8px; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-shield-halved"></i></div>
+                        <h4 style="font-size: 15px; color: var(--text-dark);">Privacy Policy</h4>
+                    </div>
+                    <i class="fa-solid fa-chevron-right" style="color: var(--text-gray);"></i>
+                </div>
+                <div style="padding: 15px; display: flex; align-items: center; justify-content: space-between; cursor: pointer;" onclick="alert('Opening Terms...')">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="width: 36px; height: 36px; background: #e0e7ff; color: #4f46e5; border-radius: 8px; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-file-contract"></i></div>
+                        <h4 style="font-size: 15px; color: var(--text-dark);">Terms & Conditions</h4>
+                    </div>
+                    <i class="fa-solid fa-chevron-right" style="color: var(--text-gray);"></i>
+                </div>
+            </div>
+
+            <div class="card" style="text-align: center; color: var(--danger); cursor: pointer;" onclick="alert('Logging out...')">
+                <h4 style="font-weight: 600;"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</h4>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav">
+        <a class="nav-item active" onclick="switchTab('home', this)">
+            <i class="fa-solid fa-house"></i>
+            <span>Home</span>
+        </a>
+        <a class="nav-item" onclick="switchTab('calls', this)">
+            <i class="fa-solid fa-phone"></i>
+            <span>Calls</span>
+        </a>
+        <a class="nav-item" onclick="switchTab('wallet', this)">
+            <i class="fa-solid fa-wallet"></i>
+            <span>Earnings</span>
+        </a>
+        <a class="nav-item" onclick="switchTab('settings', this)">
+            <i class="fa-solid fa-user"></i>
+            <span>Profile</span>
+        </a>
+    </div>
+
+    <!-- SUB-SCREEN: BANK DETAILS -->
+    <div id="screen-bank" class="sub-screen">
+        <div class="sub-header">
+            <i class="fa-solid fa-arrow-left" onclick="closeScreen('screen-bank')"></i>
+            <h2>Bank Details</h2>
+        </div>
+        <div class="sub-content">
+            <div class="card">
+                <div class="input-group">
+                    <label>Account Holder Name</label>
+                    <input type="text" value="Yamuna Devi">
+                </div>
+                <div class="input-group">
+                    <label>Bank Account Number</label>
+                    <input type="password" value="1234567890">
+                </div>
+                <div class="input-group">
+                    <label>IFSC Code</label>
+                    <input type="text" value="SBIN0001234">
+                </div>
+                
+                <h3 class="section-title" style="margin-top: 20px; font-size: 15px;">Account Details Image</h3>
+                <p style="font-size: 12px; color: var(--text-gray); margin-bottom: 10px;">Please upload a clear photo of your passbook or canceled cheque.</p>
+                <div class="upload-box">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                    <p>Tap to upload image</p>
+                </div>
+                
+                <button class="btn-primary" onclick="alert('Bank Details Saved!')">Save Details</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUB-SCREEN: WITHDRAWAL HISTORY -->
+    <div id="screen-history" class="sub-screen">
+        <div class="sub-header">
+            <i class="fa-solid fa-arrow-left" onclick="closeScreen('screen-history')"></i>
+            <h2>Withdrawal History</h2>
+        </div>
+        <div class="sub-content">
+            <div class="card" style="padding: 0;">
+                <div style="padding: 15px; border-bottom: 1px solid #f3f4f6; display: flex; justify-content: space-between;">
+                    <div>
+                        <h4 style="font-size: 15px;">Bank Transfer</h4>
+                        <p style="font-size: 12px; color: var(--text-gray);">15 Aug, 10:30 AM</p>
+                    </div>
+                    <div style="text-align: right;">
+                        <h4 style="color: var(--text-dark);">₹ 5,000</h4>
+                        <span style="font-size: 11px; background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 10px; font-weight: 600;">Success</span>
+                    </div>
+                </div>
+                <div style="padding: 15px; border-bottom: 1px solid #f3f4f6; display: flex; justify-content: space-between;">
+                    <div>
+                        <h4 style="font-size: 15px;">Bank Transfer</h4>
+                        <p style="font-size: 12px; color: var(--text-gray);">18 Aug, 02:15 PM</p>
+                    </div>
+                    <div style="text-align: right;">
+                        <h4 style="color: var(--text-dark);">₹ 2,500</h4>
+                        <span style="font-size: 11px; background: #fef08a; color: #854d0e; padding: 2px 8px; border-radius: 10px; font-weight: 600;">Pending</span>
+                    </div>
+                </div>
+                <div style="padding: 15px; display: flex; justify-content: space-between;">
+                    <div>
+                        <h4 style="font-size: 15px;">Bank Transfer</h4>
+                        <p style="font-size: 12px; color: var(--text-gray);">10 Aug, 09:00 AM</p>
+                    </div>
+                    <div style="text-align: right;">
+                        <h4 style="color: var(--text-dark);">₹ 1,000</h4>
+                        <span style="font-size: 11px; background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 10px; font-weight: 600;">Failed</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUB-SCREEN: SESSION EARNINGS -->
+    <div id="screen-earnings" class="sub-screen">
+        <div class="sub-header">
+            <i class="fa-solid fa-arrow-left" onclick="closeScreen('screen-earnings')"></i>
+            <h2>Session Earnings</h2>
+        </div>
+        <div class="sub-content">
+            <div class="card" style="padding: 0;">
+                <div style="padding: 15px; border-bottom: 1px solid #f3f4f6; display: flex; justify-content: space-between; align-items: center;">
+                    <div class="user-info">
+                        <img src="https://i.pravatar.cc/150?img=11" alt="Rahul">
+                        <div>
+                            <h4 style="font-size: 15px;">Rahul Verma</h4>
+                            <p style="color: var(--primary);"><i class="fa-solid fa-phone"></i> Voice • 15 mins</p>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <h4 style="color: var(--success);">+150 Coins</h4>
+                        <p style="font-size: 12px; color: var(--text-gray);">₹ 75 Earned</p>
+                    </div>
+                </div>
+                <div style="padding: 15px; display: flex; justify-content: space-between; align-items: center;">
+                    <div class="user-info">
+                        <img src="https://i.pravatar.cc/150?img=12" alt="Karan">
+                        <div>
+                            <h4 style="font-size: 15px;">Karan S.</h4>
+                            <p style="color: #4f46e5;"><i class="fa-solid fa-video"></i> Video • 5 mins</p>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <h4 style="color: var(--success);">+300 Coins</h4>
+                        <p style="font-size: 12px; color: var(--text-gray);">₹ 150 Earned</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUB-SCREEN: EDIT PROFILE -->
+    <div id="screen-edit-profile" class="sub-screen">
+        <div class="sub-header">
+            <i class="fa-solid fa-arrow-left" onclick="closeScreen('screen-edit-profile')"></i>
+            <h2>Edit Profile</h2>
+        </div>
+        <div class="sub-content">
+            <div style="text-align: center; margin-bottom: 25px;">
+                <div style="position: relative; display: inline-block;">
+                    <img src="https://i.pravatar.cc/150?img=5" alt="Avatar" style="width: 100px; height: 100px; border-radius: 50%; border: 3px solid var(--primary); object-fit: cover;">
+                    <div style="position: absolute; bottom: 0; right: 0; background: var(--primary); color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; cursor: pointer;" onclick="alert('Open Camera/Gallery')">
+                        <i class="fa-solid fa-camera" style="font-size: 14px;"></i>
+                    </div>
+                </div>
+                <h3 style="margin-top: 10px; font-size: 18px; color: var(--text-dark);">Yamuna Devi</h3>
+            </div>
+
+            <div class="card">
+                <div class="input-group">
+                    <label>About Me (Bio)</label>
+                    <textarea rows="4">Hi! I love talking about music, life, and astrology. Let's chat!</textarea>
+                </div>
+                <div class="input-group">
+                    <label>Interests / Topics</label>
+                    <input type="text" value="Love, Career, Music">
+                </div>
+                <div class="input-group">
+                    <label>Languages Spoken</label>
+                    <input type="text" value="English, Hindi, Kannada" readonly style="background: #f3f4f6; color: var(--text-gray); cursor: not-allowed;">
+                    <p style="font-size: 11px; color: var(--text-gray); margin-top: 5px;">Languages can only be changed by contacting support.</p>
+                </div>
+                
+                <button class="btn-primary" onclick="alert('Profile Updated Successfully!')">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUB-SCREEN: WITHDRAW FUNDS -->
+    <div id="screen-withdraw" class="sub-screen">
+        <div class="sub-header">
+            <i class="fa-solid fa-arrow-left" onclick="closeScreen('screen-withdraw')"></i>
+            <h2>Withdraw Funds</h2>
+        </div>
+        <div class="sub-content">
+            <div class="card" style="text-align: center; padding: 25px 20px; background: #1f2937; color: white;">
+                <p style="font-size: 12px; color: #9ca3af; margin-bottom: 5px; letter-spacing: 1px;">AVAILABLE BALANCE</p>
+                <h1 style="font-size: 36px; font-weight: 700; color: white;">₹ 12,500</h1>
+            </div>
+
+            <div class="card">
+                <h3 class="section-title" style="font-size: 14px; color: var(--text-gray); margin-bottom: 10px;">WITHDRAWAL AMOUNT</h3>
+                <div class="input-group" style="position: relative;">
+                    <span style="position: absolute; left: 15px; top: 12px; font-size: 18px; font-weight: 600; color: var(--text-dark);">₹</span>
+                    <input type="number" placeholder="0" style="padding-left: 35px; font-size: 20px; font-weight: 600;">
+                </div>
+                <p style="font-size: 12px; color: var(--text-gray); text-align: right; margin-top: -5px;">Min. withdrawal is ₹100</p>
+            </div>
+
+            <div class="card" style="background: #fafafa; border: 1px solid #e5e7eb;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 class="section-title" style="font-size: 14px; color: var(--text-gray); margin: 0;">PAYOUT BANK ACCOUNT</h3>
+                    <button style="border: none; background: transparent; color: var(--primary); font-weight: 600; font-size: 14px; cursor: pointer;" onclick="openScreen('screen-bank')">Edit</button>
+                </div>
+                <div>
+                    <h4 style="font-size: 16px; color: var(--text-dark); margin-bottom: 4px;">State Bank of India</h4>
+                    <p style="font-size: 13px; color: var(--text-gray);">A/C: •••• 7890</p>
+                    <p style="font-size: 13px; color: var(--text-gray);">Holder: Yamuna Devi</p>
+                </div>
+            </div>
+
+            <button class="btn-primary" style="margin-top: 10px;" onclick="alert('Withdrawal request submitted successfully to Admin!')">SUBMIT WITHDRAWAL REQUEST</button>
+            <p style="font-size: 11px; color: var(--text-gray); text-align: center; margin-top: 15px;">Requests are reviewed and processed by our team.</p>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    function switchTab(tabId, element) {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+        document.getElementById('tab-' + tabId).classList.add('active');
+        element.classList.add('active');
+    }
+    
+    function acceptReq(btn) {
+        const item = btn.closest('.request-item');
+        item.style.transition = "0.3s";
+        item.style.opacity = "0";
+        setTimeout(() => {
+            item.remove();
+            alert("Chat Request Accepted! You can now message them.");
+        }, 300);
+    }
+    
+    function rejectReq(btn) {
+        const item = btn.closest('.request-item');
+        item.style.transition = "0.3s";
+        item.style.opacity = "0";
+        setTimeout(() => item.remove(), 300);
+    }
+    
+    function openScreen(id) {
+        document.getElementById(id).classList.add('active');
+    }
+    
+    function closeScreen(id) {
+        document.getElementById(id).classList.remove('active');
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "790226336326",
+    "project_id": "himameet-bc438",
+    "storage_bucket": "himameet-bc438.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:790226336326:android:1f96f7e37a5d896e616847",
+        "android_client_info": {
+          "package_name": "com.himameet.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDNuTX__PgXj_JHwBQdFNOuezHgbXWE4gM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
