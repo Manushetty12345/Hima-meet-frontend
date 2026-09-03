@@ -13,7 +13,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { ArrowLeft, MessageCircle, Bell } from 'lucide-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { saveProfileSetup } from '../api/onboardingApi';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { setAuthToken } from '../../../api/apiClient';
 
 const STATUSBAR_HEIGHT =
   Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 0;
@@ -101,9 +101,9 @@ const NotificationSetupScreen: React.FC<Props> = ({ route, navigation }) => {
   const completeSetup = async () => {
     try {
       const res = await saveProfileSetup({ gender, avatar_id, language_id });
-      // Save the new real user token
+      // Save the new real user token securely
       if (res.data?.data?.token) {
-        await AsyncStorage.setItem('userToken', res.data.data.token);
+        await setAuthToken(res.data.data.token);
       }
       navigation.navigate('Home');
     } catch (e) {
