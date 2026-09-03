@@ -12,12 +12,14 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import { ArrowLeft, MessageCircle, Bell } from 'lucide-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { saveProfileSetup } from '../api/onboardingApi';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STATUSBAR_HEIGHT =
   Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 0;
 
 type RootStackParamList = {
-  NotificationSetup: undefined;
+  NotificationSetup: { gender?: string, avatar_id?: number, language_id?: number } | undefined;
   Home: undefined;
   [key: string]: undefined | object;
 };
@@ -48,7 +50,11 @@ const BENEFITS: BenefitItem[] = [
   },
 ];
 
-const NotificationSetupScreen: React.FC<Props> = ({ navigation }) => {
+const NotificationSetupScreen: React.FC<Props> = ({ route, navigation }) => {
+  const gender = route.params?.gender || 'male';
+  const avatar_id = route.params?.avatar_id || 1;
+  const language_id = route.params?.language_id || 1;
+
   const contentOpacity = useRef(new Animated.Value(0)).current;
   const contentTranslateY = useRef(new Animated.Value(24)).current;
   const ctaOpacity = useRef(new Animated.Value(0)).current;
@@ -92,16 +98,28 @@ const NotificationSetupScreen: React.FC<Props> = ({ navigation }) => {
     };
   }, []);
 
+  const completeSetup = async () => {
+    try {
+      const res = await saveProfileSetup({ gender, avatar_id, language_id });
+      // Save the new real user token
+      if (res.data?.data?.token) {
+        await AsyncStorage.setItem('userToken', res.data.data.token);
+      }
+      navigation.navigate('Home');
+    } catch (e) {
+      console.error('Failed to complete setup', e);
+      // Fallback
+      navigation.navigate('Home');
+    }
+  };
+
   const handleEnableNotifications = () => {
     // TODO: trigger the native notification permission prompt here
-    // (e.g. PermissionsAndroid.request(...) on Android, or your push
-    // notification library's requestPermissions() on iOS), then
-    // navigate onward regardless of the user's choice.
-    navigation.navigate('Home');
+    completeSetup();
   };
 
   const handleMaybeLater = () => {
-    navigation.navigate('Home');
+    completeSetup();
   };
 
   return (

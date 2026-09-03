@@ -14,6 +14,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Keyboard,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {
@@ -26,7 +27,6 @@ import {
 import type { LucideIcon } from 'lucide-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { sendOtp } from '../api/authApi';
-// import { getAuth, signInWithPhoneNumber } from '@react-native-firebase/auth';
 
 const { width } = Dimensions.get('window');
 const STATUSBAR_HEIGHT =
@@ -34,18 +34,34 @@ const STATUSBAR_HEIGHT =
 
 type RootStackParamList = {
   LoginScreen: undefined;
-  VerifyOtpScreen: { phoneNumber: string };
+  VerifyOtpScreen: { phoneNumber: string; verificationId?: string };
   [key: string]: undefined | object;
 };
 
 type Props = NativeStackScreenProps<RootStackParamList, 'LoginScreen'>;
 
-// Horizontal pill strip instead of a static icon grid
+// ---- Palette pulled from the Himameet mark ----
+const PLUM_DEEP = '#1A0733';
+const PLUM_MID = '#3A0F63';
+const PLUM_ROYAL = '#5B0E8B';
+const GOLD = '#F5C542';
+const GOLD_DEEP = '#D4AF37';
+const IVORY = '#FBF6EC';
+const IVORY_LINE = '#EBDFC4';
+const TEXT_PLUM = '#2A1240';
+const TEXT_MUTED = '#8B7F98';
+
+// Light lavender hero palette — near-white up top, softening into pale purple
+const LILAC_WHITE = '#FBF7FF';
+const LILAC_PALE = '#EFDFFB';
+const LILAC_LIGHT = '#DCC1F2';
+
+// Gold-tinted feature strip, each icon carries a soft plum-gold wash
 const FEATURES: { key: string; label: string; icon: LucideIcon; tint: string }[] = [
-  { key: 'chat', label: 'Chat', icon: MessageCircle, tint: '#2DD4BF' },
-  { key: 'video', label: 'Video', icon: Video, tint: '#FF6F61' },
-  { key: 'voice', label: 'Voice', icon: Phone, tint: '#FFC364' },
-  { key: 'connect', label: 'Connect', icon: Heart, tint: '#B084F0' },
+  { key: 'chat', label: 'Chat', icon: MessageCircle, tint: '#F5C542' },
+  { key: 'video', label: 'Video', icon: Video, tint: '#E8A6F2' },
+  { key: 'voice', label: 'Voice', icon: Phone, tint: '#F5C542' },
+  { key: 'connect', label: 'Connect', icon: Heart, tint: '#FF9BC4' },
 ];
 
 const LoginScreen: React.FC<Props> = ({ navigation }) => {
@@ -56,16 +72,19 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  const scrollViewRef = useRef<any>(null);
+
   const cardTranslateY = useRef(new Animated.Value(60)).current;
   const cardOpacity = useRef(new Animated.Value(0)).current;
   const logoScale = useRef(new Animated.Value(0.7)).current;
   const logoOpacity = useRef(new Animated.Value(0)).current;
   const ringRotate = useRef(new Animated.Value(0)).current;
+  const sparkleTwinkle = useRef(new Animated.Value(0.4)).current;
   const stripOpacity = useRef(new Animated.Value(0)).current;
   const toggleAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    StatusBar.setBarStyle('light-content');
+    StatusBar.setBarStyle('dark-content');
 
     Animated.sequence([
       Animated.parallel([
@@ -110,6 +129,23 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
         useNativeDriver: true,
       }),
     ).start();
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(sparkleTwinkle, {
+          toValue: 1,
+          duration: 750,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(sparkleTwinkle, {
+          toValue: 0.35,
+          duration: 750,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+    ).start();
   }, []);
 
   useEffect(() => {
@@ -128,11 +164,12 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     setIsLoading(true);
     setErrorMsg('');
     try {
-      // Securely call backend to send OTP
-      await sendOtp(mobileNumber.trim());
-
-      navigation.navigate('VerifyOtpScreen', { 
-        phoneNumber: mobileNumber.trim()
+      const phone = mobileNumber.trim();
+      // OTP is generated & stored securely on the backend, sent via bhashsms
+      await sendOtp(phone, '+91');
+      navigation.navigate('VerifyOtpScreen', {
+        phoneNumber: phone,
+        verificationId: '', // not needed — backend handles OTP verification
       });
     } catch (err: any) {
       const msg = err?.message || 'Failed to send OTP. Please try again.';
@@ -154,39 +191,46 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   });
   const trackColor = toggleAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ['#E4DED0', '#2DD4BF'],
+    outputRange: [IVORY_LINE, GOLD],
   });
 
   return (
     <KeyboardAvoidingView
       style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
 
       <ScrollView
+        ref={scrollViewRef}
         style={styles.flex}
         contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps="always"
         showsVerticalScrollIndicator={false}
       >
         <LinearGradient
-          colors={['#0B1220', '#12213B', '#1B2E4A']}
-          start={{ x: 0.1, y: 0 }}
-          end={{ x: 0.9, y: 1 }}
+          colors={[LILAC_WHITE, LILAC_PALE, LILAC_LIGHT]}
+          start={{ x: 0.15, y: 0 }}
+          end={{ x: 0.85, y: 1 }}
           style={styles.hero}
         >
           <View style={{ height: STATUSBAR_HEIGHT }} />
 
-          {/* Accent glow blobs, echo the splash screen's palette */}
-          <View style={[styles.blob, styles.blobTeal]} />
-          <View style={[styles.blob, styles.blobCoral]} />
+          {/* Soft golden + violet glows, gentler for the light backdrop */}
+          <View style={[styles.glow, styles.glowTopRight]} />
+          <View style={[styles.glow, styles.glowBottomLeft]} />
+
+          {/* Faint corner flourish, matching the logo's ornamental frame */}
+          <View style={styles.cornerFlourishTR} />
 
           <View style={styles.logoStage}>
             <Animated.View
               style={[styles.orbitRing, { transform: [{ rotate: ringSpin }] }]}
             >
-              <View style={styles.orbitDot} />
+              <Animated.Text style={[styles.orbitSparkle, { opacity: sparkleTwinkle }]}>
+                ✦
+              </Animated.Text>
             </Animated.View>
             <Animated.View
               style={[
@@ -206,13 +250,17 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <Text style={styles.wordmark}>
-            <Text style={styles.wordmarkAccent}>Hima</Text>Meet
+            <Text style={styles.wordmarkAccent}>Hima</Text>meet
           </Text>
-          <Text style={styles.tagline}>REAL PEOPLE · REAL MOMENTS</Text>
+          <View style={styles.taglineDivider}>
+            <View style={styles.taglineLine} />
+            <Text style={styles.taglineHeart}>♥</Text>
+            <View style={styles.taglineLine} />
+          </View>
+          <Text style={styles.tagline}>WHERE REAL BONDS BEGIN</Text>
 
-          {/* Horizontal glass pill strip, in place of a static 4-column grid */}
-          <Animated.View style={[styles.stripContent, { opacity: stripOpacity }]}
-          >
+          {/* Feature strip, gold-on-glass pills */}
+          <Animated.View style={[styles.stripContent, { opacity: stripOpacity }]}>
             {FEATURES.map(feature => {
               const FeatureIcon = feature.icon;
               return (
@@ -220,7 +268,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                   <View
                     style={[
                       styles.pillIconDot,
-                      { backgroundColor: `${feature.tint}26` },
+                      { backgroundColor: `${feature.tint}26`, borderColor: `${feature.tint}55` },
                     ]}
                   >
                     <FeatureIcon size={15} color={feature.tint} />
@@ -263,7 +311,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
               placeholder="10-digit number"
-              placeholderTextColor="#B7AE9C"
+              placeholderTextColor="#B8A9C9"
               keyboardType="number-pad"
               maxLength={10}
               style={styles.input}
@@ -275,7 +323,9 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           <TouchableOpacity
             style={styles.referralRow}
             activeOpacity={0.75}
-            onPress={() => setHasReferral(prev => !prev)}
+            onPress={() => {
+              setHasReferral(prev => !prev);
+            }}
           >
             <Animated.View style={[styles.toggleTrack, { backgroundColor: trackColor }]}>
               <Animated.View
@@ -290,8 +340,9 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
               value={referralCode}
               onChangeText={setReferralCode}
               placeholder="Enter referral code"
-              placeholderTextColor="#B7AE9C"
+              placeholderTextColor="#B8A9C9"
               autoCapitalize="characters"
+              // No forced scroll on focus to prevent keyboard hiding
               style={styles.referralInput}
             />
           )}
@@ -303,7 +354,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             style={styles.ctaWrapper}
           >
             <LinearGradient
-              colors={isValidNumber ? ['#2DD4BF', '#1BAE9C'] : ['#E4DED0', '#E4DED0']}
+              colors={isValidNumber ? [GOLD, GOLD_DEEP] : [IVORY_LINE, IVORY_LINE]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.ctaButton}
@@ -313,7 +364,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
               </Text>
               <ArrowRight
                 size={18}
-                color={isValidNumber ? '#0B1220' : '#A79E8C'}
+                color={isValidNumber ? PLUM_DEEP : '#A79E8C'}
                 style={{ marginLeft: 8 }}
               />
             </LinearGradient>
@@ -323,7 +374,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             By continuing you agree to our{' '}
             <Text style={styles.termsLink}>Terms</Text> and{' '}
             <Text style={styles.termsLink}>Community Guidelines</Text> of
-            HimaMeet.
+            Himameet.
           </Text>
         </Animated.View>
       </ScrollView>
@@ -337,10 +388,11 @@ const STAGE_SIZE = width * 0.48;
 const styles = StyleSheet.create({
   flex: {
     flex: 1,
-    backgroundColor: '#0B1220',
+    backgroundColor: IVORY,
   },
   scrollContent: {
     flexGrow: 1,
+    backgroundColor: IVORY,
   },
 
   hero: {
@@ -349,23 +401,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     overflow: 'hidden',
   },
-  blob: {
+  glow: {
     position: 'absolute',
     borderRadius: 999,
   },
-  blobTeal: {
+  glowTopRight: {
     width: width * 0.6,
     height: width * 0.6,
     top: -width * 0.3,
     right: -width * 0.25,
-    backgroundColor: 'rgba(45, 212, 191, 0.14)',
+    backgroundColor: 'rgba(245, 197, 66, 0.18)',
   },
-  blobCoral: {
+  glowBottomLeft: {
     width: width * 0.4,
     height: width * 0.4,
     bottom: -width * 0.15,
     left: -width * 0.18,
-    backgroundColor: 'rgba(255, 111, 97, 0.12)',
+    backgroundColor: 'rgba(91, 14, 139, 0.10)',
+  },
+  cornerFlourishTR: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 70,
+    height: 70,
+    borderTopWidth: 1,
+    borderRightWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.4)',
+    borderTopRightRadius: 20,
+    margin: 18,
   },
 
   logoStage: {
@@ -382,25 +446,23 @@ const styles = StyleSheet.create({
     borderRadius: STAGE_SIZE / 2,
     borderWidth: 1,
     borderStyle: 'dashed',
-    borderColor: 'rgba(45, 212, 191, 0.35)',
+    borderColor: 'rgba(212, 175, 55, 0.55)',
   },
-  orbitDot: {
+  orbitSparkle: {
     position: 'absolute',
-    top: -3,
+    top: -8,
     left: '50%',
-    marginLeft: -3,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#FF6F61',
+    marginLeft: -8,
+    fontSize: 15,
+    color: GOLD_DEEP,
   },
   logoWrapper: {
     width: LOGO_SIZE,
     height: LOGO_SIZE,
     borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(212, 175, 55, 0.5)',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -413,21 +475,37 @@ const styles = StyleSheet.create({
 
   wordmark: {
     marginTop: 16,
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '300',
-    color: '#F5F7FA',
+    color: TEXT_PLUM,
     letterSpacing: 1,
   },
   wordmarkAccent: {
     fontWeight: '800',
     fontStyle: 'italic',
-    color: '#FF6F61',
+    color: GOLD_DEEP,
+  },
+  taglineDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    width: 130,
+  },
+  taglineLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(212, 175, 55, 0.55)',
+  },
+  taglineHeart: {
+    color: GOLD_DEEP,
+    fontSize: 10,
+    marginHorizontal: 8,
   },
   tagline: {
-    marginTop: 4,
+    marginTop: 6,
     fontSize: 10.5,
-    color: 'rgba(200, 220, 235, 0.6)',
-    letterSpacing: 1.6,
+    color: 'rgba(91, 14, 139, 0.55)',
+    letterSpacing: 2,
   },
 
   stripContent: {
@@ -440,9 +518,9 @@ const styles = StyleSheet.create({
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(212, 175, 55, 0.3)',
     borderRadius: 999,
     paddingVertical: 8,
     paddingHorizontal: 10,
@@ -452,6 +530,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 7,
@@ -459,12 +538,11 @@ const styles = StyleSheet.create({
   pillLabel: {
     fontSize: 12.5,
     fontWeight: '600',
-    color: '#E7ECF2',
+    color: TEXT_PLUM,
   },
 
   card: {
-    flex: 1,
-    backgroundColor: '#FAF7F2',
+    backgroundColor: IVORY,
     borderTopLeftRadius: 36,
     borderTopRightRadius: 36,
     marginTop: -22,
@@ -477,25 +555,26 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#E4DED0',
+    backgroundColor: IVORY_LINE,
     marginBottom: 20,
   },
   cardTitle: {
-    fontSize: 23,
+    fontSize: 24,
     fontWeight: '800',
-    color: '#16233A',
+    color: TEXT_PLUM,
     marginBottom: 6,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   cardSubtitle: {
     fontSize: 13.5,
-    color: '#8B8577',
+    color: TEXT_MUTED,
     marginBottom: 24,
     lineHeight: 19,
   },
   inputLabel: {
     fontSize: 11.5,
     fontWeight: '700',
-    color: '#8B8577',
+    color: TEXT_MUTED,
     letterSpacing: 1,
     marginBottom: 8,
   },
@@ -503,14 +582,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: '#E4DED0',
+    borderColor: IVORY_LINE,
     borderRadius: 14,
     paddingHorizontal: 14,
     height: 54,
     backgroundColor: '#FFFFFF',
   },
   inputRowFocused: {
-    borderColor: '#2DD4BF',
+    borderColor: GOLD_DEEP,
   },
   countryCode: {
     flexDirection: 'row',
@@ -523,18 +602,18 @@ const styles = StyleSheet.create({
   countryCodeText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#16233A',
+    color: TEXT_PLUM,
   },
   inputDivider: {
     width: 1,
     height: 22,
-    backgroundColor: '#E4DED0',
+    backgroundColor: IVORY_LINE,
     marginHorizontal: 12,
   },
   input: {
     flex: 1,
     fontSize: 15,
-    color: '#16233A',
+    color: TEXT_PLUM,
     padding: 0,
   },
   otpHint: {
@@ -569,12 +648,12 @@ const styles = StyleSheet.create({
   },
   referralInput: {
     borderWidth: 1.5,
-    borderColor: '#E4DED0',
+    borderColor: IVORY_LINE,
     borderRadius: 14,
     paddingHorizontal: 14,
     height: 48,
     fontSize: 14,
-    color: '#16233A',
+    color: TEXT_PLUM,
     backgroundColor: '#FFFFFF',
     marginBottom: 8,
   },
@@ -582,9 +661,9 @@ const styles = StyleSheet.create({
     marginTop: 20,
     borderRadius: 999,
     overflow: 'hidden',
-    shadowColor: '#2DD4BF',
+    shadowColor: GOLD_DEEP,
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.35,
     shadowRadius: 12,
     elevation: 6,
   },
@@ -597,7 +676,7 @@ const styles = StyleSheet.create({
   ctaText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#0B1220',
+    color: PLUM_DEEP,
     letterSpacing: 0.3,
   },
   ctaTextDisabled: {
@@ -605,7 +684,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 13,
-    color: '#FF6F61',
+    color: '#C0392B',
     marginTop: 6,
     marginBottom: 4,
   },
@@ -616,16 +695,9 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   termsLink: {
-    color: '#1BAE9C',
-    fontWeight: '600',
+    color: PLUM_ROYAL,
+    fontWeight: '700',
   },
 });
 
 export default LoginScreen;
-
-
-
-
-
-
-

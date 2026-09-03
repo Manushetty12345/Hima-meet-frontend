@@ -27,7 +27,6 @@ import type { LucideIcon } from 'lucide-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../../navigation/AuthNavigator';
 import { verifyOtp, sendOtp } from '../api/authApi';
-// import { getAuth, PhoneAuthProvider, signInWithCredential, signInWithPhoneNumber } from '@react-native-firebase/auth';
 
 const { width } = Dimensions.get('window');
 const STATUSBAR_HEIGHT =
@@ -38,16 +37,33 @@ const RESEND_SECONDS = 54;
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'VerifyOtpScreen'>;
 
-// Horizontal pill strip, matching the login screen's feature showcase
+// ---- Palette pulled from the Himameet mark ----
+const PLUM_DEEP = '#1A0733';
+const PLUM_MID = '#3A0F63';
+const PLUM_ROYAL = '#5B0E8B';
+const GOLD = '#F5C542';
+const GOLD_DEEP = '#D4AF37';
+const IVORY = '#FBF6EC';
+const IVORY_LINE = '#EBDFC4';
+const TEXT_PLUM = '#2A1240';
+const TEXT_MUTED = '#8B7F98';
+
+// Light lavender hero palette — matches LoginScreen exactly
+const LILAC_WHITE = '#FBF7FF';
+const LILAC_PALE  = '#EFDFFB';
+const LILAC_LIGHT = '#DCC1F2';
+
+// Feature strip, matching the login screen's gold-on-glass showcase
 const FEATURES: { key: string; label: string; icon: LucideIcon; tint: string }[] = [
-  { key: 'chat', label: 'Chat', icon: MessageCircle, tint: '#2DD4BF' },
-  { key: 'video', label: 'Video', icon: Video, tint: '#FF6F61' },
-  { key: 'voice', label: 'Voice', icon: Phone, tint: '#FFC364' },
-  { key: 'connect', label: 'Connect', icon: Heart, tint: '#B084F0' },
+  { key: 'chat', label: 'Chat', icon: MessageCircle, tint: '#F5C542' },
+  { key: 'video', label: 'Video', icon: Video, tint: '#E8A6F2' },
+  { key: 'voice', label: 'Voice', icon: Phone, tint: '#F5C542' },
+  { key: 'connect', label: 'Connect', icon: Heart, tint: '#FF9BC4' },
 ];
 
 const VerifyOtpScreen: React.FC<Props> = ({ navigation, route }) => {
   const mobileNumber = route?.params?.phoneNumber ?? '';
+  const [verificationId, setVerificationId] = useState<string>((route?.params as any)?.verificationId ?? '');
 
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''));
   const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
@@ -56,18 +72,20 @@ const VerifyOtpScreen: React.FC<Props> = ({ navigation, route }) => {
   const inputRefs = useRef<Array<any>>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const cardTranslateY = useRef(new Animated.Value(60)).current;
-  const cardOpacity = useRef(new Animated.Value(0)).current;
+  const cardTranslateY = useRef(new Animated.Value(0)).current;
+  const cardOpacity = useRef(new Animated.Value(1)).current;
   const logoScale = useRef(new Animated.Value(0.7)).current;
   const logoOpacity = useRef(new Animated.Value(0)).current;
   const ringRotate = useRef(new Animated.Value(0)).current;
+  const sparkleTwinkle = useRef(new Animated.Value(0.4)).current;
   const stripOpacity = useRef(new Animated.Value(0)).current;
   const timerBarWidth = useRef(new Animated.Value(1)).current;
   const shakeX = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    StatusBar.setBarStyle('light-content');
+    StatusBar.setBarStyle('dark-content');
 
+    // Logo + strip animate in — card is already visible
     Animated.sequence([
       Animated.parallel([
         Animated.spring(logoScale, {
@@ -88,19 +106,6 @@ const VerifyOtpScreen: React.FC<Props> = ({ navigation, route }) => {
         duration: 350,
         useNativeDriver: true,
       }),
-      Animated.parallel([
-        Animated.timing(cardOpacity, {
-          toValue: 1,
-          duration: 420,
-          useNativeDriver: true,
-        }),
-        Animated.spring(cardTranslateY, {
-          toValue: 0,
-          friction: 9,
-          tension: 55,
-          useNativeDriver: true,
-        }),
-      ]),
     ]).start();
 
     Animated.loop(
@@ -110,6 +115,23 @@ const VerifyOtpScreen: React.FC<Props> = ({ navigation, route }) => {
         easing: Easing.linear,
         useNativeDriver: true,
       }),
+    ).start();
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(sparkleTwinkle, {
+          toValue: 1,
+          duration: 750,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(sparkleTwinkle, {
+          toValue: 0.35,
+          duration: 750,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
     ).start();
   }, []);
 
@@ -182,7 +204,7 @@ const VerifyOtpScreen: React.FC<Props> = ({ navigation, route }) => {
     if (!isOtpComplete || isVerifying) return;
     setIsVerifying(true);
     try {
-      // Call backend API without Firebase idToken
+      // Backend verifies OTP against its in-memory store (bhashsms flow)
       const result = await verifyOtp(mobileNumber, otpValue, '+91');
       const { is_new_user } = result.data;
 
@@ -206,7 +228,8 @@ const VerifyOtpScreen: React.FC<Props> = ({ navigation, route }) => {
     setOtp(Array(OTP_LENGTH).fill(''));
     inputRefs.current[0]?.focus();
     try {
-      await sendOtp(mobileNumber);
+      // Backend generates new OTP and sends via bhashsms
+      await sendOtp(mobileNumber, '+91');
       startResendTimer();
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to resend OTP');
@@ -229,40 +252,44 @@ const VerifyOtpScreen: React.FC<Props> = ({ navigation, route }) => {
   return (
     <KeyboardAvoidingView
       style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
 
       <ScrollView
         style={styles.flex}
         contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps="always"
         showsVerticalScrollIndicator={false}
       >
         <LinearGradient
-          colors={['#0B1220', '#12213B', '#1B2E4A']}
-          start={{ x: 0.1, y: 0 }}
-          end={{ x: 0.9, y: 1 }}
+          colors={[LILAC_WHITE, LILAC_PALE, LILAC_LIGHT]}
+          start={{ x: 0.15, y: 0 }}
+          end={{ x: 0.85, y: 1 }}
           style={styles.hero}
         >
           <View style={{ height: STATUSBAR_HEIGHT }} />
 
-          <View style={[styles.blob, styles.blobTeal]} />
-          <View style={[styles.blob, styles.blobCoral]} />
+          <View style={[styles.glow, styles.glowTopRight]} />
+          <View style={[styles.glow, styles.glowBottomLeft]} />
+          <View style={styles.cornerFlourishTR} />
 
           <TouchableOpacity
             style={styles.backButton}
             activeOpacity={0.8}
             onPress={() => navigation.goBack()}
           >
-            <ArrowLeft size={19} color="#F5F7FA" />
+            <ArrowLeft size={19} color={PLUM_ROYAL} />
           </TouchableOpacity>
 
           <View style={styles.logoStage}>
             <Animated.View
               style={[styles.orbitRing, { transform: [{ rotate: ringSpin }] }]}
             >
-              <View style={styles.orbitDot} />
+              <Animated.Text style={[styles.orbitSparkle, { opacity: sparkleTwinkle }]}>
+                ✦
+              </Animated.Text>
             </Animated.View>
             <Animated.View
               style={[
@@ -274,7 +301,7 @@ const VerifyOtpScreen: React.FC<Props> = ({ navigation, route }) => {
               ]}
             >
               <Image
-                source={require('../../../assets/images/logo.png')}
+                source={require('../../../assets/images/logo1.png')}
                 style={styles.logo}
                 resizeMode="contain"
               />
@@ -282,16 +309,16 @@ const VerifyOtpScreen: React.FC<Props> = ({ navigation, route }) => {
           </View>
 
           <Text style={styles.wordmark}>
-            <Text style={styles.wordmarkAccent}>Hi</Text>MaMeet
+            <Text style={styles.wordmarkAccent}>Hima</Text>meet
           </Text>
-          <Text style={styles.tagline}>REAL PEOPLE · REAL MOMENTS</Text>
+          <View style={styles.taglineDivider}>
+            <View style={styles.taglineLine} />
+            <Text style={styles.taglineHeart}>♥</Text>
+            <View style={styles.taglineLine} />
+          </View>
+          <Text style={styles.tagline}>WHERE REAL BONDS BEGIN</Text>
 
-          <Animated.ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={{ opacity: stripOpacity }}
-            contentContainerStyle={styles.stripContent}
-          >
+          <Animated.View style={[styles.stripContent, { opacity: stripOpacity }]}>
             {FEATURES.map(feature => {
               const FeatureIcon = feature.icon;
               return (
@@ -299,7 +326,7 @@ const VerifyOtpScreen: React.FC<Props> = ({ navigation, route }) => {
                   <View
                     style={[
                       styles.pillIconDot,
-                      { backgroundColor: `${feature.tint}26` },
+                      { backgroundColor: `${feature.tint}26`, borderColor: `${feature.tint}55` },
                     ]}
                   >
                     <FeatureIcon size={15} color={feature.tint} />
@@ -308,7 +335,7 @@ const VerifyOtpScreen: React.FC<Props> = ({ navigation, route }) => {
                 </View>
               );
             })}
-          </Animated.ScrollView>
+          </Animated.View>
         </LinearGradient>
 
         <Animated.View
@@ -322,11 +349,11 @@ const VerifyOtpScreen: React.FC<Props> = ({ navigation, route }) => {
         >
           <View style={styles.cardHandle} />
 
-          <Text style={styles.cardTitle}>Enter the code</Text>
+          <Text style={styles.cardTitle}>Verify OTP</Text>
 
           <View style={styles.otpSentRow}>
             <View>
-              <Text style={styles.otpSentLabel}>Sent by SMS to</Text>
+              <Text style={styles.otpSentLabel}>OTP sent to</Text>
               <Text style={styles.mobileNumberText}>{mobileNumber}</Text>
             </View>
             <TouchableOpacity activeOpacity={0.7} onPress={handleChangeNumber}>
@@ -334,7 +361,9 @@ const VerifyOtpScreen: React.FC<Props> = ({ navigation, route }) => {
             </TouchableOpacity>
           </View>
 
-          {/* Underline-style OTP boxes, not bordered squares */}
+          <Text style={styles.otpInputLabel}>Enter 6-digit OTP</Text>
+
+          {/* Full border box OTP inputs */}
           <Animated.View
             style={[styles.otpRow, { transform: [{ translateX: shakeX }] }]}
           >
@@ -361,9 +390,7 @@ const VerifyOtpScreen: React.FC<Props> = ({ navigation, route }) => {
             style={styles.ctaWrapper}
           >
             <LinearGradient
-              colors={
-                isOtpComplete ? ['#2DD4BF', '#1BAE9C'] : ['#E4DED0', '#E4DED0']
-              }
+              colors={isOtpComplete ? [GOLD, GOLD_DEEP] : [IVORY_LINE, IVORY_LINE]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.ctaButton}
@@ -374,26 +401,20 @@ const VerifyOtpScreen: React.FC<Props> = ({ navigation, route }) => {
                   !isOtpComplete && styles.ctaTextDisabled,
                 ]}
               >
-                {isVerifying ? 'Verifying…' : 'Verify & Continue'}
+                {isVerifying ? 'Verifying…' : 'Verify OTP'}
               </Text>
             </LinearGradient>
           </TouchableOpacity>
 
           <View style={styles.resendBlock}>
             {secondsLeft > 0 ? (
-              <>
-                <View style={styles.timerTrack}>
-                  <Animated.View
-                    style={[styles.timerFill, { width: timerBarPct }]}
-                  />
-                </View>
-                <Text style={styles.resendText}>
-                  Resend available in {secondsLeft}s
-                </Text>
-              </>
+              <View style={styles.resendRow}>
+                <Text style={styles.resendText}>Didn't receive the OTP?{'  '}</Text>
+                <Text style={styles.resendTimerText}>Retry in ({secondsLeft})</Text>
+              </View>
             ) : (
               <View style={styles.resendRow}>
-                <Text style={styles.resendText}>Didn't get a code? </Text>
+                <Text style={styles.resendText}>Didn't receive the OTP?{'  '}</Text>
                 <TouchableOpacity activeOpacity={0.7} onPress={handleResendOtp}>
                   <Text style={styles.resendActiveText}>Resend OTP</Text>
                 </TouchableOpacity>
@@ -406,42 +427,55 @@ const VerifyOtpScreen: React.FC<Props> = ({ navigation, route }) => {
   );
 };
 
-const LOGO_SIZE = width * 0.24;
-const STAGE_SIZE = width * 0.4;
+const LOGO_SIZE = width * 0.32;
+const STAGE_SIZE = width * 0.48;
 const OTP_BOX_SIZE = (width - 26 * 2 - 5 * 10) / OTP_LENGTH;
 
 const styles = StyleSheet.create({
   flex: {
     flex: 1,
-    backgroundColor: '#0B1220',
+    backgroundColor: LILAC_LIGHT,
   },
   scrollContent: {
     flexGrow: 1,
+    backgroundColor: LILAC_LIGHT,
   },
 
   hero: {
     alignItems: 'center',
-    paddingBottom: 30,
+    paddingBottom: 85,
     paddingHorizontal: 20,
     overflow: 'hidden',
   },
-  blob: {
+  glow: {
     position: 'absolute',
     borderRadius: 999,
   },
-  blobTeal: {
+  glowTopRight: {
     width: width * 0.6,
     height: width * 0.6,
     top: -width * 0.3,
     right: -width * 0.25,
-    backgroundColor: 'rgba(45, 212, 191, 0.14)',
+    backgroundColor: 'rgba(245, 197, 66, 0.18)',
   },
-  blobCoral: {
+  glowBottomLeft: {
     width: width * 0.4,
     height: width * 0.4,
     bottom: -width * 0.15,
     left: -width * 0.18,
-    backgroundColor: 'rgba(255, 111, 97, 0.12)',
+    backgroundColor: 'rgba(91, 14, 139, 0.10)',
+  },
+  cornerFlourishTR: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 70,
+    height: 70,
+    borderTopWidth: 1,
+    borderRightWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.4)',
+    borderTopRightRadius: 20,
+    margin: 18,
   },
 
   backButton: {
@@ -451,10 +485,10 @@ const styles = StyleSheet.create({
     zIndex: 10,
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
+    borderRadius: 10,
+    backgroundColor: 'rgba(91, 14, 139, 0.12)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(91, 14, 139, 0.35)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -464,7 +498,7 @@ const styles = StyleSheet.create({
     height: STAGE_SIZE,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 40,
+    marginTop: 18,
   },
   orbitRing: {
     position: 'absolute',
@@ -473,72 +507,91 @@ const styles = StyleSheet.create({
     borderRadius: STAGE_SIZE / 2,
     borderWidth: 1,
     borderStyle: 'dashed',
-    borderColor: 'rgba(45, 212, 191, 0.35)',
+    borderColor: 'rgba(212, 175, 55, 0.55)',
   },
-  orbitDot: {
+  orbitSparkle: {
     position: 'absolute',
-    top: -3,
+    top: -8,
     left: '50%',
-    marginLeft: -3,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#FF6F61',
+    marginLeft: -8,
+    fontSize: 15,
+    color: GOLD_DEEP,
   },
   logoWrapper: {
     width: LOGO_SIZE,
     height: LOGO_SIZE,
     borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(212, 175, 55, 0.5)',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
   logo: {
-    width: '68%',
-    height: '68%',
+    width: '100%',
+    height: '100%',
+    borderRadius: 22,
   },
 
   wordmark: {
     marginTop: 16,
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '300',
-    color: '#F5F7FA',
+    color: TEXT_PLUM,
     letterSpacing: 1,
   },
   wordmarkAccent: {
     fontWeight: '800',
     fontStyle: 'italic',
-    color: '#FF6F61',
+    color: GOLD_DEEP,
+  },
+  taglineDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    width: 130,
+  },
+  taglineLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(212, 175, 55, 0.55)',
+  },
+  taglineHeart: {
+    color: GOLD_DEEP,
+    fontSize: 10,
+    marginHorizontal: 8,
   },
   tagline: {
-    marginTop: 4,
+    marginTop: 6,
     fontSize: 10.5,
-    color: 'rgba(200, 220, 235, 0.6)',
-    letterSpacing: 1.6,
+    color: 'rgba(91, 14, 139, 0.55)',
+    letterSpacing: 2,
   },
 
   stripContent: {
     marginTop: 22,
-    paddingHorizontal: 4,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    width: '100%',
+    paddingHorizontal: 10,
   },
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(212, 175, 55, 0.3)',
     borderRadius: 999,
     paddingVertical: 8,
-    paddingHorizontal: 12,
-    marginRight: 10,
+    paddingHorizontal: 10,
+    marginHorizontal: 4,
   },
   pillIconDot: {
     width: 24,
     height: 24,
     borderRadius: 12,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 7,
@@ -546,32 +599,33 @@ const styles = StyleSheet.create({
   pillLabel: {
     fontSize: 12.5,
     fontWeight: '600',
-    color: '#E7ECF2',
+    color: TEXT_PLUM,
   },
 
   card: {
     flex: 1,
-    backgroundColor: '#FAF7F2',
+    backgroundColor: IVORY,
     borderTopLeftRadius: 36,
     borderTopRightRadius: 36,
     marginTop: -22,
     paddingHorizontal: 26,
     paddingTop: 16,
-    paddingBottom: 36,
+    paddingBottom: 60,
   },
   cardHandle: {
     alignSelf: 'center',
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#E4DED0',
+    backgroundColor: IVORY_LINE,
     marginBottom: 20,
   },
   cardTitle: {
-    fontSize: 23,
+    fontSize: 24,
     fontWeight: '800',
-    color: '#16233A',
+    color: TEXT_PLUM,
     marginBottom: 20,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   otpSentRow: {
     flexDirection: 'row',
@@ -581,20 +635,28 @@ const styles = StyleSheet.create({
   },
   otpSentLabel: {
     fontSize: 12.5,
-    color: '#8B8577',
+    color: TEXT_MUTED,
     marginBottom: 4,
   },
   mobileNumberText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#16233A',
+    color: TEXT_PLUM,
   },
   changeLink: {
     fontSize: 13.5,
     fontWeight: '700',
-    color: '#1BAE9C',
+    color: PLUM_ROYAL,
   },
 
+  otpInputLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: TEXT_MUTED,
+    letterSpacing: 0.5,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
   otpRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -603,25 +665,28 @@ const styles = StyleSheet.create({
   otpBox: {
     width: OTP_BOX_SIZE,
     height: OTP_BOX_SIZE + 10,
-    borderBottomWidth: 2.5,
-    borderColor: '#E4DED0',
+    borderWidth: 1.5,
+    borderColor: IVORY_LINE,
+    borderRadius: 12,
     textAlign: 'center',
     fontSize: 22,
     fontWeight: '700',
-    color: '#16233A',
-    backgroundColor: 'transparent',
+    color: TEXT_PLUM,
+    backgroundColor: '#FFFFFF',
   },
   otpBoxFilled: {
-    borderColor: '#2DD4BF',
-    color: '#1BAE9C',
+    borderColor: GOLD_DEEP,
+    borderWidth: 2,
+    backgroundColor: 'rgba(212, 175, 55, 0.06)',
+    color: PLUM_ROYAL,
   },
 
   ctaWrapper: {
     borderRadius: 999,
     overflow: 'hidden',
-    shadowColor: '#2DD4BF',
+    shadowColor: GOLD_DEEP,
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.35,
     shadowRadius: 12,
     elevation: 6,
   },
@@ -633,7 +698,7 @@ const styles = StyleSheet.create({
   ctaText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#0B1220',
+    color: PLUM_DEEP,
     letterSpacing: 0.3,
   },
   ctaTextDisabled: {
@@ -648,13 +713,13 @@ const styles = StyleSheet.create({
     width: '60%',
     height: 3,
     borderRadius: 2,
-    backgroundColor: '#E4DED0',
+    backgroundColor: IVORY_LINE,
     overflow: 'hidden',
     marginBottom: 10,
   },
   timerFill: {
     height: '100%',
-    backgroundColor: '#2DD4BF',
+    backgroundColor: GOLD_DEEP,
   },
   resendRow: {
     flexDirection: 'row',
@@ -663,12 +728,17 @@ const styles = StyleSheet.create({
   },
   resendText: {
     fontSize: 13,
-    color: '#8B8577',
+    color: TEXT_MUTED,
+  },
+  resendTimerText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: GOLD_DEEP,
   },
   resendActiveText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#1BAE9C',
+    color: PLUM_ROYAL,
     textDecorationLine: 'underline',
   },
 });

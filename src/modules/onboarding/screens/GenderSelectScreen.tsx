@@ -18,7 +18,8 @@ import type { AuthStackParamList } from '../../../navigation/AuthNavigator';
 
 // Components
 import GenderCard from '../components/GenderCard';
-import AvatarPickerCarousel from '../components/AvatarPickerCarousel';
+import AvatarPickerCarousel, { AvatarItem } from '../components/AvatarPickerCarousel';
+import { getAvatars } from '../api/onboardingApi';
 
 const { width } = Dimensions.get('window');
 const STATUSBAR_HEIGHT =
@@ -31,41 +32,41 @@ type Gender = 'male' | 'female';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'GenderSelect'>;
 
-// Dummy avatar placeholders — swap these for your real avatar assets later.
-const MALE_AVATARS = [
-  { id: 'm1', uri: 'https://i.pravatar.cc/200?img=11' },
-  { id: 'm2', uri: 'https://i.pravatar.cc/200?img=12' },
-  { id: 'm3', uri: 'https://i.pravatar.cc/200?img=13' },
-  { id: 'm4', uri: 'https://i.pravatar.cc/200?img=14' },
-  { id: 'm5', uri: 'https://i.pravatar.cc/200?img=15' },
-];
-
-const FEMALE_AVATARS = [
-  { id: 'f1', uri: 'https://i.pravatar.cc/200?img=47' },
-  { id: 'f2', uri: 'https://i.pravatar.cc/200?img=48' },
-  { id: 'f3', uri: 'https://i.pravatar.cc/200?img=49' },
-  { id: 'f4', uri: 'https://i.pravatar.cc/200?img=51' },
-  { id: 'f5', uri: 'https://i.pravatar.cc/200?img=57' },
-];
-
 const GenderSelectScreen: React.FC<Props> = ({ navigation }) => {
   const [selectedGender, setSelectedGender] = useState<Gender | null>('male');
-  const [selectedAvatarId, setSelectedAvatarId] = useState<string>(MALE_AVATARS[2].id);
-
-  const currentAvatars = selectedGender === 'female' ? FEMALE_AVATARS : MALE_AVATARS;
-
-  const handleGenderSelect = (gender: Gender) => {
-    if (gender === selectedGender) return;
-    setSelectedGender(gender);
-    // Reset avatar to the middle of the new gender's list
-    const list = gender === 'female' ? FEMALE_AVATARS : MALE_AVATARS;
-    setSelectedAvatarId(list[2].id);
-  };
-
+  const [selectedAvatarId, setSelectedAvatarId] = useState<string>('');
+  
+  const [maleAvatars, setMaleAvatars] = useState<AvatarItem[]>([]);
+  const [femaleAvatars, setFemaleAvatars] = useState<AvatarItem[]>([]);
+  
   const cardOpacity = useRef(new Animated.Value(0)).current;
   const cardTranslateY = useRef(new Animated.Value(24)).current;
 
   React.useEffect(() => {
+    // Fetch avatars on mount
+    const fetchAvatars = async () => {
+      try {
+        const [maleRes, femaleRes] = await Promise.all([
+          getAvatars('male'),
+          getAvatars('female')
+        ]);
+        
+        const mapAvatars = (data: any[]) => data.map(a => ({ id: a.id.toString(), uri: a.avatar_url }));
+        
+        const mAvatars = mapAvatars(maleRes.data.data);
+        const fAvatars = mapAvatars(femaleRes.data.data);
+        
+        setMaleAvatars(mAvatars);
+        setFemaleAvatars(fAvatars);
+        
+        // set default selection
+        if (mAvatars.length > 0) setSelectedAvatarId(mAvatars[0].id);
+      } catch (e) {
+        console.error('Failed to fetch avatars', e);
+      }
+    };
+    fetchAvatars();
+    
     StatusBar.setBarStyle('dark-content');
     Animated.parallel([
       Animated.timing(cardOpacity, {
@@ -83,16 +84,28 @@ const GenderSelectScreen: React.FC<Props> = ({ navigation }) => {
     ]).start();
   }, []);
 
+  const currentAvatars = selectedGender === 'female' ? femaleAvatars : maleAvatars;
+
+  const handleGenderSelect = (gender: Gender) => {
+    if (gender === selectedGender) return;
+    setSelectedGender(gender);
+    const list = gender === 'female' ? femaleAvatars : maleAvatars;
+    if (list.length > 0) {
+      setSelectedAvatarId(list[0].id);
+    } else {
+      setSelectedAvatarId('');
+    }
+  };
+
   const isContinueEnabled = !!selectedGender && !!selectedAvatarId;
 
   const handleContinue = () => {
     if (!isContinueEnabled) return;
-    // TODO: persist selectedGender + selectedAvatarId (API call / context / redux)
-    if (selectedGender === 'female') {
-      navigation.navigate('CreateProfileSetup');
-    } else {
-      navigation.navigate('SelectLanguage', { gender: selectedGender });
-    }
+    // Go to SelectLanguage passing both gender and avatar
+    navigation.navigate('SelectLanguage', { 
+      gender: selectedGender, 
+      avatar_id: parseInt(selectedAvatarId, 10) 
+    });
   };
 
   return (

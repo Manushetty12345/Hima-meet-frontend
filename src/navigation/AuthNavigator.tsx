@@ -22,11 +22,11 @@ export type AuthStackParamList = {
   LoginScreen: undefined;
   VerifyOtpScreen: { phoneNumber: string; generatedOtp: string };
   GenderSelect: undefined;
-  SelectLanguage: { gender?: string } | undefined;
-  NotificationSetup: undefined;
+  ProfileReview: { gender?: string } | undefined;
+  SelectLanguage: { gender?: string, avatar_id?: number } | undefined;
+  NotificationSetup: { gender?: string, avatar_id?: number, language_id?: number } | undefined;
   CreateProfileSetup: undefined;
   VoiceVerification: { gender?: string } | undefined;
-  ProfileReview: undefined;
   Home: undefined;
   Wallet: undefined;
   Friends: undefined;

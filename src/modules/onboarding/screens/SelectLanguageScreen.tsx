@@ -16,6 +16,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import LanguageCard, { LanguageItem } from '../components/LanguageCard';
 import type { AuthStackParamList } from '../../../navigation/AuthNavigator';
+import { getLanguages } from '../api/onboardingApi';
 
 const STATUSBAR_HEIGHT =
   Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 0;
@@ -25,29 +26,36 @@ const CURRENT_STEP = 3;
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'SelectLanguage'>;
 
-const LANGUAGES: LanguageItem[] = [
-  { id: 'en', glyph: 'A',  nameEnglish: 'English',    nameNative: 'English'    },
-  { id: 'hi', glyph: 'à¤¹',  nameEnglish: 'Hindi',      nameNative: 'à¤¹à¤¿à¤¨à¥à¤¦à¥€'      },
-  { id: 'ta', glyph: 'à®¤',  nameEnglish: 'Tamil',      nameNative: 'à®¤à®®à®¿à®´à¯'      },
-  { id: 'te', glyph: 'à°¤à±†', nameEnglish: 'Telugu',     nameNative: 'à°¤à±†à°²à±à°—à±'     },
-  { id: 'kn', glyph: 'à²•',  nameEnglish: 'Kannada',    nameNative: 'à²•à²¨à³à²¨à²¡'      },
-  { id: 'ml', glyph: 'à´®',  nameEnglish: 'Malayalam',  nameNative: 'à´®à´²à´¯à´¾à´³à´‚'     },
-  { id: 'pa', glyph: 'à¨ª',  nameEnglish: 'Punjabi',    nameNative: 'à¨ªà©°à¨œà¨¾à¨¬à©€'     },
-  { id: 'mr', glyph: 'à¤®',  nameEnglish: 'Marathi',    nameNative: 'à¤®à¤°à¤¾à¤ à¥€'      },
-  { id: 'bn', glyph: 'à¦¬',  nameEnglish: 'Bengali',    nameNative: 'à¦¬à¦¾à¦‚à¦²à¦¾'      },
-  { id: 'as', glyph: 'à¦…',  nameEnglish: 'Assamese',   nameNative: 'à¦…à¦¸à¦®à§€à¦¯à¦¼à¦¾'    },
-  { id: 'or', glyph: 'à¬“',  nameEnglish: 'Odia',       nameNative: 'à¬“à¬¡à¬¼à¬¿à¬†'      },
-  { id: 'gu', glyph: 'àª—',  nameEnglish: 'Gujarati',   nameNative: 'àª—à«àªœàª°àª¾àª¤à«€'   },
-];
-
 const SelectLanguageScreen: React.FC<Props> = ({ route, navigation }) => {
-  const [selectedLanguageId, setSelectedLanguageId] = useState<string>('kn');
+  const [selectedLanguageId, setSelectedLanguageId] = useState<string>('');
+  const [languages, setLanguages] = useState<LanguageItem[]>([]);
+  
   const gender = route.params?.gender;
+  const avatarId = route.params?.avatar_id;
 
   const ctaOpacity = useRef(new Animated.Value(0)).current;
   const ctaTranslateY = useRef(new Animated.Value(24)).current;
 
   React.useEffect(() => {
+    const fetchLanguages = async () => {
+      try {
+        const res = await getLanguages();
+        const apiLangs = res.data.data.map((l: any) => ({
+          id: l.id.toString(),
+          glyph: l.name_native?.charAt(0) || 'A',
+          nameEnglish: l.name_english,
+          nameNative: l.name_native || l.name_english
+        }));
+        setLanguages(apiLangs);
+        if (apiLangs.length > 0) {
+          setSelectedLanguageId(apiLangs[0].id);
+        }
+      } catch (e) {
+        console.error('Failed to fetch languages', e);
+      }
+    };
+    fetchLanguages();
+    
     StatusBar.setBarStyle('dark-content');
     Animated.parallel([
       Animated.timing(ctaOpacity, {
@@ -69,12 +77,11 @@ const SelectLanguageScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleContinue = () => {
     if (!isContinueEnabled) return;
-    // TODO: persist selectedLanguageId (API call / context / redux)
-    if (gender === 'female') {
-      navigation.navigate('VoiceVerification', { gender });
-    } else {
-      navigation.navigate('NotificationSetup');
-    }
+    navigation.navigate('NotificationSetup', {
+      gender,
+      avatar_id: avatarId,
+      language_id: parseInt(selectedLanguageId, 10)
+    });
   };
 
   return (
@@ -123,7 +130,7 @@ const SelectLanguageScreen: React.FC<Props> = ({ route, navigation }) => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {LANGUAGES.map(lang => (
+        {languages.map(lang => (
           <LanguageCard
             key={lang.id}
             language={lang}

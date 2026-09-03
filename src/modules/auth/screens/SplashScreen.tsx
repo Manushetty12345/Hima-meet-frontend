@@ -21,86 +21,132 @@ type Props = NativeStackScreenProps<AuthStackParamList, 'SplashScreen'>;
 
 const SPLASH_DURATION = 2800;
 
+// ---- Palette pulled from the Himameet mark ----
+const PLUM_DEEP = '#1A0733';
+const PLUM_MID = '#3A0F63';
+const PLUM_ROYAL = '#5B0E8B';
+const GOLD = '#F5C542';
+const GOLD_DEEP = '#D4AF37';
+const GOLD_SOFT = 'rgba(245, 197, 66, 0.55)';
+const LILAC_TEXT = 'rgba(233, 214, 255, 0.85)';
+
 const SplashScreen: React.FC<Props> = ({ navigation }) => {
   // Logo entrance + breathing loop
   const logoScale = useRef(new Animated.Value(0.4)).current;
   const logoOpacity = useRef(new Animated.Value(0)).current;
   const breathe = useRef(new Animated.Value(1)).current;
 
-  // Orbit rings around the logo
-  const ringRotateA = useRef(new Animated.Value(0)).current;
-  const ringRotateB = useRef(new Animated.Value(0)).current;
+  // Halo ring + orbiting sparkle cluster around the logo
+  const haloRotate = useRef(new Animated.Value(0)).current;
+  const sparkleRotate = useRef(new Animated.Value(0)).current;
+  const sparkleTwinkle = useRef(new Animated.Value(0.4)).current;
 
   // Wordmark reveal
-  const wordHiOpacity = useRef(new Animated.Value(0)).current;
-  const wordHiTranslate = useRef(new Animated.Value(-14)).current;
+  const wordHimaOpacity = useRef(new Animated.Value(0)).current;
+  const wordHimaTranslate = useRef(new Animated.Value(-16)).current;
   const wordMeetOpacity = useRef(new Animated.Value(0)).current;
-  const wordMeetTranslate = useRef(new Animated.Value(14)).current;
+  const wordMeetTranslate = useRef(new Animated.Value(16)).current;
 
-  // Shine sweep across wordmark
+  // Gold shine sweep across wordmark
   const shineX = useRef(new Animated.Value(-1)).current;
+
+  // Ornamental flourish (heart + scroll divider) draw-in
+  const flourishScale = useRef(new Animated.Value(0)).current;
+  const flourishOpacity = useRef(new Animated.Value(0)).current;
 
   // Tagline
   const taglineOpacity = useRef(new Animated.Value(0)).current;
+  const taglineTranslate = useRef(new Animated.Value(8)).current;
 
-  // Loader arc rotation
-  const loaderRotate = useRef(new Animated.Value(0)).current;
+  // Footer dot pulse (3 dots, staggered)
+  const dot1 = useRef(new Animated.Value(0.3)).current;
+  const dot2 = useRef(new Animated.Value(0.3)).current;
+  const dot3 = useRef(new Animated.Value(0.3)).current;
+  const footerOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     StatusBar.setBarStyle('light-content');
 
     Animated.sequence([
-      // 1. Logo pops in
+      // 1. Logo pops in with a soft golden bloom
       Animated.parallel([
         Animated.spring(logoScale, {
           toValue: 1,
           friction: 5,
-          tension: 60,
+          tension: 55,
           useNativeDriver: true,
         }),
         Animated.timing(logoOpacity, {
           toValue: 1,
-          duration: 450,
+          duration: 500,
           easing: Easing.out(Easing.ease),
           useNativeDriver: true,
         }),
       ]),
-      // 2. Wordmark halves slide in from opposite sides
+      // 2. Wordmark halves glide in from opposite sides
       Animated.parallel([
-        Animated.timing(wordHiOpacity, {
+        Animated.timing(wordHimaOpacity, {
           toValue: 1,
-          duration: 380,
+          duration: 420,
           useNativeDriver: true,
         }),
-        Animated.timing(wordHiTranslate, {
+        Animated.timing(wordHimaTranslate, {
           toValue: 0,
-          duration: 380,
-          easing: Easing.out(Easing.back(1.4)),
+          duration: 420,
+          easing: Easing.out(Easing.back(1.3)),
           useNativeDriver: true,
         }),
         Animated.timing(wordMeetOpacity, {
           toValue: 1,
-          duration: 380,
+          duration: 420,
           useNativeDriver: true,
         }),
         Animated.timing(wordMeetTranslate, {
           toValue: 0,
-          duration: 380,
-          easing: Easing.out(Easing.back(1.4)),
+          duration: 420,
+          easing: Easing.out(Easing.back(1.3)),
           useNativeDriver: true,
         }),
       ]),
-      // 3. Tagline fades up
-      Animated.timing(taglineOpacity, {
-        toValue: 1,
-        duration: 350,
-        useNativeDriver: true,
-      }),
-      // 4. Shine sweep across the wordmark, once
+      // 3. Ornamental flourish blooms open beneath the wordmark
+      Animated.parallel([
+        Animated.spring(flourishScale, {
+          toValue: 1,
+          friction: 6,
+          tension: 50,
+          useNativeDriver: true,
+        }),
+        Animated.timing(flourishOpacity, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+      ]),
+      // 4. Tagline rises softly into place
+      Animated.parallel([
+        Animated.timing(taglineOpacity, {
+          toValue: 1,
+          duration: 380,
+          useNativeDriver: true,
+        }),
+        Animated.timing(taglineTranslate, {
+          toValue: 0,
+          duration: 380,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+      // 5. Gold shine sweeps once across the wordmark
       Animated.timing(shineX, {
         toValue: 1,
-        duration: 900,
+        duration: 950,
         easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      // 6. Footer fades in last
+      Animated.timing(footerOpacity, {
+        toValue: 1,
+        duration: 350,
         useNativeDriver: true,
       }),
     ]).start();
@@ -109,47 +155,80 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
     Animated.loop(
       Animated.sequence([
         Animated.timing(breathe, {
-          toValue: 1.06,
-          duration: 1100,
+          toValue: 1.05,
+          duration: 1200,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
         Animated.timing(breathe, {
           toValue: 1,
-          duration: 1100,
+          duration: 1200,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
       ]),
     ).start();
 
-    // Two orbit rings spinning in opposite directions
+    // Slow halo ring rotation
     Animated.loop(
-      Animated.timing(ringRotateA, {
+      Animated.timing(haloRotate, {
         toValue: 1,
-        duration: 6000,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      }),
-    ).start();
-    Animated.loop(
-      Animated.timing(ringRotateB, {
-        toValue: 1,
-        duration: 4200,
+        duration: 9000,
         easing: Easing.linear,
         useNativeDriver: true,
       }),
     ).start();
 
-    // Loader arc spin
+    // Orbiting sparkle cluster, opposite direction, faster
     Animated.loop(
-      Animated.timing(loaderRotate, {
+      Animated.timing(sparkleRotate, {
         toValue: 1,
-        duration: 900,
+        duration: 5000,
         easing: Easing.linear,
         useNativeDriver: true,
       }),
     ).start();
+
+    // Twinkling sparkles
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(sparkleTwinkle, {
+          toValue: 1,
+          duration: 700,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(sparkleTwinkle, {
+          toValue: 0.35,
+          duration: 700,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+    ).start();
+
+    // Staggered footer dot pulse
+    const pulseDot = (val: Animated.Value, delay: number) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(val, {
+            toValue: 1,
+            duration: 420,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(val, {
+            toValue: 0.3,
+            duration: 420,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ]),
+      );
+    pulseDot(dot1, 0).start();
+    pulseDot(dot2, 180).start();
+    pulseDot(dot3, 360).start();
 
     // Session check + navigation, same logic as before
     const checkSessionAndNavigate = async () => {
@@ -188,17 +267,13 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
     checkSessionAndNavigate();
   }, [navigation]);
 
-  const spinA = ringRotateA.interpolate({
+  const haloSpin = haloRotate.interpolate({
     inputRange: [0, 1],
     outputRange: ['0deg', '360deg'],
   });
-  const spinB = ringRotateB.interpolate({
+  const sparkleSpin = sparkleRotate.interpolate({
     inputRange: [0, 1],
     outputRange: ['360deg', '0deg'],
-  });
-  const loaderSpin = loaderRotate.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
   });
   const shineTranslate = shineX.interpolate({
     inputRange: [-1, 1],
@@ -208,36 +283,53 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#0B1220', '#12213B', '#1B2E4A']}
-        start={{ x: 0.1, y: 0 }}
-        end={{ x: 0.9, y: 1 }}
+        colors={[PLUM_DEEP, PLUM_MID, PLUM_ROYAL]}
+        start={{ x: 0.15, y: 0 }}
+        end={{ x: 0.85, y: 1 }}
         style={styles.gradient}
       >
-        {/* Organic accent blobs — teal + coral, unlike a single-tone background */}
-        <View style={[styles.blob, styles.blobTeal]} />
-        <View style={[styles.blob, styles.blobCoral]} />
-        <View style={[styles.blob, styles.blobGoldSmall]} />
+        {/* Soft golden light glows, not flat pastel blobs */}
+        <View style={[styles.glow, styles.glowTopRight]} />
+        <View style={[styles.glow, styles.glowBottomLeft]} />
+        <View style={[styles.glow, styles.glowCenterFaint]} />
+
+        {/* Faint damask-style corner flourishes, echoing the logo backdrop */}
+        <View style={styles.cornerFlourishTL} />
+        <View style={styles.cornerFlourishBR} />
 
         <View style={styles.content}>
-          {/* Logo with dual orbit rings + glow, replacing a plain circular badge */}
+          {/* Logo with rotating halo ring + orbiting sparkle cluster */}
           <View style={styles.logoStage}>
             <Animated.View
-              style={[
-                styles.orbitRing,
-                styles.orbitRingOuter,
-                { transform: [{ rotate: spinA }] },
-              ]}
-            >
-              <View style={styles.orbitDotTeal} />
-            </Animated.View>
+              style={[styles.haloRing, { transform: [{ rotate: haloSpin }] }]}
+            />
+
             <Animated.View
               style={[
-                styles.orbitRing,
-                styles.orbitRingInner,
-                { transform: [{ rotate: spinB }] },
+                styles.sparkleOrbit,
+                { transform: [{ rotate: sparkleSpin }] },
               ]}
             >
-              <View style={styles.orbitDotCoral} />
+              <Animated.Text
+                style={[styles.sparkleTop, { opacity: sparkleTwinkle }]}
+              >
+                ✦
+              </Animated.Text>
+              <Animated.Text
+                style={[styles.sparkleRight, { opacity: sparkleTwinkle }]}
+              >
+                ✧
+              </Animated.Text>
+              <Animated.Text
+                style={[styles.sparkleBottom, { opacity: sparkleTwinkle }]}
+              >
+                ✦
+              </Animated.Text>
+              <Animated.Text
+                style={[styles.sparkleLeft, { opacity: sparkleTwinkle }]}
+              >
+                ✧
+              </Animated.Text>
             </Animated.View>
 
             <Animated.View
@@ -259,20 +351,20 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
             </Animated.View>
           </View>
 
-          {/* Split, two-tone wordmark with a shine sweep, instead of one static line */}
+          {/* Two-tone gold wordmark with a shine sweep */}
           <View style={styles.wordmarkClip}>
             <View style={styles.wordmarkRow}>
               <Animated.Text
                 style={[
-                  styles.wordHi,
+                  styles.wordHima,
                   {
-                    opacity: wordHiOpacity,
-                    transform: [{ translateX: wordHiTranslate }],
+                    opacity: wordHimaOpacity,
+                    transform: [{ translateX: wordHimaTranslate }],
                   },
                 ]}
               >
-Hima
-</Animated.Text>
+                Hima
+              </Animated.Text>
               <Animated.Text
                 style={[
                   styles.wordMeet,
@@ -282,40 +374,70 @@ Hima
                   },
                 ]}
               >
-Meet
-</Animated.Text>
+                meet
+              </Animated.Text>
             </View>
             <Animated.View
               pointerEvents="none"
               style={[
                 styles.shine,
-                { transform: [{ translateX: shineTranslate }, { rotate: '18deg' }] },
+                {
+                  transform: [
+                    { translateX: shineTranslate },
+                    { rotate: '18deg' },
+                  ],
+                },
               ]}
             />
           </View>
 
-          <Animated.Text style={[styles.tagline, { opacity: taglineOpacity }]}>
-            Real People. Real Moments.
+          {/* Ornamental heart-and-scroll flourish, pulled from the logo */}
+          <Animated.View
+            style={[
+              styles.flourishRow,
+              {
+                opacity: flourishOpacity,
+                transform: [{ scaleX: flourishScale }],
+              },
+            ]}
+          >
+            <View style={styles.flourishLine} />
+            <Text style={styles.flourishHeart}>♥</Text>
+            <View style={styles.flourishLine} />
+          </Animated.View>
+
+          <Animated.Text
+            style={[
+              styles.tagline,
+              {
+                opacity: taglineOpacity,
+                transform: [{ translateY: taglineTranslate }],
+              },
+            ]}
+          >
+            Where Real Bonds Begin
           </Animated.Text>
         </View>
 
-        {/* Rotating arc loader, replacing plain pulsing dots */}
-        <View style={styles.footer}>
-          <Animated.View
-            style={[styles.loaderArc, { transform: [{ rotate: loaderSpin }] }]}
-          />
-          <Text style={styles.loadingText}>Getting things ready…</Text>
-        </View>
+        {/* Three glowing gold dots, replacing a spinning loader arc */}
+        <Animated.View style={[styles.footer, { opacity: footerOpacity }]}>
+          <View style={styles.dotRow}>
+            <Animated.View style={[styles.dot, { opacity: dot1 }]} />
+            <Animated.View style={[styles.dot, { opacity: dot2 }]} />
+            <Animated.View style={[styles.dot, { opacity: dot3 }]} />
+          </View>
+          <Text style={styles.loadingText}>Preparing your world…</Text>
+        </Animated.View>
       </LinearGradient>
     </View>
   );
 };
 
-const CIRCLE_LARGE = width * 0.55;
-const CIRCLE_MED = width * 0.4;
-const CIRCLE_SMALL = width * 0.24;
-const LOGO_SIZE = width * 0.48;
-const STAGE_SIZE = width * 0.65;
+const GLOW_LARGE = width * 0.65;
+const GLOW_MED = width * 0.45;
+const GLOW_FAINT = width * 0.9;
+const LOGO_SIZE = width * 0.42;
+const STAGE_SIZE = width * 0.62;
 const WORD_WIDTH = width * 0.7;
 
 const styles = StyleSheet.create({
@@ -328,30 +450,55 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  blob: {
+  glow: {
     position: 'absolute',
     borderRadius: 999,
   },
-  blobTeal: {
-    width: CIRCLE_LARGE,
-    height: CIRCLE_LARGE,
-    top: -CIRCLE_LARGE * 0.3,
-    right: -CIRCLE_LARGE * 0.3,
-    backgroundColor: 'rgba(45, 212, 191, 0.14)',
+  glowTopRight: {
+    width: GLOW_LARGE,
+    height: GLOW_LARGE,
+    top: -GLOW_LARGE * 0.35,
+    right: -GLOW_LARGE * 0.3,
+    backgroundColor: 'rgba(245, 197, 66, 0.10)',
   },
-  blobCoral: {
-    width: CIRCLE_MED,
-    height: CIRCLE_MED,
-    bottom: height * 0.1,
-    left: -CIRCLE_MED * 0.35,
-    backgroundColor: 'rgba(255, 111, 97, 0.14)',
+  glowBottomLeft: {
+    width: GLOW_MED,
+    height: GLOW_MED,
+    bottom: height * 0.06,
+    left: -GLOW_MED * 0.3,
+    backgroundColor: 'rgba(184, 90, 232, 0.14)',
   },
-  blobGoldSmall: {
-    width: CIRCLE_SMALL,
-    height: CIRCLE_SMALL,
-    top: height * 0.35,
-    right: -CIRCLE_SMALL * 0.3,
-    backgroundColor: 'rgba(255, 195, 100, 0.10)',
+  glowCenterFaint: {
+    width: GLOW_FAINT,
+    height: GLOW_FAINT,
+    top: height * 0.28,
+    left: -GLOW_FAINT * 0.15,
+    backgroundColor: 'rgba(212, 175, 55, 0.05)',
+  },
+
+  cornerFlourishTL: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: 90,
+    height: 90,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderColor: 'rgba(245, 197, 66, 0.18)',
+    borderTopLeftRadius: 24,
+    margin: 22,
+  },
+  cornerFlourishBR: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 90,
+    height: 90,
+    borderBottomWidth: 1,
+    borderRightWidth: 1,
+    borderColor: 'rgba(245, 197, 66, 0.18)',
+    borderBottomRightRadius: 24,
+    margin: 22,
   },
 
   content: {
@@ -364,58 +511,68 @@ const styles = StyleSheet.create({
     height: STAGE_SIZE,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 28,
+    marginBottom: 26,
   },
-  orbitRing: {
+  haloRing: {
     position: 'absolute',
-    borderRadius: 999,
-    borderWidth: 1,
-  },
-  orbitRingOuter: {
     width: STAGE_SIZE,
     height: STAGE_SIZE,
-    borderColor: 'rgba(45, 212, 191, 0.35)',
+    borderRadius: STAGE_SIZE / 2,
+    borderWidth: 1,
+    borderColor: GOLD_SOFT,
     borderStyle: 'dashed',
   },
-  orbitRingInner: {
-    width: STAGE_SIZE * 0.78,
-    height: STAGE_SIZE * 0.78,
-    borderColor: 'rgba(255, 111, 97, 0.3)',
-  },
-  orbitDotTeal: {
+  sparkleOrbit: {
     position: 'absolute',
-    top: -4,
-    left: '50%',
-    marginLeft: -4,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#2DD4BF',
+    width: STAGE_SIZE * 0.86,
+    height: STAGE_SIZE * 0.86,
   },
-  orbitDotCoral: {
+  sparkleTop: {
     position: 'absolute',
-    bottom: -4,
+    top: -6,
     left: '50%',
-    marginLeft: -4,
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: '#FF6F61',
+    marginLeft: -8,
+    fontSize: 16,
+    color: GOLD,
+  },
+  sparkleRight: {
+    position: 'absolute',
+    top: '50%',
+    right: -6,
+    marginTop: -8,
+    fontSize: 13,
+    color: GOLD_DEEP,
+  },
+  sparkleBottom: {
+    position: 'absolute',
+    bottom: -6,
+    left: '50%',
+    marginLeft: -8,
+    fontSize: 14,
+    color: GOLD,
+  },
+  sparkleLeft: {
+    position: 'absolute',
+    top: '50%',
+    left: -6,
+    marginTop: -8,
+    fontSize: 13,
+    color: GOLD_DEEP,
   },
   logoWrapper: {
     width: LOGO_SIZE,
     height: LOGO_SIZE,
     borderRadius: LOGO_SIZE / 2,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
+    backgroundColor: 'rgba(245, 197, 66, 0.07)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(245, 197, 66, 0.35)',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
   logo: {
-    width: '68%',
-    height: '68%',
+    width: '72%',
+    height: '72%',
   },
 
   wordmarkClip: {
@@ -426,33 +583,56 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'baseline',
   },
-  wordHi: {
-    fontSize: 34,
-    fontWeight: '800',
+  wordHima: {
+    fontSize: 38,
     fontStyle: 'italic',
-    color: '#FF6F61',
+    fontWeight: '700',
+    color: GOLD,
     letterSpacing: 0.5,
+    // Pair with a serif/display font in your font set, e.g. 'PlayfairDisplay-BoldItalic'
+    fontFamily: 'PlayfairDisplay-BoldItalic',
+    textShadowColor: 'rgba(245, 197, 66, 0.45)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
   },
   wordMeet: {
     fontSize: 34,
     fontWeight: '300',
-    color: '#F5F7FA',
-    letterSpacing: 1.5,
-    marginLeft: 4,
+    color: '#F3E9FF',
+    letterSpacing: 3,
+    marginLeft: 5,
+    fontFamily: 'PlayfairDisplay-Regular',
   },
   shine: {
     position: 'absolute',
-    top: -20,
-    width: 40,
-    height: 90,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    top: -22,
+    width: 46,
+    height: 96,
+    backgroundColor: 'rgba(255, 231, 160, 0.22)',
+  },
+
+  flourishRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 14,
+    width: WORD_WIDTH * 0.72,
+  },
+  flourishLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(245, 197, 66, 0.4)',
+  },
+  flourishHeart: {
+    color: GOLD,
+    fontSize: 12,
+    marginHorizontal: 10,
   },
 
   tagline: {
-    fontSize: 13,
-    color: 'rgba(200, 220, 235, 0.75)',
-    marginTop: 10,
-    letterSpacing: 2,
+    fontSize: 12.5,
+    color: LILAC_TEXT,
+    marginTop: 14,
+    letterSpacing: 3,
     textTransform: 'uppercase',
     fontWeight: '500',
   },
@@ -462,20 +642,25 @@ const styles = StyleSheet.create({
     bottom: height * 0.08,
     alignItems: 'center',
   },
-  loaderArc: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    borderWidth: 2.5,
-    borderColor: 'rgba(255,255,255,0.15)',
-    borderTopColor: '#2DD4BF',
-    borderRightColor: '#FF6F61',
+  dotRow: {
+    flexDirection: 'row',
     marginBottom: 12,
   },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: GOLD,
+    marginHorizontal: 4,
+    shadowColor: GOLD,
+    shadowOpacity: 0.8,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 0 },
+  },
   loadingText: {
-    color: 'rgba(200, 220, 235, 0.7)',
+    color: 'rgba(233, 214, 255, 0.65)',
     fontSize: 12,
-    letterSpacing: 0.8,
+    letterSpacing: 1,
   },
 });
 
