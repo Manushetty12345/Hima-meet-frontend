@@ -26,10 +26,23 @@ const CURRENT_STEP = 3;
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'SelectLanguage'>;
 
+// ---- Palette pulled from the Himameet mark ----
+const PLUM_ROYAL = '#5B0E8B';
+const GOLD = '#F5C542';
+const GOLD_DEEP = '#D4AF37';
+const IVORY = '#FBF6EC';
+const IVORY_LINE = '#EBDFC4';
+const TEXT_PLUM = '#2A1240';
+const TEXT_MUTED = '#8B7F98';
+
+// Light lavender header wash — matches Login / VerifyOtp / GenderSelect exactly
+const LILAC_WHITE = '#FBF7FF';
+const LILAC_PALE = '#EFDFFB';
+
 const SelectLanguageScreen: React.FC<Props> = ({ route, navigation }) => {
   const [selectedLanguageId, setSelectedLanguageId] = useState<string>('');
   const [languages, setLanguages] = useState<LanguageItem[]>([]);
-  
+
   const gender = route.params?.gender;
   const avatarId = route.params?.avatar_id;
 
@@ -55,7 +68,7 @@ const SelectLanguageScreen: React.FC<Props> = ({ route, navigation }) => {
       }
     };
     fetchLanguages();
-    
+
     StatusBar.setBarStyle('dark-content');
     Animated.parallel([
       Animated.timing(ctaOpacity, {
@@ -87,46 +100,58 @@ const SelectLanguageScreen: React.FC<Props> = ({ route, navigation }) => {
   return (
     <View style={styles.flex}>
       <StatusBar barStyle="dark-content" />
-      <View style={styles.statusBarSpacer} />
 
-      {/* Header: Back + Progress */}
-      <View style={styles.headerRow}>
-        <TouchableOpacity
-          style={styles.backButton}
-          activeOpacity={0.8}
-          onPress={() => navigation.goBack()}
-        >
-          <ArrowLeft size={20} color="#EC1372" />
-        </TouchableOpacity>
+      <LinearGradient
+        colors={[LILAC_WHITE, LILAC_PALE]}
+        start={{ x: 0.15, y: 0 }}
+        end={{ x: 0.85, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.statusBarSpacer} />
 
-        <View style={styles.progressTrack}>
-          {Array.from({ length: TOTAL_STEPS }).map((_, index) => (
-            <View
-              key={index}
-              style={[
-                styles.progressSegment,
-                index < CURRENT_STEP && styles.progressSegmentActive,
-              ]}
-            />
-          ))}
-        </View>
-      </View>
+        {/* Header: Back + Progress */}
+        <View style={styles.headerRow}>
+          <TouchableOpacity
+            style={styles.backButton}
+            activeOpacity={0.8}
+            onPress={() => navigation.goBack()}
+          >
+            <ArrowLeft size={20} color={PLUM_ROYAL} />
+          </TouchableOpacity>
 
-      {/* Title block */}
-      <View style={styles.titleBlock}>
-        <Text style={styles.title}>Choose your language</Text>
-        <View style={styles.subtitleRow}>
-          <Text style={styles.subtitle}>
-            Pick the language you&apos;re most comfortable in
-          </Text>
-          <View style={styles.globeBadge}>
-            <Globe size={11} color="#FFFFFF" />
+          <View style={styles.progressTrack}>
+            {Array.from({ length: TOTAL_STEPS }).map((_, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.progressSegment,
+                  index < CURRENT_STEP && styles.progressSegmentActive,
+                ]}
+              />
+            ))}
           </View>
         </View>
-      </View>
+
+        {/* Title block */}
+        <View style={styles.titleBlock}>
+          <Text style={styles.title}>Choose your language</Text>
+          <View style={styles.subtitleRow}>
+            <Text style={styles.subtitle}>
+              Pick the language you&apos;re most comfortable in
+            </Text>
+            <LinearGradient
+              colors={[GOLD, GOLD_DEEP]}
+              style={styles.globeBadge}
+            >
+              <Globe size={11} color="#2A1240" />
+            </LinearGradient>
+          </View>
+        </View>
+      </LinearGradient>
 
       {/* Language list */}
       <ScrollView
+        style={styles.scrollFlex}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
@@ -158,8 +183,8 @@ const SelectLanguageScreen: React.FC<Props> = ({ route, navigation }) => {
             <LinearGradient
               colors={
                 isContinueEnabled
-                  ? ['#FF3B8D', '#E0116F']
-                  : ['#E9DDE7', '#E9DDE7']
+                  ? [GOLD, GOLD_DEEP]
+                  : [IVORY_LINE, IVORY_LINE]
               }
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
@@ -184,12 +209,15 @@ const SelectLanguageScreen: React.FC<Props> = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   flex: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: IVORY,
+  },
+  headerGradient: {
+    overflow: 'hidden',
   },
   statusBarSpacer: {
     height: STATUSBAR_HEIGHT,
-    backgroundColor: '#FFFFFF',
   },
+
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -198,10 +226,12 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FDE6EF',
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: 'rgba(91, 14, 139, 0.12)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(91, 14, 139, 0.35)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
@@ -215,21 +245,22 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#EFE7F3',
+    backgroundColor: 'rgba(212, 175, 55, 0.2)',
   },
   progressSegmentActive: {
-    backgroundColor: '#EC1372',
+    backgroundColor: GOLD_DEEP,
   },
   titleBlock: {
     paddingHorizontal: 24,
-    marginTop: 14,
-    marginBottom: 12,
+    marginTop: 6,
+    marginBottom: 18,
   },
   title: {
     fontSize: 26,
     fontWeight: '800',
-    color: '#1B0E22',
+    color: TEXT_PLUM,
     marginBottom: 8,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   subtitleRow: {
     flexDirection: 'row',
@@ -237,20 +268,23 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    color: '#8A7A9C',
+    color: TEXT_MUTED,
     marginRight: 6,
   },
   globeBadge: {
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: '#3B6FE0',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  scrollFlex: {
+    flex: 1,
+    backgroundColor: IVORY,
+  },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 4,
+    paddingTop: 18,
   },
   bottomSpacer: {
     height: 12,
@@ -259,20 +293,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 12,
     paddingBottom: 24,
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#4A0F6E',
+    backgroundColor: IVORY,
+    shadowColor: '#3A0F63',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.06,
     shadowRadius: 10,
     elevation: 8,
   },
   ctaWrapper: {
-    borderRadius: 28,
+    borderRadius: 999,
     overflow: 'hidden',
-    shadowColor: '#E0116F',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.28,
-    shadowRadius: 14,
+    shadowColor: GOLD_DEEP,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
     elevation: 6,
   },
   ctaButton: {
@@ -283,13 +317,12 @@ const styles = StyleSheet.create({
   ctaText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#1A0733',
     letterSpacing: 0.3,
   },
   ctaTextDisabled: {
-    color: '#B4A6BE',
+    color: '#A79E8C',
   },
 });
 
 export default SelectLanguageScreen;
-

@@ -1,4 +1,4 @@
-﻿import apiClient, { setAuthToken, clearAuthToken } from '../../../api/apiClient';
+import apiClient, { setAuthToken, clearAuthToken } from '../../../api/apiClient';
 
 // â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -88,6 +88,7 @@ export interface CheckSessionResponse {
   status: string;
   data: {
     is_new_user: boolean;
+    profile_setup_complete?: boolean;
     user?: {
       id: string;
       role: string;

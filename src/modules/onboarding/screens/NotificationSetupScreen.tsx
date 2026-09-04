@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,9 +8,11 @@ import {
   Easing,
   TouchableOpacity,
   Platform,
+  BackHandler,
+  PermissionsAndroid,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { ArrowLeft, MessageCircle, Bell } from 'lucide-react-native';
+import { MessageCircle, Bell } from 'lucide-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { saveProfileSetup } from '../api/onboardingApi';
 import { setAuthToken } from '../../../api/apiClient';
@@ -25,6 +27,13 @@ type RootStackParamList = {
 };
 
 type Props = NativeStackScreenProps<RootStackParamList, 'NotificationSetup'>;
+
+// ---- Palette pulled from the Himameet mark ----
+const PLUM_DEEP = '#1A0733';
+const PLUM_MID = '#3A0F63';
+const PLUM_ROYAL = '#5B0E8B';
+const GOLD = '#F5C542';
+const GOLD_DEEP = '#D4AF37';
 
 type BenefitItem = {
   key: string;
@@ -59,6 +68,7 @@ const NotificationSetupScreen: React.FC<Props> = ({ route, navigation }) => {
   const contentTranslateY = useRef(new Animated.Value(24)).current;
   const ctaOpacity = useRef(new Animated.Value(0)).current;
   const ctaTranslateY = useRef(new Animated.Value(24)).current;
+  const sparkleTwinkle = useRef(new Animated.Value(0.4)).current;
 
   React.useEffect(() => {
     StatusBar.setBarStyle('light-content');
@@ -93,9 +103,32 @@ const NotificationSetupScreen: React.FC<Props> = ({ route, navigation }) => {
       ]),
     ]).start();
 
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(sparkleTwinkle, {
+          toValue: 1,
+          duration: 750,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(sparkleTwinkle, {
+          toValue: 0.35,
+          duration: 750,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+    ).start();
+
     return () => {
       StatusBar.setBarStyle('dark-content');
     };
+  }, []);
+
+  // ── Disable hardware back button — last onboarding step ──
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => true);
+    return () => sub.remove();
   }, []);
 
   const completeSetup = async () => {
@@ -113,8 +146,21 @@ const NotificationSetupScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   };
 
-  const handleEnableNotifications = () => {
-    // TODO: trigger the native notification permission prompt here
+  const handleEnableNotifications = async () => {
+    if (Platform.OS === 'android') {
+      try {
+        // Android 13+ requires POST_NOTIFICATIONS permission
+        if (Platform.Version >= 33) {
+          await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+          );
+        }
+      } catch (e) {
+        console.log('Notification permission error', e);
+      }
+    }
+    // iOS: handled natively by the OS when you call requestPermission
+    // For now just complete setup — integrate PushNotification lib later
     completeSetup();
   };
 
@@ -124,21 +170,18 @@ const NotificationSetupScreen: React.FC<Props> = ({ route, navigation }) => {
 
   return (
     <LinearGradient
-      colors={['#AD0F5D', '#E0166F', '#EA2D7C']}
-      start={{ x: 0.1, y: 0 }}
-      end={{ x: 0.9, y: 1 }}
+      colors={[PLUM_DEEP, PLUM_MID, PLUM_ROYAL]}
+      start={{ x: 0.15, y: 0 }}
+      end={{ x: 0.85, y: 1 }}
       style={styles.flex}
     >
       <StatusBar barStyle="light-content" {...(Platform.OS === 'android' && { translucent: true, backgroundColor: 'transparent' })} />
-      <View style={styles.statusBarSpacer} />
 
-      <TouchableOpacity
-        style={styles.backButton}
-        activeOpacity={0.8}
-        onPress={() => navigation.goBack()}
-      >
-        <ArrowLeft size={20} color="#E0166F" />
-      </TouchableOpacity>
+      {/* Soft golden light glows, matching the splash backdrop */}
+      <View style={[styles.glow, styles.glowTopRight]} />
+      <View style={[styles.glow, styles.glowBottomLeft]} />
+
+      <View style={styles.statusBarSpacer} />
 
       <View style={styles.content}>
         <Animated.View
@@ -150,29 +193,35 @@ const NotificationSetupScreen: React.FC<Props> = ({ route, navigation }) => {
           <View style={styles.illustrationWrap}>
             <MessageCircle
               size={64}
-              color="#FFFFFF"
+              color={GOLD_DEEP}
               strokeWidth={1.8}
               style={styles.bubbleBack}
             />
             <MessageCircle
               size={54}
-              color="#FFFFFF"
+              color={GOLD}
               strokeWidth={1.8}
               style={styles.bubbleFront}
             />
+            <Animated.Text style={[styles.sparkle, { opacity: sparkleTwinkle }]}>
+              ✦
+            </Animated.Text>
           </View>
 
           <Text style={styles.title}>Stay connected</Text>
           <Text style={styles.subtitle}>
-            Turn on notifications so you never miss a moment on Hima.
+            Turn on notifications so you never miss a moment on Himameet.
           </Text>
 
           <View style={styles.benefitList}>
             {BENEFITS.map(item => (
               <View key={item.key} style={styles.benefitRow}>
-                <View style={styles.benefitIconCircle}>
-                  <Bell size={18} color="#FFFFFF" />
-                </View>
+                <LinearGradient
+                  colors={[GOLD, GOLD_DEEP]}
+                  style={styles.benefitIconCircle}
+                >
+                  <Bell size={18} color={PLUM_DEEP} />
+                </LinearGradient>
                 <View style={styles.benefitTextBlock}>
                   <Text style={styles.benefitTitle}>{item.title}</Text>
                   <Text style={styles.benefitDescription}>
@@ -201,9 +250,16 @@ const NotificationSetupScreen: React.FC<Props> = ({ route, navigation }) => {
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={handleEnableNotifications}
-          style={styles.ctaButton}
+          style={styles.ctaWrapper}
         >
-          <Text style={styles.ctaText}>Enable notifications</Text>
+          <LinearGradient
+            colors={[GOLD, GOLD_DEEP]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.ctaButton}
+          >
+            <Text style={styles.ctaText}>Enable notifications</Text>
+          </LinearGradient>
         </TouchableOpacity>
       </Animated.View>
     </LinearGradient>
@@ -214,23 +270,39 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
+  glow: {
+    position: 'absolute',
+    borderRadius: 999,
+  },
+  glowTopRight: {
+    width: 260,
+    height: 260,
+    top: -90,
+    right: -80,
+    backgroundColor: 'rgba(245, 197, 66, 0.10)',
+  },
+  glowBottomLeft: {
+    width: 200,
+    height: 200,
+    bottom: 40,
+    left: -70,
+    backgroundColor: 'rgba(184, 90, 232, 0.14)',
+  },
+
   statusBarSpacer: {
     height: STATUSBAR_HEIGHT,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.35)',
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 20,
     marginTop: 8,
-    shadowColor: '#4A0F6E',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
   },
   content: {
     flex: 1,
@@ -244,23 +316,32 @@ const styles = StyleSheet.create({
   },
   bubbleBack: {
     position: 'absolute',
-    top: 0,
+    top: -18,
     left: 0,
+    opacity: 1,
   },
   bubbleFront: {
     position: 'absolute',
     bottom: 0,
     right: 0,
   },
+  sparkle: {
+    position: 'absolute',
+    top: -4,
+    right: 4,
+    fontSize: 16,
+    color: GOLD,
+  },
   title: {
     fontSize: 30,
     fontWeight: '800',
     color: '#FFFFFF',
     marginBottom: 12,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   subtitle: {
     fontSize: 15,
-    color: 'rgba(255,255,255,0.85)',
+    color: 'rgba(233, 214, 255, 0.85)',
     lineHeight: 22,
     marginBottom: 32,
   },
@@ -275,10 +356,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.18)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
+    shadowColor: GOLD_DEEP,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
   },
   benefitTextBlock: {
     flex: 1,
@@ -292,7 +377,7 @@ const styles = StyleSheet.create({
   },
   benefitDescription: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.75)',
+    color: 'rgba(233, 214, 255, 0.75)',
     lineHeight: 18,
   },
   footer: {
@@ -303,26 +388,29 @@ const styles = StyleSheet.create({
   maybeLaterText: {
     fontSize: 14,
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.85)',
+    color: 'rgba(233, 214, 255, 0.85)',
     marginBottom: 18,
+  },
+  ctaWrapper: {
+    width: '100%',
+    borderRadius: 999,
+    overflow: 'hidden',
+    shadowColor: GOLD_DEEP,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 14,
+    elevation: 6,
   },
   ctaButton: {
     width: '100%',
     height: 56,
-    borderRadius: 28,
-    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#4A0F6E',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 14,
-    elevation: 6,
   },
   ctaText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#E0166F',
+    color: PLUM_DEEP,
     letterSpacing: 0.3,
   },
 });

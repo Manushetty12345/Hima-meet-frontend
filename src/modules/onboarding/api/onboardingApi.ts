@@ -1,4 +1,4 @@
-import apiClient from '../../api/apiClient';
+import apiClient from '../../../api/apiClient';
 
 export const getAvatars = async (gender: string) => {
   return apiClient.get(`/api/onboarding/avatars?gender=${gender}`);

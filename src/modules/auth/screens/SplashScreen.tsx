@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -230,10 +230,10 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
     pulseDot(dot2, 180).start();
     pulseDot(dot3, 360).start();
 
-    // Session check + navigation, same logic as before
+    // ── Session check → decide which screen to open ──────────────────────
     const checkSessionAndNavigate = async () => {
       const startTime = Date.now();
-      let nextScreen: keyof AuthStackParamList = 'LoginScreen';
+      let nextScreen: string = 'LoginScreen';
 
       try {
         const token = await getSavedToken();
@@ -241,19 +241,29 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
           const res = await checkSession();
           if (res.status === 'success') {
             const data = res.data;
+
             if (data.is_new_user) {
+              // Temp token: user verified OTP but hasn't finished onboarding
               nextScreen = 'GenderSelect';
             } else if (data.user) {
-              if (data.user.role === 'female') {
-                nextScreen = 'CreatorDashboard' as any;
+              // Full JWT: check if profile setup is done
+              const setupComplete = data.profile_setup_complete !== false; // default true
+              if (!setupComplete) {
+                nextScreen = 'GenderSelect';
+              } else if (data.user.role === 'female') {
+                nextScreen = 'CreatorDashboard';
               } else {
-                nextScreen = 'Home' as any;
+                // Male user with complete profile → go straight to Home 🏠
+                nextScreen = 'Home';
               }
             }
           }
         }
       } catch (e) {
-        console.log('Session check failed', e);
+        console.log('Session check failed, defaulting to login', e);
+        // Token invalid/expired → clear it so user goes to login cleanly
+        const { clearAuthToken } = require('../../../api/apiClient');
+        await clearAuthToken();
       }
 
       const elapsed = Date.now() - startTime;
@@ -263,6 +273,7 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
         navigation.replace(nextScreen as any);
       }, remainingTime);
     };
+
 
     checkSessionAndNavigate();
   }, [navigation]);

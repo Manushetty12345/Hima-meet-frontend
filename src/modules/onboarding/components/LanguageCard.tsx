@@ -1,6 +1,15 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import { Check } from 'lucide-react-native';
+
+// ---- Palette pulled from the Himameet mark ----
+const PLUM_ROYAL = '#5B0E8B';
+const GOLD = '#F5C542';
+const GOLD_DEEP = '#D4AF37';
+const IVORY_LINE = '#EBDFC4';
+const TEXT_PLUM = '#2A1240';
+const TEXT_MUTED = '#8B7F98';
 
 export type LanguageItem = {
   id: string;
@@ -27,14 +36,19 @@ const LanguageCard: React.FC<LanguageCardProps> = ({
       style={[styles.row, isSelected && styles.rowActive]}
     >
       {/* Glyph circle */}
-      <View style={[styles.glyphCircle, isSelected && styles.glyphCircleActive]}>
+      <LinearGradient
+        colors={isSelected ? [GOLD, GOLD_DEEP] : ['#F6EFDD', '#F6EFDD']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.glyphCircle, isSelected && styles.glyphCircleActive]}
+      >
         <Text
           style={[styles.glyphText, isSelected && styles.glyphTextActive]}
           numberOfLines={1}
         >
           {language.glyph}
         </Text>
-      </View>
+      </LinearGradient>
 
       {/* Text block */}
       <View style={styles.textBlock}>
@@ -45,7 +59,7 @@ const LanguageCard: React.FC<LanguageCardProps> = ({
       {/* Check indicator */}
       {isSelected ? (
         <View style={styles.checkActive}>
-          <Check size={14} color="#FFFFFF" />
+          <Check size={14} color="#2A1240" />
         </View>
       ) : (
         <View style={styles.checkInactive} />
@@ -58,42 +72,35 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FBFAFD',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
-    borderColor: '#F1EAF6',
+    borderColor: IVORY_LINE,
     borderRadius: 18,
     paddingVertical: 12,
     paddingHorizontal: 14,
     marginBottom: 12,
   },
   rowActive: {
-    borderColor: '#EC1372',
-    backgroundColor: '#FFF6FA',
-    shadowColor: '#EC1372',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 2,
+    borderColor: GOLD_DEEP,
+    borderWidth: 1.75,
+    backgroundColor: 'rgba(245, 197, 66, 0.06)',
   },
   glyphCircle: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#FDE6EF',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
   },
-  glyphCircleActive: {
-    backgroundColor: '#EC1372',
-  },
+  glyphCircleActive: {},
   glyphText: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#EC1372',
+    color: PLUM_ROYAL,
   },
   glyphTextActive: {
-    color: '#FFFFFF',
+    color: '#2A1240',
   },
   textBlock: {
     flex: 1,
@@ -101,18 +108,19 @@ const styles = StyleSheet.create({
   nameEnglish: {
     fontSize: 15.5,
     fontWeight: '700',
-    color: '#1B0E22',
+    color: TEXT_PLUM,
     marginBottom: 2,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   nameNative: {
     fontSize: 13,
-    color: '#8A7A9C',
+    color: TEXT_MUTED,
   },
   checkActive: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#EC1372',
+    backgroundColor: GOLD_DEEP,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -121,7 +129,7 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#E5DEEF',
+    borderColor: IVORY_LINE,
   },
 });
 

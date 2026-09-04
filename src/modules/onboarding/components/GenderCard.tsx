@@ -11,6 +11,15 @@ interface GenderCardProps {
   onSelect: (gender: Gender) => void;
 }
 
+// ---- Palette pulled from the Himameet mark ----
+const PLUM_ROYAL = '#5B0E8B';
+const GOLD = '#F5C542';
+const GOLD_DEEP = '#D4AF37';
+const IVORY = '#FBF6EC';
+const IVORY_LINE = '#EBDFC4';
+const TEXT_PLUM = '#2A1240';
+const TEXT_MUTED = '#8B7F98';
+
 const GenderCard: React.FC<GenderCardProps> = ({ gender, selectedGender, onSelect }) => {
   const isSelected = selectedGender === gender;
   const isMale = gender === 'male';
@@ -24,14 +33,20 @@ const GenderCard: React.FC<GenderCardProps> = ({ gender, selectedGender, onSelec
       onPress={() => onSelect(gender)}
       style={[styles.card, isSelected && styles.cardActive]}
     >
+
+
       <LinearGradient
-        colors={isSelected ? ['#FF3B8D', '#E0116F'] : ['#E9E4EF', '#E9E4EF']}
-        style={styles.iconCircle}
+        colors={isSelected ? [GOLD, GOLD_DEEP] : ['#F1E9D8', '#F1E9D8']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.iconCircle, isSelected && styles.iconCircleActive]}
       >
-        <Icon size={26} color={isSelected ? '#FFFFFF' : '#9A8FA8'} />
+        <Icon size={26} color={isSelected ? '#2A1240' : '#B8A9C9'} />
       </LinearGradient>
       <Text style={[styles.label, isSelected && styles.labelActive]}>{label}</Text>
       <Text style={styles.subLabel}>{subLabel}</Text>
+
+
     </TouchableOpacity>
   );
 };
@@ -40,20 +55,41 @@ const styles = StyleSheet.create({
   card: {
     flex: 1,
     borderWidth: 1.5,
-    borderColor: '#EFE7F3',
+    borderColor: IVORY_LINE,
     borderRadius: 20,
     paddingVertical: 22,
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
   },
   cardActive: {
-    borderColor: '#EC1372',
-    backgroundColor: '#FFF6FA',
-    shadowColor: '#EC1372',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 3,
+    borderColor: GOLD_DEEP,
+    borderWidth: 1.75,
+    backgroundColor: 'rgba(245, 197, 66, 0.06)',
+    shadowColor: GOLD_DEEP,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.28,
+    shadowRadius: 14,
+    elevation: 5,
+  },
+  cardGlow: {
+    position: 'absolute',
+    top: -40,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(245, 197, 66, 0.16)',
+  },
+  cornerFlourish: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 22,
+    height: 22,
+    borderTopWidth: 1,
+    borderRightWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.55)',
+    borderTopRightRadius: 8,
   },
   iconCircle: {
     width: 56,
@@ -63,18 +99,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 12,
   },
+  iconCircleActive: {
+    shadowColor: GOLD_DEEP,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 4,
+  },
   label: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1B0E22',
+    color: TEXT_PLUM,
     marginBottom: 4,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   labelActive: {
-    color: '#EC1372',
+    color: PLUM_ROYAL,
   },
   subLabel: {
     fontSize: 12,
-    color: '#8A7A9C',
+    color: TEXT_MUTED,
     textAlign: 'center',
   },
 });

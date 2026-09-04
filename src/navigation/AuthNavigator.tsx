@@ -16,6 +16,16 @@ import RecentCallsScreen from '../modules/recent/screens/RecentCallsScreen';
 import FriendsScreen from '../modules/friends/screens/FriendsScreen';
 import HomeScreen from '../modules/home/screens/HomeScreen';
 import WalletScreen from '../modules/wallet/screens/WalletScreen';
+import SettingsScreen from '../modules/profile/screens/SettingsScreen';
+import TermsScreen from '../modules/profile/screens/TermsScreen';
+import RefundPolicyScreen from '../modules/profile/screens/RefundPolicyScreen';
+import CommunityGuidelinesScreen from '../modules/profile/screens/CommunityGuidelinesScreen';
+import MyWarningsScreen from '../modules/profile/screens/MyWarningsScreen';
+import ManageNotificationsScreen from '../modules/profile/screens/ManageNotificationsScreen';
+
+import HelpSupportScreen from '../modules/support/screens/HelpSupportScreen';
+import MyTicketsScreen from '../modules/support/screens/MyTicketsScreen';
+import RaiseTicketScreen from '../modules/support/screens/RaiseTicketScreen';
 
 export type AuthStackParamList = {
   SplashScreen: undefined;
@@ -32,7 +42,16 @@ export type AuthStackParamList = {
   Friends: undefined;
   Recent: undefined;
   Profile: undefined;
+  Settings: undefined;
+  Terms: undefined;
+  RefundPolicy: undefined;
+  CommunityGuidelines: undefined;
+  MyWarnings: undefined;
+  ManageNotifications: undefined;
   CreatorDashboard: undefined;
+  HelpSupport: undefined;
+  MyTickets: { newTicket?: { id: string, title: string, status: 'ACTIVE' | 'RESOLVED', date: string } } | undefined;
+  RaiseTicket: undefined;
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -57,7 +76,16 @@ const AuthNavigator = () => {
       <Stack.Screen name="Friends" component={FriendsScreen} />
       <Stack.Screen name="Recent" component={RecentCallsScreen} />
       <Stack.Screen name="Profile" component={ProfileScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="Terms" component={TermsScreen} />
+      <Stack.Screen name="RefundPolicy" component={RefundPolicyScreen} />
+      <Stack.Screen name="CommunityGuidelines" component={CommunityGuidelinesScreen} />
+      <Stack.Screen name="MyWarnings" component={MyWarningsScreen} />
+      <Stack.Screen name="ManageNotifications" component={ManageNotificationsScreen} />
       <Stack.Screen name="CreatorDashboard" component={CreatorDashboardScreen} />
+      <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
+      <Stack.Screen name="MyTickets" component={MyTicketsScreen} />
+      <Stack.Screen name="RaiseTicket" component={RaiseTicketScreen} />
     </Stack.Navigator>
   );
 };

@@ -11,8 +11,14 @@ import { Check } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
-const AVATAR_SIZE_ACTIVE = 84;
-const AVATAR_SIZE_INACTIVE = 60;
+const AVATAR_SIZE_ACTIVE = 100;
+const AVATAR_SIZE_INACTIVE = 76;
+const HALO_SIZE = AVATAR_SIZE_ACTIVE + 24;
+
+// ---- Palette pulled from the Himameet mark ----
+const GOLD_DEEP = '#D4AF37';
+const GOLD_SOFT = 'rgba(245, 197, 66, 0.5)';
+const PLUM_TINT = 'rgba(91, 14, 139, 0.08)';
 
 export interface AvatarItem {
   id: string;
@@ -46,6 +52,8 @@ const AvatarPickerCarousel: React.FC<AvatarPickerCarouselProps> = ({
             onPress={() => onSelect(avatar.id)}
             style={styles.touchable}
           >
+            {isSelected && <View style={styles.haloRing} />}
+
             <View
               style={[
                 styles.avatarWrapper,
@@ -56,7 +64,7 @@ const AvatarPickerCarousel: React.FC<AvatarPickerCarouselProps> = ({
             </View>
             {isSelected && (
               <View style={styles.checkBadge}>
-                <Check size={12} color="#FFFFFF" />
+                <Check size={12} color="#2A1240" />
               </View>
             )}
           </TouchableOpacity>
@@ -70,24 +78,38 @@ const styles = StyleSheet.create({
   scrollContent: {
     alignItems: 'center',
     paddingHorizontal: (width - AVATAR_SIZE_ACTIVE) / 2 - 24,
-    gap: 18,
+    gap: 32,
   },
   touchable: {
     alignItems: 'center',
     justifyContent: 'center',
-    height: AVATAR_SIZE_ACTIVE,
-    width: AVATAR_SIZE_ACTIVE,
+    height: HALO_SIZE,
+    width: HALO_SIZE,
+  },
+  haloRing: {
+    position: 'absolute',
+    width: HALO_SIZE,
+    height: HALO_SIZE,
+    borderRadius: HALO_SIZE / 2,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: GOLD_SOFT,
   },
   avatarWrapper: {
     borderRadius: 999,
     overflow: 'hidden',
-    backgroundColor: '#F1EAF6',
+    backgroundColor: PLUM_TINT,
   },
   avatarWrapperActive: {
     width: AVATAR_SIZE_ACTIVE,
     height: AVATAR_SIZE_ACTIVE,
     borderWidth: 3,
-    borderColor: '#EC1372',
+    borderColor: GOLD_DEEP,
+    shadowColor: GOLD_DEEP,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 5,
   },
   avatarWrapperInactive: {
     width: AVATAR_SIZE_INACTIVE,
@@ -105,7 +127,7 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: '#EC1372',
+    backgroundColor: GOLD_DEEP,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,

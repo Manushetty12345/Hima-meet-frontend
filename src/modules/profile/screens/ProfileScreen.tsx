@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -35,6 +35,8 @@ import {
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { logout } from '../../auth/api/authApi';
+import apiClient, { clearAuthToken } from '../../../api/apiClient';
 
 const STATUSBAR_HEIGHT =
   Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 0;
@@ -45,6 +47,12 @@ type RootStackParamList = {
   Recent: undefined;
   Friends: undefined;
   Wallet: undefined;
+  Settings: undefined;
+  Terms: undefined;
+  RefundPolicy: undefined;
+  CommunityGuidelines: undefined;
+  MyWarnings: undefined;
+  ManageNotifications: undefined;
   [key: string]: undefined | object;
 };
 
@@ -138,6 +146,58 @@ const SETTINGS_ITEMS = [
 const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [dndEnabled, setDndEnabled] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  
+  // Profile Data
+  const [username, setUsername] = useState('Loading...');
+  const [avatarUrl, setAvatarUrl] = useState('https://hima-bucket.s3.amazonaws.com/default-avatar.png');
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await apiClient.get('/api/user/me');
+        if (res.data?.data) {
+          const profile = res.data.data;
+          setUsername(profile.username || 'User');
+          setAvatarUrl(profile.avatar_url || 'https://hima-bucket.s3.amazonaws.com/default-avatar.png');
+          setDndEnabled(!!profile.dnd_enabled);
+        }
+      } catch (error) {
+        console.error('Failed to fetch profile:', error);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  const handleDndToggle = async (value: boolean) => {
+    // Optimistic update
+    setDndEnabled(value);
+    try {
+      await apiClient.post('/api/user/dnd', { enabled: value });
+    } catch (error) {
+      console.error('Failed to update DND:', error);
+      // Revert if API fails
+      setDndEnabled(!value);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      await logout();           // clears token from keychain
+      await clearAuthToken();   // double-clear for safety
+    } catch (e) {
+      console.log('Logout error (ignored):', e);
+    } finally {
+      setIsLoggingOut(false);
+      setShowLogoutModal(false);
+      // Reset navigation stack → LoginScreen so back button won't come back to Home
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'LoginScreen' }],
+      });
+    }
+  };
 
   const renderQuickAction = (
     label: string,
@@ -174,7 +234,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.avatarContainer}>
               <View style={styles.avatarBorder}>
                 <Image
-                  source={{ uri: 'https://i.pravatar.cc/200?img=11' }}
+                  source={{ uri: avatarUrl }}
                   style={styles.avatar}
                 />
               </View>
@@ -183,7 +243,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
               </TouchableOpacity>
             </View>
             <View style={styles.profileTextWrap}>
-              <Text style={styles.username}>zbRvM854</Text>
+              <Text style={styles.username}>{username}</Text>
             </View>
           </View>
 
@@ -213,6 +273,20 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
                   onPress={() => {
                     if (item.id === 'logout') {
                       setShowLogoutModal(true);
+                    } else if (item.id === 'settings') {
+                      navigation.navigate('Settings');
+                    } else if (item.id === 'terms') {
+                      navigation.navigate('Terms');
+                    } else if (item.id === 'refund') {
+                      navigation.navigate('RefundPolicy');
+                    } else if (item.id === 'guidelines') {
+                      navigation.navigate('CommunityGuidelines');
+                    } else if (item.id === 'warnings') {
+                      navigation.navigate('MyWarnings');
+                    } else if (item.id === 'notifications') {
+                      navigation.navigate('ManageNotifications');
+                    } else if (item.id === 'help') {
+                      navigation.navigate('HelpSupport');
                     }
                   }}
                 >
@@ -226,7 +300,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
                   {item.hasToggle ? (
                     <Switch
                       value={dndEnabled}
-                      onValueChange={setDndEnabled}
+                      onValueChange={handleDndToggle}
                       trackColor={{ false: '#E2DCE8', true: '#EC1372' }}
                       thumbColor="#FFFFFF"
                       ios_backgroundColor="#E2DCE8"
@@ -300,13 +374,13 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
             
             <TouchableOpacity 
               activeOpacity={0.85}
-              style={styles.primaryButton}
-              onPress={() => {
-                setShowLogoutModal(false);
-                // TODO: Perform actual logout and navigate to login
-              }}
+              style={[styles.primaryButton, isLoggingOut && { opacity: 0.6 }]}
+              disabled={isLoggingOut}
+              onPress={handleLogout}
             >
-              <Text style={styles.primaryButtonText}>Logout</Text>
+              <Text style={styles.primaryButtonText}>
+                {isLoggingOut ? 'Logging out…' : 'Logout'}
+              </Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
