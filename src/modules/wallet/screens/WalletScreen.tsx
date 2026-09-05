@@ -132,9 +132,13 @@ const WalletScreen: React.FC<Props> = ({ navigation }) => {
     if (!selectedPackage) return;
     try {
       setIsLoading(true);
-      const response = await apiClient.post('/api/wallet/recharge/initiate', {
-        package_id: parseInt(selectedPackage.id.replace('p', ''), 10) || selectedPackage.id
-      });
+      // Parse DB id — if it's a fallback like 'p40', id will be NaN; send inline price+coins
+      const numericId = parseInt(selectedPackage.id.replace(/\D/g, ''), 10);
+      const isFallback = selectedPackage.id.startsWith('p') && isNaN(numericId / 1);
+      const payload: any = isFallback
+        ? { coins: selectedPackage.coins, price: selectedPackage.price }
+        : { package_id: numericId };
+      const response = await apiClient.post('/api/wallet/recharge/initiate', payload);
       
       const { payment_url, merchant_transaction_id, coins } = response.data.data;
       
