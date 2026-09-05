@@ -65,7 +65,7 @@ export type AuthStackParamList = {
   Transactions: undefined;
   Refer: undefined;
   PhonePeWebView: { paymentUrl: string; transactionId: string; coins: number };
-  PaymentResult: { success: boolean; transactionId?: string; coins?: number };
+  PaymentResult: { success: boolean; checking?: boolean; transactionId?: string; coins?: number };
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();

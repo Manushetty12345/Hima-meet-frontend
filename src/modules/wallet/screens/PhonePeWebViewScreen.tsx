@@ -34,14 +34,12 @@ const PhonePeWebViewScreen: React.FC<Props> = ({ navigation, route }) => {
     const url = navState.url || '';
     const urlLower = url.toLowerCase();
 
-    // Check if this is a redirect back from PhonePe
+    // Any redirect back to our backend or app scheme = payment done
     if (SUCCESS_INDICATORS.some(indicator => urlLower.includes(indicator.toLowerCase()))) {
-      const isSuccess =
-        urlLower.includes('success') ||
-        (urlLower.includes('redirect') && !urlLower.includes('fail') && !urlLower.includes('error'));
-
+      // Always navigate to PaymentResult with checking=true; it will call verifyPayment API
       navigation.replace('PaymentResult', {
-        success: isSuccess,
+        success: false,
+        checking: true,
         transactionId,
         coins,
       });
