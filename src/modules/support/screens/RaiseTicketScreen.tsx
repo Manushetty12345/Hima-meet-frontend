@@ -86,8 +86,16 @@ const RaiseTicketScreen: React.FC<Props> = ({ navigation }) => {
             setIsSubmitting(true);
             try {
               await createTicket(issue);
-              Alert.alert("Success", "Your ticket has been raised successfully. Our team will look into it.");
-              navigation.replace('MyTickets');
+              Alert.alert(
+                "Success", 
+                "Your ticket has been raised successfully. Our team will look into it.",
+                [
+                  {
+                    text: "OK",
+                    onPress: () => navigation.replace('MyTickets')
+                  }
+                ]
+              );
             } catch (error) {
               Alert.alert("Error", "Failed to raise ticket. Please try again later.");
             } finally {

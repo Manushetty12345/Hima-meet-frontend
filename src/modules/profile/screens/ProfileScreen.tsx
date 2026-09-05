@@ -32,6 +32,7 @@ import {
   ChevronRight,
   Pencil,
   AlertOctagon,
+  Shield,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -251,9 +252,9 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
 
           <View style={styles.quickActionsRow}>
             {renderQuickAction('Wallet', Wallet, '#EC1372', '#FDE8F1', () => navigation.navigate('Wallet'))}
-            {renderQuickAction('Transactions', ReceiptText, '#2DD36F', '#E8FBF0')}
-            {renderQuickAction('Refer', UserPlus, '#8C31FF', '#F3EBFF')}
-            {renderQuickAction('Privacy', ShieldCheck, '#3880FF', '#EBF2FF')}
+            {renderQuickAction('Transactions', ReceiptText, '#2DD36F', '#E8FBF0', () => navigation.navigate('Transactions'))}
+            {renderQuickAction('Refer', UserPlus, '#8C31FF', '#F3EBFF', () => navigation.navigate('Refer'))}
+            {renderQuickAction('Privacy', ShieldCheck, '#3880FF', '#EBF2FF', () => navigation.navigate('AccountPrivacy'))}
           </View>
         </View>
 

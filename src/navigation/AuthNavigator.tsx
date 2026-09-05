@@ -22,6 +22,13 @@ import RefundPolicyScreen from '../modules/profile/screens/RefundPolicyScreen';
 import CommunityGuidelinesScreen from '../modules/profile/screens/CommunityGuidelinesScreen';
 import MyWarningsScreen from '../modules/profile/screens/MyWarningsScreen';
 import ManageNotificationsScreen from '../modules/profile/screens/ManageNotificationsScreen';
+import PrivacyPolicyScreen from '../modules/profile/screens/PrivacyPolicyScreen';
+import AccountPrivacyScreen from '../modules/profile/screens/AccountPrivacyScreen';
+import DeleteAccountScreen from '../modules/profile/screens/DeleteAccountScreen';
+import TransactionsScreen from '../modules/profile/screens/TransactionsScreen';
+import ReferralScreen from '../modules/profile/screens/ReferralScreen';
+import PhonePeWebViewScreen from '../modules/wallet/screens/PhonePeWebViewScreen';
+import PaymentResultScreen from '../modules/wallet/screens/PaymentResultScreen';
 
 import HelpSupportScreen from '../modules/support/screens/HelpSupportScreen';
 import MyTicketsScreen from '../modules/support/screens/MyTicketsScreen';
@@ -52,6 +59,13 @@ export type AuthStackParamList = {
   HelpSupport: undefined;
   MyTickets: { newTicket?: { id: string, title: string, status: 'ACTIVE' | 'RESOLVED', date: string } } | undefined;
   RaiseTicket: undefined;
+  AccountPrivacy: undefined;
+  PrivacyPolicy: undefined;
+  DeleteAccount: undefined;
+  Transactions: undefined;
+  Refer: undefined;
+  PhonePeWebView: { paymentUrl: string; transactionId: string; coins: number };
+  PaymentResult: { success: boolean; transactionId?: string; coins?: number };
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -86,6 +100,13 @@ const AuthNavigator = () => {
       <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
       <Stack.Screen name="MyTickets" component={MyTicketsScreen} />
       <Stack.Screen name="RaiseTicket" component={RaiseTicketScreen} />
+      <Stack.Screen name="AccountPrivacy" component={AccountPrivacyScreen} />
+      <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+      <Stack.Screen name="DeleteAccount" component={DeleteAccountScreen} />
+      <Stack.Screen name="Transactions" component={TransactionsScreen} />
+      <Stack.Screen name="Refer" component={ReferralScreen} />
+      <Stack.Screen name="PhonePeWebView" component={PhonePeWebViewScreen} options={{ presentation: 'fullScreenModal' }} />
+      <Stack.Screen name="PaymentResult" component={PaymentResultScreen} options={{ presentation: 'fullScreenModal' }} />
     </Stack.Navigator>
   );
 };

@@ -16,9 +16,12 @@ export type Ticket = {
  */
 export const createTicket = async (title: string): Promise<Ticket> => {
   try {
-    const response = await apiClient.post('/api/support/tickets', { title });
+    const response = await apiClient.post('/api/support/tickets', { 
+      subject: title, 
+      description: title 
+    });
     // Assuming the backend returns the created ticket
-    return response.data;
+    return response.data?.data;
   } catch (error) {
     console.error('Error creating ticket:', error);
     throw error;
@@ -31,7 +34,15 @@ export const createTicket = async (title: string): Promise<Ticket> => {
 export const getTickets = async (): Promise<Ticket[]> => {
   try {
     const response = await apiClient.get('/api/support/tickets');
-    return response.data;
+    const rawTickets = response.data?.data || [];
+    
+    // Map backend fields to frontend Ticket type
+    return rawTickets.map((t: any) => ({
+      id: t.ticket_id ? `${t.ticket_id}` : 'N/A',
+      title: t.subject || 'Support Ticket',
+      status: (t.status || '').toUpperCase() === 'ACTIVE' ? 'ACTIVE' : 'RESOLVED',
+      date: t.created_at ? new Date(t.created_at).toLocaleDateString() : 'Unknown Date',
+    }));
   } catch (error) {
     console.error('Error fetching tickets:', error);
     throw error;

@@ -47,7 +47,7 @@ const MyTicketsScreen: React.FC<Props> = ({ navigation }) => {
   const renderTicketItem = ({ item }: { item: Ticket }) => (
     <View style={styles.ticketCard}>
       <View style={styles.ticketHeader}>
-        <Text style={styles.ticketId}>{item.id}</Text>
+        <Text style={styles.ticketId}>Ticket ID: {item.id}</Text>
         <View style={[styles.statusBadge, item.status === 'ACTIVE' ? styles.statusActive : styles.statusResolved]}>
           <Text style={[styles.statusText, item.status === 'ACTIVE' ? styles.statusTextActive : styles.statusTextResolved]}>
             {item.status}
