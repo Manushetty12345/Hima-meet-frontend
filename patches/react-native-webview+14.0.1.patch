@@ -1,19 +1,17 @@
 diff --git a/node_modules/react-native-webview/android/build.gradle b/node_modules/react-native-webview/android/build.gradle
-index ae14145..1841642 100644
+index ae14145..3070113 100644
 --- a/node_modules/react-native-webview/android/build.gradle
 +++ b/node_modules/react-native-webview/android/build.gradle
-@@ -57,7 +57,9 @@ apply plugin: 'com.android.library'
+@@ -57,7 +57,7 @@ apply plugin: 'com.android.library'
  if (isNewArchitectureEnabled()) {
      apply plugin: 'com.facebook.react'
  }
 -apply plugin: 'kotlin-android'
-+if (!project.plugins.hasPlugin('kotlin-android')) {
-+    apply plugin: 'kotlin-android'
-+}
++// Removed kotlin-android plugin application to fix RN 0.87 conflict
  
  android {
      if (supportsNamespace()) {
-@@ -73,7 +75,7 @@ android {
+@@ -73,7 +73,7 @@ android {
          }
      }
  
