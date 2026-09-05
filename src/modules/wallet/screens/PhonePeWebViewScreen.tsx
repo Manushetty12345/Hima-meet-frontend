@@ -32,12 +32,13 @@ const PhonePeWebViewScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const handleNavigationChange = (navState: WebViewNavigation) => {
     const url = navState.url || '';
+    const urlLower = url.toLowerCase();
 
     // Check if this is a redirect back from PhonePe
-    if (SUCCESS_INDICATORS.some(indicator => url.includes(indicator))) {
+    if (SUCCESS_INDICATORS.some(indicator => urlLower.includes(indicator.toLowerCase()))) {
       const isSuccess =
-        url.includes('success') ||
-        (url.includes('redirect') && !url.includes('fail') && !url.includes('error'));
+        urlLower.includes('success') ||
+        (urlLower.includes('redirect') && !urlLower.includes('fail') && !urlLower.includes('error'));
 
       navigation.replace('PaymentResult', {
         success: isSuccess,
