@@ -28,7 +28,6 @@ import DeleteAccountScreen from '../modules/profile/screens/DeleteAccountScreen'
 import TransactionsScreen from '../modules/profile/screens/TransactionsScreen';
 import ReferralScreen from '../modules/profile/screens/ReferralScreen';
 import PhonePeWebViewScreen from '../modules/wallet/screens/PhonePeWebViewScreen';
-import PaymentResultScreen from '../modules/wallet/screens/PaymentResultScreen';
 
 import HelpSupportScreen from '../modules/support/screens/HelpSupportScreen';
 import MyTicketsScreen from '../modules/support/screens/MyTicketsScreen';
@@ -65,7 +64,6 @@ export type AuthStackParamList = {
   Transactions: undefined;
   Refer: undefined;
   PhonePeWebView: { paymentUrl: string; transactionId: string; coins: number };
-  PaymentResult: { success: boolean; checking?: boolean; transactionId?: string; coins?: number };
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -106,7 +104,6 @@ const AuthNavigator = () => {
       <Stack.Screen name="Transactions" component={TransactionsScreen} />
       <Stack.Screen name="Refer" component={ReferralScreen} />
       <Stack.Screen name="PhonePeWebView" component={PhonePeWebViewScreen} options={{ presentation: 'fullScreenModal' }} />
-      <Stack.Screen name="PaymentResult" component={PaymentResultScreen} options={{ presentation: 'fullScreenModal' }} />
     </Stack.Navigator>
   );
 };

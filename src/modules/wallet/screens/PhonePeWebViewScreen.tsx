@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,11 +7,14 @@ import {
   Platform,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { WebView, WebViewNavigation } from 'react-native-webview';
 import { ArrowLeft, X } from 'lucide-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../../navigation/AuthNavigator';
+import apiClient from '../../../api/apiClient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STATUSBAR_HEIGHT = Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 0;
 type Props = NativeStackScreenProps<AuthStackParamList, 'PhonePeWebView'>;
@@ -28,27 +31,100 @@ const SUCCESS_INDICATORS = [
 const PhonePeWebViewScreen: React.FC<Props> = ({ navigation, route }) => {
   const { paymentUrl, transactionId, coins } = route.params;
   const [isLoading, setIsLoading] = useState(true);
+  const [isVerifying, setIsVerifying] = useState(false);
   const webViewRef = useRef<any>(null);
+  const hasRedirected = useRef(false);
+
+  // Save pending transaction to AsyncStorage on mount
+  // So if user kills the app mid-payment, we can recover on next launch
+  useEffect(() => {
+    AsyncStorage.setItem(
+      'hima_pending_payment',
+      JSON.stringify({ transactionId, coins })
+    );
+    return () => {
+      // If user navigates back without completing, clean up
+      // (verifyAndGoBack also cleans up on success)
+    };
+  }, []);
+
+  const verifyAndGoBack = async () => {
+    if (hasRedirected.current) return;
+    hasRedirected.current = true;
+
+    setIsVerifying(true);
+    try {
+      const res = await apiClient.post('/api/wallet/recharge/verify', {
+        merchant_transaction_id: transactionId,
+      });
+      const data = res.data?.data;
+      const isSuccess = data?.success === true;
+      const coinsAdded = data?.coins_added ?? coins ?? 0;
+      const newBalance = data?.new_balance ?? 0;
+
+      // Clear pending transaction — payment handled
+      await AsyncStorage.removeItem('hima_pending_payment');
+
+      // Navigate back to Wallet with result params
+      navigation.replace('Wallet', {
+        paymentResult: {
+          success: isSuccess,
+          coinsAdded,
+          newBalance,
+          transactionId,
+        },
+      } as any);
+    } catch (err) {
+      console.error('Verify payment error:', err);
+      await AsyncStorage.removeItem('hima_pending_payment');
+      navigation.replace('Wallet', {
+        paymentResult: {
+          success: false,
+          coinsAdded: 0,
+          newBalance: 0,
+          transactionId,
+        },
+      } as any);
+    }
+  };
 
   const handleNavigationChange = (navState: WebViewNavigation) => {
     const url = navState.url || '';
     const urlLower = url.toLowerCase();
 
-    // Any redirect back to our backend or app scheme = payment done
     if (SUCCESS_INDICATORS.some(indicator => urlLower.includes(indicator.toLowerCase()))) {
-      // Always navigate to PaymentResult with checking=true; it will call verifyPayment API
-      navigation.replace('PaymentResult', {
-        success: false,
-        checking: true,
-        transactionId,
-        coins,
-      });
+      verifyAndGoBack();
     }
   };
 
+  const handleClose = () => {
+    Alert.alert(
+      'Cancel Payment?',
+      'Are you sure you want to cancel this payment?',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Yes, Cancel',
+          style: 'destructive',
+          onPress: () => navigation.replace('Wallet', {} as any),
+        },
+      ]
+    );
+  };
+
+  if (isVerifying) {
+    return (
+      <View style={styles.verifyingContainer}>
+        <ActivityIndicator size="large" color="#EC1372" />
+        <Text style={styles.verifyingTitle}>Verifying Payment...</Text>
+        <Text style={styles.verifyingSubText}>Please wait, do not close the app</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="dark-content" {...{ backgroundColor: '#FFFFFF' } as any} />
       <View style={styles.statusBarSpacer} />
 
       {/* Header */}
@@ -64,13 +140,7 @@ const PhonePeWebViewScreen: React.FC<Props> = ({ navigation, route }) => {
         <TouchableOpacity
           style={styles.closeButton}
           activeOpacity={0.8}
-          onPress={() =>
-            navigation.replace('PaymentResult', {
-              success: false,
-              transactionId,
-              coins,
-            })
-          }
+          onPress={handleClose}
         >
           <X size={20} color="#8A7A9C" />
         </TouchableOpacity>
@@ -164,6 +234,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#8A7A9C',
     fontWeight: '500',
+  },
+  verifyingContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  verifyingTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1B0E22',
+  },
+  verifyingSubText: {
+    fontSize: 13,
+    color: '#8A7A9C',
   },
 });
 

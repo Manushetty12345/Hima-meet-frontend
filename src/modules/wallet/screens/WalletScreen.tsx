@@ -14,9 +14,10 @@ import {
   Alert,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { ArrowLeft, Coins } from 'lucide-react-native';
+import { ArrowLeft, Coins, CheckCircle2, XCircle } from 'lucide-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import apiClient from '../../../api/apiClient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Component
 import CoinPackageCard, { CoinPackage } from '../components/CoinPackageCard';
@@ -24,8 +25,15 @@ import CoinPackageCard, { CoinPackage } from '../components/CoinPackageCard';
 const STATUSBAR_HEIGHT =
   Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 0;
 
+type PaymentResult = {
+  success: boolean;
+  coinsAdded: number;
+  newBalance: number;
+  transactionId?: string;
+};
+
 type RootStackParamList = {
-  Wallet: undefined;
+  Wallet: { paymentResult?: PaymentResult } | undefined;
   Home: undefined;
   PhonePeWebView: { paymentUrl: string; transactionId: string; coins: number };
   [key: string]: undefined | object;
@@ -48,15 +56,18 @@ const FALLBACK_PACKAGES: CoinPackage[] = [
   { id: 'p33000', coins: 33000, price: 6999, savePercent: 45 },
 ];
 
-const WalletScreen: React.FC<Props> = ({ navigation }) => {
+const WalletScreen: React.FC<Props> = ({ navigation, route }) => {
   const [selectedPackageId, setSelectedPackageId] = useState<string>('');
   const [coinBalance, setCoinBalance] = useState<number>(0);
   const [packages, setPackages] = useState<CoinPackage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [paymentResult, setPaymentResult] = useState<PaymentResult | null>(null);
 
   const ctaOpacity = useRef(new Animated.Value(0)).current;
   const ctaTranslateY = useRef(new Animated.Value(24)).current;
+  const resultBannerOpacity = useRef(new Animated.Value(0)).current;
+  const resultBannerTranslateY = useRef(new Animated.Value(-40)).current;
 
   const fetchWalletData = useCallback(async (refresh = false) => {
     try {
@@ -107,9 +118,19 @@ const WalletScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, [selectedPackageId]);
 
+  // Show payment result banner when coming back from PhonePe (normal flow)
+  useEffect(() => {
+    const result = route.params?.paymentResult;
+    if (result) {
+      fetchWalletData();
+      showResultBanner(result);
+    }
+  }, [route.params?.paymentResult]);
+
   useEffect(() => {
     StatusBar.setBarStyle('dark-content');
     fetchWalletData();
+    checkPendingPayment();
     Animated.parallel([
       Animated.timing(ctaOpacity, {
         toValue: 1,
@@ -125,6 +146,60 @@ const WalletScreen: React.FC<Props> = ({ navigation }) => {
       }),
     ]).start();
   }, []);
+
+  /**
+   * App killed mid-payment recovery:
+   * If user was in PhonePe and killed the app, on next Wallet open
+   * we check if there's an unverified transaction in AsyncStorage and auto-verify.
+   */
+  const checkPendingPayment = async () => {
+    try {
+      const raw = await AsyncStorage.getItem('hima_pending_payment');
+      if (!raw) return;
+      const { transactionId, coins: savedCoins } = JSON.parse(raw);
+      if (!transactionId) return;
+
+      // Clear it immediately to avoid re-verifying on next open
+      await AsyncStorage.removeItem('hima_pending_payment');
+
+      const res = await apiClient.post('/api/wallet/recharge/verify', {
+        merchant_transaction_id: transactionId,
+      });
+      const data = res.data?.data;
+      const isSuccess = data?.success === true;
+
+      showResultBanner({
+        success: isSuccess,
+        coinsAdded: data?.coins_added ?? savedCoins ?? 0,
+        newBalance: data?.new_balance ?? 0,
+        transactionId,
+      });
+
+      // Refresh balance
+      fetchWalletData();
+    } catch (err: any) {
+      // Silent — don't bother user if recovery fails
+      if (err.response?.status !== 404) {
+        console.warn('Pending payment recovery failed:', err.message);
+      }
+    }
+  };
+
+  const showResultBanner = (result: PaymentResult) => {
+    setPaymentResult(result);
+    resultBannerOpacity.setValue(0);
+    resultBannerTranslateY.setValue(-40);
+    Animated.parallel([
+      Animated.timing(resultBannerOpacity, { toValue: 1, duration: 350, useNativeDriver: true }),
+      Animated.spring(resultBannerTranslateY, { toValue: 0, friction: 8, tension: 60, useNativeDriver: true }),
+    ]).start();
+    setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(resultBannerOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+        Animated.timing(resultBannerTranslateY, { toValue: -40, duration: 300, useNativeDriver: true }),
+      ]).start(() => setPaymentResult(null));
+    }, 4000);
+  };
 
   const selectedPackage = packages.find(pkg => pkg.id === selectedPackageId) ?? packages[0];
 
@@ -160,6 +235,26 @@ const WalletScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={styles.flex}>
+      {/* Payment Result Banner */}
+      {paymentResult && (
+        <Animated.View
+          style={[
+            styles.resultBanner,
+            paymentResult.success ? styles.resultBannerSuccess : styles.resultBannerFail,
+            { opacity: resultBannerOpacity, transform: [{ translateY: resultBannerTranslateY }] },
+          ]}
+        >
+          {paymentResult.success
+            ? <CheckCircle2 size={18} color="#2DD36F" />
+            : <XCircle size={18} color="#EC1372" />
+          }
+          <Text style={styles.resultBannerText}>
+            {paymentResult.success
+              ? `✓ ${paymentResult.coinsAdded} Coins added successfully!`
+              : 'Payment failed. Please try again.'}
+          </Text>
+        </Animated.View>
+      )}
       <StatusBar barStyle="dark-content" />
       <View style={styles.statusBarSpacer} />
 
@@ -357,6 +452,40 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
     letterSpacing: 0.3,
+  },
+  resultBanner: {
+    position: 'absolute',
+    top: STATUSBAR_HEIGHT + 68,
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    zIndex: 100,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  resultBannerSuccess: {
+    backgroundColor: '#F0FDF6',
+    borderWidth: 1,
+    borderColor: 'rgba(45, 211, 111, 0.35)',
+  },
+  resultBannerFail: {
+    backgroundColor: '#FFF0F5',
+    borderWidth: 1,
+    borderColor: 'rgba(236, 19, 114, 0.25)',
+  },
+  resultBannerText: {
+    flex: 1,
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#1B0E22',
   },
 });
 
