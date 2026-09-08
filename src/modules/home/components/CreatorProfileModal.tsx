@@ -14,7 +14,7 @@ import {
   ImageBackground,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { ArrowLeft, Phone, Video, MoreVertical, UserPlus, User, Coins, Send, Image as ImageIcon, Smile, Camera, Mic, Ban, Eraser, Trash2 } from 'lucide-react-native';
+import { ArrowLeft, Phone, Video, MoreVertical, UserPlus, User, Coins, Send, Image as ImageIcon, Smile, Camera, Mic, Ban, Eraser, Trash2, Lock } from 'lucide-react-native';
 
 const PLUM_ROYAL = '#5B0E8B';
 const GOLD = '#F5C542';
@@ -199,7 +199,20 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
               </View>
             </View>
           ) : (
-            <View style={styles.emptyArea} />
+            <View style={styles.emptyAreaContainer}>
+              <View style={styles.encryptionBanner}>
+                <Lock size={12} color="#D4AF37" />
+                <Text style={styles.encryptionText}>
+                  Messages are end-to-end encrypted. No one outside of this chat can read or listen to them.
+                </Text>
+              </View>
+              
+              <View style={styles.welcomeChatContainer}>
+                <Image source={{ uri: creator.avatarUri }} style={styles.welcomeAvatar} />
+                <Text style={styles.welcomeTitle}>Start a conversation</Text>
+                <Text style={styles.welcomeSubtitle}>Send a friend request to chat with {creator.name}.</Text>
+              </View>
+            </View>
           )}
         </ImageBackground>
 
@@ -438,8 +451,63 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#E5DDD5', // Whatsapp-like default color
   },
-  emptyArea: {
+  emptyAreaContainer: {
     flex: 1,
+    alignItems: 'center',
+    padding: 16,
+  },
+  encryptionBanner: {
+    flexDirection: 'row',
+    backgroundColor: '#FEF9E7',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 40,
+    marginTop: 10,
+    width: '90%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  encryptionText: {
+    color: '#D4AF37',
+    fontSize: 11,
+    marginLeft: 8,
+    flex: 1,
+    lineHeight: 16,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  welcomeChatContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    padding: 24,
+    borderRadius: 20,
+    width: '85%',
+  },
+  welcomeAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    marginBottom: 16,
+  },
+  welcomeTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#2A1240',
+    marginBottom: 8,
+  },
+  welcomeSubtitle: {
+    fontSize: 14,
+    color: '#8B7F98',
+    textAlign: 'center',
+    lineHeight: 20,
   },
   footer: {
     backgroundColor: '#FFFFFF',
