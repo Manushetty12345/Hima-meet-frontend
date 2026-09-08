@@ -257,7 +257,7 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
             <View style={styles.chatFooterContainer}>
               <View style={styles.chatInputWrapper}>
                 <TouchableOpacity style={styles.iconBtnLeft}>
-                  <Smile size={24} color="#8B7F98" />
+                  <Smile size={30} color="#8B7F98" />
                 </TouchableOpacity>
                 <TextInput
                   style={styles.chatInput}
@@ -269,30 +269,24 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
                 />
                 <View style={styles.chatInputActions}>
                   <TouchableOpacity style={styles.iconBtnRight}>
-                    <ImageIcon size={22} color="#8B7F98" />
+                    <ImageIcon size={28} color="#8B7F98" />
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.iconBtnRight}>
-                    <Camera size={22} color="#8B7F98" />
+                    <Camera size={28} color="#8B7F98" />
                   </TouchableOpacity>
                 </View>
               </View>
               
-              {message.trim().length > 0 ? (
-                <TouchableOpacity style={styles.sendBtnGradientWrap} activeOpacity={0.8}>
-                  <LinearGradient
-                    colors={[PINK, '#C90E62']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.sendBtnInner}
-                  >
-                    <Send size={18} color="#FFFFFF" style={{ marginLeft: 2 }} />
-                  </LinearGradient>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity style={styles.micBtn} activeOpacity={0.8}>
-                  <Mic size={22} color="#FFFFFF" />
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity style={styles.sendBtnGradientWrap} activeOpacity={0.8}>
+                <LinearGradient
+                  colors={[PINK, '#C90E62']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.sendBtnInner}
+                >
+                  <Send size={20} color="#FFFFFF" style={{ marginLeft: 2 }} />
+                </LinearGradient>
+              </TouchableOpacity>
             </View>
           )}
         </KeyboardAvoidingView>
@@ -626,8 +620,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     backgroundColor: '#F5F0FA',
     paddingHorizontal: 10,
-    paddingTop: 10,
-    paddingBottom: Platform.OS === 'ios' ? 34 : 14,
+    paddingTop: 16,
+    paddingBottom: Platform.OS === 'ios' ? 44 : 24,
     borderTopWidth: 1,
     borderTopColor: '#EBE5F2',
   },
@@ -636,10 +630,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    minHeight: 48,
+    borderRadius: 32,
+    minHeight: 64,
     maxHeight: 120,
-    marginRight: 8,
+    marginRight: 6,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
@@ -647,34 +641,34 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   iconBtnLeft: {
-    padding: 12,
+    padding: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    height: 48,
+    height: 64,
   },
   chatInput: {
     flex: 1,
-    minHeight: 48,
-    paddingTop: Platform.OS === 'ios' ? 14 : 12,
-    paddingBottom: Platform.OS === 'ios' ? 14 : 12,
-    fontSize: 16,
+    minHeight: 64,
+    paddingTop: Platform.OS === 'ios' ? 22 : 20,
+    paddingBottom: Platform.OS === 'ios' ? 22 : 20,
+    fontSize: 18,
     color: '#2A1240',
   },
   chatInputActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 48,
-    paddingRight: 6,
+    height: 64,
+    paddingRight: 8,
   },
   iconBtnRight: {
-    padding: 8,
+    padding: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
   sendBtnGradientWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     shadowColor: PINK,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -682,16 +676,16 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   sendBtnInner: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },
   micBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: '#1EBEA5',
     alignItems: 'center',
     justifyContent: 'center',
