@@ -372,7 +372,12 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
               style={styles.chatScrollView}
               contentContainerStyle={styles.chatContentContainer}
               ref={scrollViewRef}
-              onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+              onContentSizeChange={() => {
+                // Use a short delay to prevent layout thrashing and ANRs on Android
+                setTimeout(() => {
+                  scrollViewRef.current?.scrollToEnd({ animated: false });
+                }, 50);
+              }}
             >
               <View style={{ paddingBottom: 20 }}>
                 {messagesList.map((msg, index) => {
