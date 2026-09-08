@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Platform,
   ScrollView,
   FlatList,
+  ActivityIndicator,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {
@@ -23,14 +24,15 @@ import {
   Phone,
   Video,
   Coins,
-  Shuffle,
-  Home as HomeIcon,
-  Clock,
-  UserCircle2,
+  Shuffle, X,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
+import apiClient from '../../../api/apiClient';
+import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import WelcomeOfferBottomSheet from '../components/WelcomeOfferBottomSheet';
+import CreatorProfileModal from '../components/CreatorProfileModal';
+import RandomMatchModal from '../components/RandomMatchModal';
 
 const STATUSBAR_HEIGHT =
   Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 0;
@@ -41,27 +43,47 @@ type RootStackParamList = {
   [key: string]: undefined | object;
 };
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
+type Props = BottomTabScreenProps<RootStackParamList, 'Home'>;
 
-type FilterKey =
-  | 'chats'
-  | 'all'
-  | 'new'
-  | 'music'
-  | 'movies'
-  | 'foodie'
-  | 'love'
-  | 'travel';
 
-const FILTERS: { key: FilterKey; label: string; icon: LucideIcon }[] = [
-  { key: 'chats', label: 'Chats', icon: MessageCircle },
+
+type FilterItem = {
+  key: string;
+  label: string;
+  icon: LucideIcon;
+};
+
+// Static icon map for known interest names (fallback to Sparkles)
+const INTEREST_ICON_MAP: Record<string, LucideIcon> = {
+  music: Music,
+  movies: Film,
+  foodie: Utensils,
+  food: Utensils,
+  love: Heart,
+  travel: Plane,
+  chats: MessageCircle,
+  all: Users,
+  new: Sparkles,
+  photography: Sparkles,
+  gaming: Sparkles,
+  fitness: Sparkles,
+  sports: Sparkles,
+  art: Sparkles,
+  comedy: Sparkles,
+  books: Sparkles,
+  fashion: Sparkles,
+  technology: Sparkles,
+  cooking: Utensils,
+};
+
+const getIconForInterest = (name: string): LucideIcon => {
+  const key = name.toLowerCase().trim();
+  return INTEREST_ICON_MAP[key] ?? Sparkles;
+};
+
+const STATIC_FILTERS: FilterItem[] = [
   { key: 'all', label: 'All', icon: Users },
   { key: 'new', label: 'New', icon: Sparkles },
-  { key: 'music', label: 'Music', icon: Music },
-  { key: 'movies', label: 'Movies', icon: Film },
-  { key: 'foodie', label: 'Foodie', icon: Utensils },
-  { key: 'love', label: 'Love', icon: Heart },
-  { key: 'travel', label: 'Travel', icon: Plane },
 ];
 
 type CreatorItem = {
@@ -77,112 +99,121 @@ type CreatorItem = {
   isRandomFeatured?: boolean;
 };
 
-const CREATORS: CreatorItem[] = [
-  {
-    id: 'c1',
-    name: 'Yamuna',
-    avatarUri: 'https://i.pravatar.cc/200?img=31',
-    isOnline: true,
-    callAvailable: true,
-    callRate: 10,
-    videoAvailable: false,
-  },
-  {
-    id: 'c2',
-    name: 'Latha',
-    avatarUri: 'https://i.pravatar.cc/200?img=32',
-    isOnline: true,
-    callAvailable: true,
-    callRate: 10,
-    videoAvailable: true,
-    videoRate: 60,
-  },
-  {
-    id: 'c3',
-    name: 'Madhavi',
-    avatarUri: 'https://i.pravatar.cc/200?img=33',
-    isOnline: true,
-    callAvailable: true,
-    callRate: 10,
-    videoAvailable: false,
-  },
-  {
-    id: 'c4',
-    name: 'Vidya',
-    avatarUri: 'https://i.pravatar.cc/200?img=34',
-    isOnline: true,
-    callAvailable: false,
-    videoAvailable: true,
-    videoRate: 60,
-  },
-  {
-    id: 'c5',
-    name: 'Harini',
-    avatarUri: 'https://i.pravatar.cc/200?img=35',
-    isOnline: true,
-    callAvailable: true,
-    callRate: 10,
-    videoAvailable: false,
-  },
-  {
-    id: 'c6',
-    name: 'snitha',
-    avatarUri: 'https://i.pravatar.cc/200?img=36',
-    isOnline: true,
-    callAvailable: true,
-    callRate: 10,
-    videoAvailable: false,
-  },
-  {
-    id: 'c7',
-    name: 'Usha',
-    avatarUri: 'https://i.pravatar.cc/200?img=37',
-    isOnline: true,
-    isNew: true,
-    callAvailable: true,
-    callRate: 10,
-    videoAvailable: true,
-    videoRate: 60,
-  },
-];
 
-type NavKey = 'home' | 'recent' | 'friends' | 'profile';
 
-const NAV_ITEMS: { key: NavKey; label: string; icon: LucideIcon }[] = [
-  { key: 'home', label: 'Home', icon: HomeIcon },
-  { key: 'recent', label: 'Recent', icon: Clock },
-  { key: 'friends', label: 'Friends', icon: Users },
-  { key: 'profile', label: 'Profile', icon: UserCircle2 },
-];
 
 const HomeScreen: React.FC<Props> = ({ navigation }) => {
-  const [activeFilter, setActiveFilter] = useState<FilterKey>('all');
-  const [activeNav, setActiveNav] = useState<NavKey>('home');
-  const [coinBalance] = useState(0);
+  const [activeFilter, setActiveFilter] = useState<string>('all');
+  const [filters, setFilters] = useState<FilterItem[]>(STATIC_FILTERS);
+  const [creators, setCreators] = useState<CreatorItem[]>([]);
+  const [loadingCreators, setLoadingCreators] = useState(false);
+  const activeFilterRef = React.useRef<string>('all');
+
+  const fetchCreators = useCallback(async (filterKey: string) => {
+    setLoadingCreators(true);
+    try {
+      const params: Record<string, string> = {};
+      if (filterKey !== 'all') {
+        // Find label for the filter key
+        params.filter = filterKey;
+      }
+      const res = await apiClient.get('/api/feed/creators', { params });
+      const data = res.data?.data ?? [];
+      const mapped: CreatorItem[] = data.map((c: any) => ({
+        id: String(c.creator_id),
+        name: c.name,
+        avatarUri: c.avatar_url,
+        isOnline: c.is_online,
+        isNew: c.is_new,
+        callAvailable: c.voice?.status === 'available',
+        callRate: c.voice?.rate_per_min,
+        videoAvailable: c.video?.status === 'available',
+        videoRate: c.video?.rate_per_min,
+      }));
+      setCreators(mapped);
+    } catch (e) {
+      console.log('HomeScreen fetch creators error:', e);
+    } finally {
+      setLoadingCreators(false);
+    }
+  }, []);
+    const [coinBalance, setCoinBalance] = useState(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      const fetchInterests = async () => {
+        try {
+          const res = await apiClient.get('/api/onboarding/interests');
+          const interests: { id: number; name: string }[] = res.data?.data ?? [];
+          const dynamicFilters: FilterItem[] = [
+            ...STATIC_FILTERS,
+            ...interests.map(i => ({
+              key: String(i.id),
+              label: i.name,
+              icon: getIconForInterest(i.name),
+            })),
+          ];
+          setFilters(dynamicFilters);
+        } catch (e) {
+          console.log('HomeScreen fetch interests error:', e);
+        }
+      };
+      fetchInterests();
+      const fetchBalance = async () => {
+        try {
+          const res = await apiClient.get('/api/wallet/balance');
+          const balance = res.data?.data?.coin_balance ?? 0;
+          setCoinBalance(balance);
+        } catch (error) {
+          console.log('HomeScreen fetch balance error:', error);
+        }
+      };
+      fetchBalance();
+      fetchCreators(activeFilterRef.current);
+    }, [fetchCreators])
+  );
   const [showWelcomeOffer, setShowWelcomeOffer] = useState(true);
+  const [selectedCreator, setSelectedCreator] = useState<CreatorItem | null>(null);
+  const [showRandomMatch, setShowRandomMatch] = useState(false);
+  const [randomMatchType, setRandomMatchType] = useState<'audio' | 'video'>('audio');
+  const [isFabExpanded, setIsFabExpanded] = useState(false);
 
   const handleCall = (creator: CreatorItem) => {
     if (!creator.callAvailable) return;
-    // TODO: navigate to your voice-call screen / start call flow with creator.id
+    // @ts-ignore
+    navigation.navigate('AudioCallScreen', { calleeName: creator.name });
   };
 
   const handleVideoCall = (creator: CreatorItem) => {
     if (!creator.videoAvailable) return;
-    // TODO: navigate to your video-call screen / start call flow with creator.id
+    // @ts-ignore
+    navigation.navigate('VideoCallScreen', { calleeName: creator.name });
   };
 
   const handleRandom = () => {
-    // TODO: navigate to your random-match flow
+    setRandomMatchType(Math.random() > 0.5 ? 'audio' : 'video');
+    setShowRandomMatch(true);
   };
 
   const renderCreator = ({ item }: { item: CreatorItem }) => (
     <View style={styles.creatorCard}>
-      <View style={styles.avatarWrap}>
-        <Image source={{ uri: item.avatarUri }} style={styles.avatarImage} />
-        {item.isOnline && <View style={styles.onlineDot} />}
-      </View>
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={() => setSelectedCreator(item)}
+        style={styles.avatarContainer}
+      >
+        <View style={styles.avatarWrap}>
+          <Image source={{ uri: item.avatarUri }} style={styles.avatarImage} />
+        </View>
+        {(item.callAvailable || item.videoAvailable) && (
+          <View style={styles.liveIndicator}>
+            <View style={styles.liveDot} />
+            <Text style={styles.liveText}>Available</Text>
+          </View>
+        )}
+      </TouchableOpacity>
 
-      <View style={styles.creatorNameBlock}>
+            <View style={styles.creatorNameBlock}>
         <View style={styles.creatorNameRow}>
           <Text style={styles.creatorName}>{item.name}</Text>
           {item.isNew && (
@@ -215,7 +246,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.actionTextContainer}>
             {item.callAvailable ? (
               <View style={styles.rateRow}>
-                <Coins size={10} color="#E8B44A" />
+                <Coins size={10} color="#C8860A" />
                 <Text style={styles.rateText}>{item.callRate}/min</Text>
               </View>
             ) : (
@@ -245,7 +276,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.actionTextContainer}>
             {item.videoAvailable ? (
               <View style={styles.rateRow}>
-                <Coins size={10} color="#E8B44A" />
+                <Coins size={10} color="#C8860A" />
                 <Text style={styles.rateText}>{item.videoRate}/min</Text>
               </View>
             ) : (
@@ -263,11 +294,13 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.statusBarSpacer} />
 
       <View style={styles.headerRow}>
-        <View style={styles.brandIcon}>
-          <MessageCircle size={18} color="#FFFFFF" />
-        </View>
+        <Image
+          source={require('../../../assets/images/logo1.png')}
+          style={styles.brandIcon}
+          resizeMode="contain"
+        />
         <View style={styles.brandTextBlock}>
-          <Text style={styles.brandTitle}>Hi ma</Text>
+          <Text style={styles.brandTitle}>Himameet</Text>
           <Text style={styles.brandSubtitle}>Where Feelings Connect</Text>
         </View>
 
@@ -277,106 +310,154 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
           activeOpacity={0.8}
         >
           <View style={styles.balanceCoinDot}>
-            <Coins size={14} color="#F4C430" fill="#F4C430" />
+            <Coins size={18} color="#F4C430" fill="#F4C430" />
           </View>
           <Text style={styles.balanceText}>{coinBalance}</Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterRow}
-      >
-        {FILTERS.map(filter => {
-          const isActive = filter.key === activeFilter;
-          const FilterIcon = filter.icon;
-          return (
-            <TouchableOpacity
-              key={filter.key}
-              activeOpacity={0.85}
-              onPress={() => setActiveFilter(filter.key)}
-            >
-              {isActive ? (
-                <LinearGradient
-                  colors={['#8E2DE2', '#E0116F']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.filterPillActive}
-                >
-                  <FilterIcon size={13} color="#FFFFFF" />
-                  <Text style={styles.filterTextActive}>{filter.label}</Text>
-                </LinearGradient>
-              ) : (
-                <View style={styles.filterPill}>
-                  <FilterIcon size={13} color="#8A7A9C" />
-                  <Text style={styles.filterText}>{filter.label}</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+      <View style={styles.filterContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterRow}
+        >
+          {filters.map(filter => {
+            const isActive = filter.key === activeFilter;
+            const FilterIcon = filter.icon;
+            return (
+              <TouchableOpacity
+                key={filter.key}
+                activeOpacity={0.85}
+                onPress={() => {
+                    const label = filter.label;
+                    setActiveFilter(filter.key);
+                    activeFilterRef.current = filter.key === 'all' ? 'all' : label;
+                    fetchCreators(filter.key === 'all' ? 'all' : label);
+                  }}
+              >
+                {isActive ? (
+                  <LinearGradient
+                    colors={['#9C27B0', '#FF1493']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.filterPillActive}
+                  >
+                    <FilterIcon size={13} color="#FFFFFF" />
+                    <Text style={styles.filterTextActive}>{filter.label}</Text>
+                  </LinearGradient>
+                ) : (
+                  <View style={styles.filterPill}>
+                    <FilterIcon size={13} color="#8A7A9C" />
+                    <Text style={styles.filterText}>{filter.label}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
 
       <FlatList
-        data={CREATORS}
+        data={creators}
         keyExtractor={item => item.id}
         renderItem={renderCreator}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
       />
 
-      <View style={styles.bottomNav}>
-        {NAV_ITEMS.map(navItem => {
-          const isActive = navItem.key === activeNav;
-          const NavIcon = navItem.icon;
-          return (
-            <TouchableOpacity
-              key={navItem.key}
-              activeOpacity={0.8}
-              style={styles.navItem}
-              onPress={() => {
-                if (navItem.key !== 'home') {
-                  navigation.navigate(
-                    navItem.key === 'friends'
-                      ? 'Friends'
-                      : navItem.key === 'recent'
-                      ? 'Recent'
-                      : 'Profile'
-                  );
-                }
-              }}
-            >
-              <NavIcon
-                size={22}
-                color={isActive ? '#EC1372' : '#B4A6BE'}
-                fill={isActive && navItem.key === 'home' ? '#EC1372' : 'transparent'}
-              />
-              <Text
-                style={[
-                  styles.navLabel,
-                  isActive && styles.navLabelActive,
-                ]}
-              >
-                {navItem.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+
 
       <WelcomeOfferBottomSheet
         visible={showWelcomeOffer}
         onClose={() => setShowWelcomeOffer(false)}
         onAddCoins={() => {
-          console.log('Add coins clicked');
           setShowWelcomeOffer(false);
+          navigation.navigate('Wallet');
         }}
         onViewMorePlans={() => {
-          console.log('View more plans clicked');
           setShowWelcomeOffer(false);
+          navigation.navigate('Wallet');
         }}
       />
+
+      <CreatorProfileModal
+        creator={selectedCreator}
+        visible={!!selectedCreator}
+        onClose={() => setSelectedCreator(null)}
+        onSendFriendRequest={(creator) => {
+          setSelectedCreator(null);
+          // Friend request - handled by API
+        }}
+        onViewProfile={(creator) => {
+          setSelectedCreator(null);
+          // Navigate to full creator profile screen
+          navigation.navigate('CreatorFullProfile', { creator });
+        }}
+        onCall={(creator) => {
+          setSelectedCreator(null);
+          handleCall(creator);
+        }}
+        onVideoCall={(creator) => {
+          setSelectedCreator(null);
+          handleVideoCall(creator);
+        }}
+      />
+
+      <RandomMatchModal
+        visible={showRandomMatch}
+        onClose={() => setShowRandomMatch(false)}
+        mode={randomMatchType}
+      />
+
+      {/* Floating Random Button */}
+      {isFabExpanded ? (
+        <View style={styles.expandedFabContainer}>
+          <TouchableOpacity 
+            style={[styles.fabActionCircle, { backgroundColor: '#FF1493' }]}
+            activeOpacity={0.8}
+            onPress={() => {
+              setRandomMatchType('audio');
+              setShowRandomMatch(true);
+              setIsFabExpanded(false);
+            }}
+          >
+            <Phone size={24} color="#FFFFFF" fill="#FFFFFF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.fabActionCircle, { backgroundColor: '#9C27B0' }]}
+            activeOpacity={0.8}
+            onPress={() => {
+              setRandomMatchType('video');
+              setShowRandomMatch(true);
+              setIsFabExpanded(false);
+            }}
+          >
+            <Video size={24} color="#FFFFFF" fill="#FFFFFF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.fabActionCircle, { backgroundColor: '#E5DFEB' }]}
+            activeOpacity={0.8}
+            onPress={() => setIsFabExpanded(false)}
+          >
+            <X size={24} color="#333333" />
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <TouchableOpacity style={styles.fab} activeOpacity={0.9} onPress={() => setIsFabExpanded(true)}>
+          <LinearGradient
+            colors={['#FF1493', '#FF1493']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.fabGradient}
+          >
+            <Shuffle size={22} color="#FFFFFF" strokeWidth={2.5} />
+            <Text style={styles.fabText}>Random</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -399,62 +480,65 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   brandIcon: {
-    width: 38,
-    height: 38,
+    width: 42,
+    height: 42,
     borderRadius: 12,
-    backgroundColor: '#EC1372',
-    alignItems: 'center',
-    justifyContent: 'center',
     marginRight: 10,
   },
   brandTextBlock: {
     flex: 1,
   },
   brandTitle: {
-    fontSize: 17,
+    fontSize: 22,
     fontWeight: '800',
-    color: '#1B0E22',
+    color: '#333333',
   },
   brandSubtitle: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#8A7A9C',
+    marginTop: 2,
   },
   balancePill: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FF1493',
-    borderRadius: 24,
-    paddingLeft: 4,
-    paddingRight: 16,
-    paddingVertical: 4,
+    borderRadius: 28,
+    paddingLeft: 6,
+    paddingRight: 20,
+    paddingVertical: 6,
   },
   balanceCoinDot: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 8,
+    marginRight: 10,
   },
   balanceText: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '800',
     color: '#FFFFFF',
+  },
+  filterContainer: {
+    height: 58,
+    backgroundColor: '#FFFFFF',
   },
   filterRow: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
+    paddingVertical: 10,
+    gap: 10,
+    alignItems: 'center',
     backgroundColor: 'transparent',
   },
   filterPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    borderRadius: 20,
+    borderRadius: 24,
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 9,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#EFEFEF',
@@ -463,17 +547,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    borderRadius: 20,
+    borderRadius: 24,
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 9,
   },
   filterText: {
-    fontSize: 12.5,
+    fontSize: 13.5,
     fontWeight: '600',
     color: '#8A7A9C',
   },
   filterTextActive: {
-    fontSize: 12.5,
+    fontSize: 13.5,
     fontWeight: '700',
     color: '#FFFFFF',
   },
@@ -495,33 +579,45 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  avatarWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    borderWidth: 2,
-    borderColor: '#EC1372',
-    padding: 2,
+  avatarContainer: {
+    alignItems: 'center',
     marginRight: 14,
+    width: 60,
+  },
+  avatarWrap: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 2,
+    borderColor: '#9C27B0',
+    padding: 2,
   },
   avatarImage: {
     width: '100%',
     height: '100%',
     borderRadius: 30,
   },
-  onlineDot: {
-    position: 'absolute',
-    bottom: 2,
-    right: 2,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#2FA35C',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
+  liveIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    marginTop: 4,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#2ECC71',
+  },
+  liveText: {
+    fontSize: 8.5,
+    fontWeight: '700',
+    color: '#2ECC71',
   },
   creatorNameBlock: {
     flex: 1,
+    alignSelf: 'flex-start',
+    marginTop: 14,
   },
   creatorNameRow: {
     flexDirection: 'row',
@@ -529,9 +625,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   creatorName: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#1B0E22',
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#333333',
   },
   newBadge: {
     backgroundColor: '#EC1372',
@@ -582,50 +678,57 @@ const styles = StyleSheet.create({
   },
   rateText: {
     fontSize: 10.5,
-    fontWeight: '600',
-    color: '#8A7A9C',
+    fontWeight: '700',
+    color: '#C8860A',
   },
   offlineText: {
     fontSize: 10.5,
     color: '#B4A6BE',
   },
-  randomButtonWrapper: {
-    borderRadius: 20,
-    overflow: 'hidden',
+  fab: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    borderRadius: 36,
+    shadowColor: '#FF1493',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  randomButton: {
+  fabGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 36,
+    gap: 10,
   },
-  randomButtonText: {
-    fontSize: 13.5,
-    fontWeight: '700',
+  fabText: {
     color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '800',
   },
-  bottomNav: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    paddingTop: 10,
-    paddingBottom: Platform.OS === 'ios' ? 36 : 24,
-    borderTopWidth: 1,
-    borderTopColor: '#F1EAF6',
-  },
-  navItem: {
-    flex: 1,
+  expandedFabContainer: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
     alignItems: 'center',
+    gap: 16,
   },
-  navLabel: {
-    fontSize: 11,
-    color: '#B4A6BE',
-    marginTop: 4,
-    fontWeight: '600',
+  fabActionCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 5,
   },
-  navLabelActive: {
-    color: '#EC1372',
-  },
+
 });
 
 export default HomeScreen;
