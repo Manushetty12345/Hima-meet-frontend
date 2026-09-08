@@ -16,9 +16,12 @@ import {
   FlatList,
   KeyboardAvoidingView,
   TextInput,
+  Alert,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import apiClient from '../../../api/apiClient';
+import EmojiSelector, { Categories } from 'react-native-emoji-selector';
+import { launchCamera, launchImageLibrary, ImagePickerResponse } from 'react-native-image-picker';
 import { ArrowLeft, Phone, Video, MoreVertical, UserPlus, User, Coins, Send, Image as ImageIcon, Smile, Camera, Mic, Ban, Eraser, Trash2, Lock, Check, CheckCheck } from 'lucide-react-native';
 import { initSocket, disconnectSocket, getSocket } from '../../../api/socketClient';
 
@@ -73,6 +76,43 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
   // Toast state
   const [toastMessage, setToastMessage] = useState('');
   const toastAnim = useRef(new Animated.Value(0)).current;
+
+  // New features state
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+  const handleCamera = async () => {
+    try {
+      const result = await launchCamera({ mediaType: 'photo', quality: 0.5, includeBase64: true });
+      if (result.assets && result.assets[0]) {
+        handleSendMedia(result.assets[0].base64);
+      }
+    } catch (err) {
+      console.error('Camera Error:', err);
+    }
+  };
+
+  const handleGallery = async () => {
+    try {
+      const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.5, includeBase64: true });
+      if (result.assets && result.assets[0]) {
+        handleSendMedia(result.assets[0].base64);
+      }
+    } catch (err) {
+      console.error('Gallery Error:', err);
+    }
+  };
+
+  const handleSendMedia = (base64Image: string | undefined) => {
+    if (!base64Image || !conversationId) return;
+    const socket = getSocket();
+    if (socket) {
+      socket.emit('send_message', {
+        conversationId,
+        messageText: base64Image,
+        messageType: 'image'
+      });
+    }
+  };
 
   // Fetch status
   useEffect(() => {
@@ -193,7 +233,11 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
   };
 
   const handleSendMessage = () => {
-    if (!message.trim() || !conversationId) return;
+    if (!message.trim()) return;
+    if (!conversationId) {
+      Alert.alert('Connection Error', 'Chat is still connecting or failed to connect to the server. Please check your network and try again.');
+      return;
+    }
 
     const socket = getSocket();
     if (socket) {
@@ -203,6 +247,8 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
         messageType: 'text'
       });
       setMessage('');
+    } else {
+      Alert.alert('Connection Error', 'Chat socket is not connected.');
     }
   };
 
@@ -321,7 +367,8 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
         >
           {friendStatus === 'friends' ? (
             <ScrollView 
-              style={styles.chatContainer}
+              style={styles.chatScrollView}
+              contentContainerStyle={styles.chatContentContainer}
               ref={scrollViewRef}
               onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
             >
@@ -443,8 +490,8 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
           ) : (
             <View style={styles.chatFooterContainer}>
               <View style={styles.chatInputWrapper}>
-                <TouchableOpacity style={styles.iconBtnLeft}>
-                  <Smile size={30} color="#8B7F98" />
+                <TouchableOpacity style={styles.iconBtnLeft} onPress={() => setShowEmojiPicker(!showEmojiPicker)}>
+                  <Smile size={30} color={showEmojiPicker ? PINK : "#8B7F98"} />
                 </TouchableOpacity>
                 <TextInput
                   style={styles.chatInput}
@@ -453,12 +500,13 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
                   value={message}
                   onChangeText={setMessage}
                   multiline
+                  onFocus={() => setShowEmojiPicker(false)}
                 />
                 <View style={styles.chatInputActions}>
-                  <TouchableOpacity style={styles.iconBtnRight}>
+                  <TouchableOpacity style={styles.iconBtnRight} onPress={handleGallery}>
                     <ImageIcon size={28} color="#8B7F98" />
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.iconBtnRight}>
+                  <TouchableOpacity style={styles.iconBtnRight} onPress={handleCamera}>
                     <Camera size={28} color="#8B7F98" />
                   </TouchableOpacity>
                 </View>
@@ -474,6 +522,16 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
                   <Send size={20} color="#FFFFFF" style={{ marginLeft: 2 }} />
                 </LinearGradient>
               </TouchableOpacity>
+            </View>
+          )}
+
+          {showEmojiPicker && (
+            <View style={{ height: 250, backgroundColor: '#FFFFFF' }}>
+              <EmojiSelector
+                onEmojiSelected={(emoji) => setMessage(prev => prev + emoji)}
+                showSearchBar={false}
+                category={Categories.emotion}
+              />
             </View>
           )}
         </KeyboardAvoidingView>
@@ -769,11 +827,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: PINK,
   },
-  chatContainer: {
+  chatScrollView: {
     flex: 1,
+  },
+  chatContentContainer: {
     padding: 16,
     justifyContent: 'flex-end',
     gap: 12,
+    flexGrow: 1,
   },
   dummyMessageLeft: {
     alignSelf: 'flex-start',
