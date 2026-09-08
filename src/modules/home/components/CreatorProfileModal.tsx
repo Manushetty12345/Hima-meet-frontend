@@ -44,6 +44,22 @@ export type CreatorPreview = {
   videoRate?: number;
 };
 
+const formatDateHeader = (dateString: string) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  if (date.toDateString() === today.toDateString()) {
+    return 'Today';
+  } else if (date.toDateString() === yesterday.toDateString()) {
+    return 'Yesterday';
+  } else {
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+};
+
 interface CreatorProfileModalProps {
   creator: CreatorPreview | null;
   visible: boolean;
@@ -386,6 +402,18 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
                 {messagesList.map((msg, index) => {
                   const isMe = msg.sender_id !== creator.id;
                   
+                  let showDate = false;
+                  if (index === 0) {
+                    showDate = true;
+                  } else {
+                    const prevMsg = messagesList[index - 1];
+                    if (prevMsg.timestamp && msg.timestamp) {
+                      const prevDate = new Date(prevMsg.timestamp).toDateString();
+                      const currDate = new Date(msg.timestamp).toDateString();
+                      if (prevDate !== currDate) showDate = true;
+                    }
+                  }
+                  
                   let StatusIcon = Check;
                   let statusColor = '#B9AFC4';
                   
@@ -397,25 +425,32 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
                   }
 
                   return (
-                    <View key={msg.message_id || index} style={isMe ? styles.dummyMessageRight : styles.dummyMessageLeft}>
-                      {msg.message_type === 'image' ? (
-                        <Image 
-                          source={{ uri: `data:image/jpeg;base64,${msg.content}` }} 
-                          style={{ width: 200, height: 250, borderRadius: 12, marginBottom: 8 }} 
-                          resizeMode="cover"
-                        />
-                      ) : (
-                        <Text style={isMe ? styles.dummyMessageTextRight : styles.dummyMessageText}>
-                          {msg.content}
-                        </Text>
+                    <View key={msg.message_id || index}>
+                      {showDate && msg.timestamp && (
+                        <View style={styles.dateHeaderWrap}>
+                          <Text style={styles.dateHeaderText}>{formatDateHeader(msg.timestamp)}</Text>
+                        </View>
                       )}
-                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 4 }}>
-                        <Text style={isMe ? styles.dummyMessageTimeRight : styles.dummyMessageTime}>
-                          {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
-                        </Text>
-                        {isMe && (
-                          <StatusIcon size={14} color={statusColor} style={{ marginLeft: 4 }} />
+                      <View style={[isMe ? styles.dummyMessageRight : styles.dummyMessageLeft, { marginBottom: 12 }]}>
+                        {msg.message_type === 'image' ? (
+                          <Image 
+                            source={{ uri: `data:image/jpeg;base64,${msg.content}` }} 
+                            style={{ width: 200, height: 250, borderRadius: 12, marginBottom: 8 }} 
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <Text style={isMe ? styles.dummyMessageTextRight : styles.dummyMessageText}>
+                            {msg.content}
+                          </Text>
                         )}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 4 }}>
+                          <Text style={isMe ? styles.dummyMessageTimeRight : styles.dummyMessageTime}>
+                            {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                          </Text>
+                          {isMe && (
+                            <StatusIcon size={14} color={statusColor} style={{ marginLeft: 4 }} />
+                          )}
+                        </View>
                       </View>
                     </View>
                   );
@@ -869,6 +904,19 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 1,
     elevation: 1,
+  },
+  dateHeaderWrap: {
+    alignSelf: 'center',
+    backgroundColor: '#F0EAF6',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginVertical: 16,
+  },
+  dateHeaderText: {
+    fontSize: 12,
+    color: '#8B7F98',
+    fontWeight: '500',
   },
   dummyMessageText: {
     fontSize: 15,
