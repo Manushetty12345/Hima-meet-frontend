@@ -169,8 +169,10 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
               ));
             });
           }
-        } catch (e) {
-          console.error('Error setting up chat', e);
+        } catch (e: any) {
+          const errMsg = e.response?.data?.message || e.message;
+          console.error('Error setting up chat', errMsg);
+          Alert.alert('Backend Error', `Chat Error: ${errMsg}`);
         }
       }
     };
