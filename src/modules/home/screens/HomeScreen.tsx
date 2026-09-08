@@ -386,7 +386,6 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         visible={!!selectedCreator}
         onClose={() => setSelectedCreator(null)}
         onSendFriendRequest={(creator) => {
-          setSelectedCreator(null);
           // Friend request - handled by API
         }}
         onViewProfile={(creator) => {

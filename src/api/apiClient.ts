@@ -1,4 +1,4 @@
-﻿import axios from 'axios';
+import axios from 'axios';
 import Config from 'react-native-config';
 import * as Keychain from 'react-native-keychain';
 

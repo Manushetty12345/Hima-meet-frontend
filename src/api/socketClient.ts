@@ -1,7 +1,8 @@
 import { io, Socket } from 'socket.io-client';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import Config from 'react-native-config';
+import { getSavedToken } from './apiClient';
 
-const SOCKET_URL = 'http://10.0.2.2:5000'; // Or your deployed backend URL
+const SOCKET_URL = Config.API_BASE_URL || 'https://himameet-backend.onrender.com';
 
 let socket: Socket | null = null;
 
@@ -10,7 +11,7 @@ export const initSocket = async () => {
     return socket;
   }
 
-  const token = await AsyncStorage.getItem('userToken');
+  const token = await getSavedToken();
   if (!token) return null;
 
   socket = io(SOCKET_URL, {

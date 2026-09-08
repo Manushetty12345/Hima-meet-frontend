@@ -14,6 +14,8 @@ import {
   Animated,
   ScrollView,
   FlatList,
+  KeyboardAvoidingView,
+  TextInput,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import apiClient from '../../../api/apiClient';
@@ -66,7 +68,7 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
   // Chat state
   const [messagesList, setMessagesList] = useState<any[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollViewRef = useRef<React.ElementRef<typeof ScrollView>>(null);
   
   // Toast state
   const [toastMessage, setToastMessage] = useState('');
@@ -338,10 +340,10 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
                   }
 
                   return (
-                    <View key={msg.message_id || index} style={isMe ? styles.messageRight : styles.messageLeft}>
-                      <Text style={isMe ? styles.messageTextRight : styles.messageTextLeft}>{msg.content}</Text>
+                    <View key={msg.message_id || index} style={isMe ? styles.dummyMessageRight : styles.dummyMessageLeft}>
+                      <Text style={isMe ? styles.dummyMessageTextRight : styles.dummyMessageText}>{msg.content}</Text>
                       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 4 }}>
-                        <Text style={isMe ? styles.messageTimeRight : styles.messageTimeLeft}>
+                        <Text style={isMe ? styles.dummyMessageTimeRight : styles.dummyMessageTime}>
                           {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                         </Text>
                         {isMe && (
