@@ -106,7 +106,7 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
                 disabled={!creator.callAvailable}
                 onPress={() => onCall?.(creator)}
               >
-                <Phone size={16} color={creator.callAvailable ? PINK : '#B9AFC4'} fill={creator.callAvailable ? PINK : 'transparent'} />
+                <Phone size={20} color={creator.callAvailable ? PINK : '#B9AFC4'} fill={creator.callAvailable ? PINK : 'transparent'} />
               </TouchableOpacity>
               {creator.callAvailable ? (
                 <View style={styles.rateRow}>
@@ -126,7 +126,7 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
                 disabled={!creator.videoAvailable}
                 onPress={() => onVideoCall?.(creator)}
               >
-                <Video size={16} color={creator.videoAvailable ? PLUM_ROYAL : '#B9AFC4'} fill={creator.videoAvailable ? PLUM_ROYAL : '#B9AFC4'} />
+                <Video size={20} color={creator.videoAvailable ? PLUM_ROYAL : '#B9AFC4'} fill={creator.videoAvailable ? PLUM_ROYAL : '#B9AFC4'} />
               </TouchableOpacity>
               {creator.videoAvailable ? (
                 <View style={styles.rateRow}>
@@ -143,7 +143,7 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
               activeOpacity={0.8}
               onPress={() => setMenuVisible(!menuVisible)}
             >
-              <MoreVertical size={20} color={TEXT_MUTED} />
+              <MoreVertical size={24} color={TEXT_MUTED} />
             </TouchableOpacity>
 
             {/* Dropdown Menu */}
@@ -301,15 +301,15 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   avatarWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     overflow: 'visible',
   },
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     borderWidth: 2,
     borderColor: '#9C27B0',
   },
@@ -328,6 +328,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: TEXT_PLUM,
+    marginBottom: 4,
   },
   headerActions: {
     flexDirection: 'row',
@@ -340,9 +341,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   actionCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
