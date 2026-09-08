@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,8 +12,11 @@ import {
   TextInput,
   KeyboardAvoidingView,
   ImageBackground,
+  ActivityIndicator,
+  Animated,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import apiClient from '../../../api/apiClient';
 import { ArrowLeft, Phone, Video, MoreVertical, UserPlus, User, Coins, Send, Image as ImageIcon, Smile, Camera, Mic, Ban, Eraser, Trash2, Lock } from 'lucide-react-native';
 
 const PLUM_ROYAL = '#5B0E8B';
@@ -55,22 +58,71 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
   onVideoCall,
 }) => {
   const [menuVisible, setMenuVisible] = useState(false);
-  const [isFriend, setIsFriend] = useState(false);
+  const [friendStatus, setFriendStatus] = useState<'none' | 'pending' | 'friends'>('none');
+  const [isLoadingStatus, setIsLoadingStatus] = useState(true);
   const [message, setMessage] = useState('');
+  
+  // Toast state
+  const [toastMessage, setToastMessage] = useState('');
+  const toastAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible && creator) {
+      const fetchStatus = async () => {
+        setIsLoadingStatus(true);
+        try {
+          const res = await apiClient.get(`/api/friends/status/${creator.id}`);
+          setFriendStatus(res.data?.data?.friend_status || 'none');
+        } catch (e) {
+          console.error('Failed to fetch friend status', e);
+        } finally {
+          setIsLoadingStatus(false);
+        }
+      };
+      fetchStatus();
+    }
+  }, [visible, creator]);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    Animated.sequence([
+      Animated.timing(toastAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
+      Animated.delay(2000),
+      Animated.timing(toastAnim, { toValue: 0, duration: 300, useNativeDriver: true })
+    ]).start();
+  };
 
   if (!creator) return null;
 
   const handleClose = () => {
-    setIsFriend(false);
     setMessage('');
     setMenuVisible(false);
     onClose();
   };
 
-  const handleSendFriendRequest = () => {
-    // Simulate auto-accepting for dummy view
-    setIsFriend(true);
-    onSendFriendRequest(creator);
+  const handleSendFriendRequest = async () => {
+    setFriendStatus('pending'); // optimistic update
+    try {
+      await apiClient.post('/api/friends/request', { target_user_id: creator.id });
+      showToast('Friend request sent');
+      onSendFriendRequest(creator);
+    } catch (e) {
+      console.error('Failed to send request', e);
+      setFriendStatus('none');
+      showToast('Failed to send request');
+    }
+  };
+
+  const handleCancelRequest = async () => {
+    setFriendStatus('none'); // optimistic update
+    try {
+      await apiClient.post('/api/friends/cancel', { target_user_id: creator.id });
+      showToast('Request cancelled');
+    } catch (e) {
+      console.error('Failed to cancel request', e);
+      setFriendStatus('pending');
+      showToast('Failed to cancel request');
+    }
   };
 
   return (
@@ -92,7 +144,6 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
           <TouchableOpacity style={styles.headerCenter} onPress={() => onViewProfile(creator)} activeOpacity={0.8}>
             <View style={styles.avatarWrap}>
               <Image source={{ uri: creator.avatarUri }} style={styles.avatar} />
-              {creator.isOnline && <View style={styles.onlineDot} />}
             </View>
             <Text style={styles.headerName}>{creator.name}</Text>
           </TouchableOpacity>
@@ -101,17 +152,17 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
             {/* Phone Button */}
             <View style={styles.actionBtn}>
               <TouchableOpacity
-                style={[styles.actionCircle, creator.callAvailable ? styles.actionCircleActive : styles.actionCircleDisabled]}
+                style={[styles.actionCircle, creator.isOnline ? styles.actionCircleActive : styles.actionCircleDisabled]}
                 activeOpacity={0.8}
-                disabled={!creator.callAvailable}
+                disabled={!creator.isOnline}
                 onPress={() => onCall?.(creator)}
               >
-                <Phone size={20} color={creator.callAvailable ? PINK : '#B9AFC4'} fill={creator.callAvailable ? PINK : 'transparent'} />
+                <Phone size={20} color={creator.isOnline ? PINK : '#B9AFC4'} fill={creator.isOnline ? PINK : 'transparent'} />
               </TouchableOpacity>
-              {creator.callAvailable ? (
+              {creator.isOnline ? (
                 <View style={styles.rateRow}>
                   <Coins size={10} color={GOLD_DEEP} />
-                  <Text style={styles.rateText}>{creator.callRate}/min</Text>
+                  <Text style={styles.rateText}>{creator.callRate || 0}/min</Text>
                 </View>
               ) : (
                 <Text style={styles.offlineText}>Offline</Text>
@@ -121,17 +172,17 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
             {/* Video Button */}
             <View style={styles.actionBtn}>
               <TouchableOpacity
-                style={[styles.actionCircle, creator.videoAvailable ? styles.actionCircleActive : styles.actionCircleDisabled]}
+                style={[styles.actionCircle, creator.isOnline ? styles.actionCircleActive : styles.actionCircleDisabled]}
                 activeOpacity={0.8}
-                disabled={!creator.videoAvailable}
+                disabled={!creator.isOnline}
                 onPress={() => onVideoCall?.(creator)}
               >
-                <Video size={20} color={creator.videoAvailable ? PLUM_ROYAL : '#B9AFC4'} fill={creator.videoAvailable ? PLUM_ROYAL : '#B9AFC4'} />
+                <Video size={20} color={creator.isOnline ? PLUM_ROYAL : '#B9AFC4'} fill={creator.isOnline ? PLUM_ROYAL : '#B9AFC4'} />
               </TouchableOpacity>
-              {creator.videoAvailable ? (
+              {creator.isOnline ? (
                 <View style={styles.rateRow}>
                   <Coins size={10} color={GOLD_DEEP} />
-                  <Text style={styles.rateText}>{creator.videoRate}/min</Text>
+                  <Text style={styles.rateText}>{creator.videoRate || 0}/min</Text>
                 </View>
               ) : (
                 <Text style={styles.offlineText}>Offline</Text>
@@ -187,7 +238,7 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
           style={styles.body}
           imageStyle={{ opacity: 0.05 }}
         >
-          {isFriend ? (
+          {friendStatus === 'friends' ? (
             <View style={styles.chatContainer}>
               <View style={styles.dummyMessageLeft}>
                 <Text style={styles.dummyMessageText}>Hi there! 👋</Text>
@@ -219,9 +270,13 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
         {/* Bottom CTA / Input */}
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={{ backgroundColor: isFriend ? '#F5F0FA' : '#FFFFFF' }}
+          style={{ backgroundColor: friendStatus === 'friends' ? '#F5F0FA' : '#FFFFFF' }}
         >
-          {!isFriend ? (
+          {isLoadingStatus ? (
+            <View style={[styles.footer, { paddingVertical: 40 }]}>
+              <ActivityIndicator size="small" color={PINK} />
+            </View>
+          ) : friendStatus === 'none' ? (
             <View style={styles.footer}>
               <Text style={styles.footerTitle}>Want to chat with {creator.name}?</Text>
               <Text style={styles.footerSubtitle}>Send a friend request to start chatting.</Text>
@@ -240,6 +295,32 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
                   <UserPlus size={18} color="#FFFFFF" />
                   <Text style={styles.friendRequestText}>Send friend request</Text>
                 </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.viewProfileBtn}
+                activeOpacity={0.8}
+                onPress={() => {
+                  handleClose();
+                  onViewProfile(creator);
+                }}
+              >
+                <Text style={styles.viewProfileText}>View profile</Text>
+              </TouchableOpacity>
+            </View>
+          ) : friendStatus === 'pending' ? (
+            <View style={styles.footer}>
+              <Text style={styles.footerTitle}>Request Sent</Text>
+              <Text style={styles.footerSubtitle}>Waiting for {creator.name} to accept.</Text>
+
+              <TouchableOpacity
+                style={styles.friendRequestBtnWrap}
+                activeOpacity={0.85}
+                onPress={handleCancelRequest}
+              >
+                <View style={[styles.friendRequestBtn, { backgroundColor: '#F9EBF2' }]}>
+                  <Text style={[styles.friendRequestText, { color: PINK }]}>Cancel request</Text>
+                </View>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -290,6 +371,27 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
             </View>
           )}
         </KeyboardAvoidingView>
+
+        {/* Animated Toast */}
+        <Animated.View
+          style={[
+            styles.toastContainer,
+            {
+              transform: [
+                {
+                  translateY: toastAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [100, 0]
+                  })
+                }
+              ],
+              opacity: toastAnim
+            }
+          ]}
+        >
+          <Image source={require('../../../assets/images/logo1.png')} style={styles.toastIcon} />
+          <Text style={styles.toastText}>{toastMessage}</Text>
+        </Animated.View>
       </SafeAreaView>
     </Modal>
   );
@@ -694,6 +796,33 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 4,
+  },
+  toastContainer: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 40 : 20,
+    alignSelf: 'center',
+    backgroundColor: '#2A1240',
+    borderRadius: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+    zIndex: 9999,
+  },
+  toastIcon: {
+    width: 20,
+    height: 20,
+    marginRight: 10,
+  },
+  toastText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 
