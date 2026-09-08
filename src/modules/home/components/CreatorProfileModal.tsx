@@ -132,6 +132,15 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
     }
   }, [visible, creator]);
 
+  // Safe auto-scroll
+  useEffect(() => {
+    if (messagesList.length > 0) {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: false });
+      }, 100);
+    }
+  }, [messagesList.length]);
+
   // Handle Socket
   useEffect(() => {
     let active = true;
@@ -372,12 +381,6 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
               style={styles.chatScrollView}
               contentContainerStyle={styles.chatContentContainer}
               ref={scrollViewRef}
-              onContentSizeChange={() => {
-                // Use a short delay to prevent layout thrashing and ANRs on Android
-                setTimeout(() => {
-                  scrollViewRef.current?.scrollToEnd({ animated: false });
-                }, 50);
-              }}
             >
               <View style={{ paddingBottom: 20 }}>
                 {messagesList.map((msg, index) => {
@@ -395,7 +398,17 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
 
                   return (
                     <View key={msg.message_id || index} style={isMe ? styles.dummyMessageRight : styles.dummyMessageLeft}>
-                      <Text style={isMe ? styles.dummyMessageTextRight : styles.dummyMessageText}>{msg.content}</Text>
+                      {msg.message_type === 'image' ? (
+                        <Image 
+                          source={{ uri: `data:image/jpeg;base64,${msg.content}` }} 
+                          style={{ width: 200, height: 250, borderRadius: 12, marginBottom: 8 }} 
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <Text style={isMe ? styles.dummyMessageTextRight : styles.dummyMessageText}>
+                          {msg.content}
+                        </Text>
+                      )}
                       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 4 }}>
                         <Text style={isMe ? styles.dummyMessageTimeRight : styles.dummyMessageTime}>
                           {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
