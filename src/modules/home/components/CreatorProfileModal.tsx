@@ -14,7 +14,7 @@ import {
   ImageBackground,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { ArrowLeft, Phone, Video, MoreVertical, UserPlus, User, Coins, Send, Image as ImageIcon, Smile, Camera, Mic } from 'lucide-react-native';
+import { ArrowLeft, Phone, Video, MoreVertical, UserPlus, User, Coins, Send, Image as ImageIcon, Smile, Camera, Mic, Ban, Eraser, Trash2 } from 'lucide-react-native';
 
 const PLUM_ROYAL = '#5B0E8B';
 const GOLD = '#F5C542';
@@ -141,27 +141,45 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
             <TouchableOpacity 
               style={styles.moreBtn} 
               activeOpacity={0.8}
-              onPress={() => setMenuVisible(!menuVisible)}
+              onPress={() => setMenuVisible(true)}
             >
               <MoreVertical size={24} color={TEXT_MUTED} />
             </TouchableOpacity>
-
-            {/* Dropdown Menu */}
-            {menuVisible && (
-              <View style={styles.dropdownMenu}>
-                <TouchableOpacity style={styles.dropdownItem} activeOpacity={0.7} onPress={() => setMenuVisible(false)}>
-                  <Text style={styles.dropdownText}>Block User</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.dropdownItem} activeOpacity={0.7} onPress={() => setMenuVisible(false)}>
-                  <Text style={styles.dropdownText}>Clear chat</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.dropdownItem} activeOpacity={0.7} onPress={() => setMenuVisible(false)}>
-                  <Text style={styles.dropdownTextDestructive}>Delete chat</Text>
-                </TouchableOpacity>
-              </View>
-            )}
           </View>
         </View>
+
+        {/* Dropdown Overlay */}
+        {menuVisible && (
+          <TouchableOpacity 
+            style={[StyleSheet.absoluteFill, { zIndex: 999 }]} 
+            activeOpacity={1} 
+            onPress={() => setMenuVisible(false)} 
+          />
+        )}
+
+        {/* Dropdown Menu */}
+        {menuVisible && (
+          <View style={styles.dropdownMenu}>
+            <TouchableOpacity style={styles.dropdownItemRow} activeOpacity={0.7} onPress={() => setMenuVisible(false)}>
+              <Ban size={18} color="#2A1240" />
+              <Text style={styles.dropdownText}>Block user</Text>
+            </TouchableOpacity>
+            
+            <View style={styles.dropdownDivider} />
+            
+            <TouchableOpacity style={styles.dropdownItemRow} activeOpacity={0.7} onPress={() => setMenuVisible(false)}>
+              <Eraser size={18} color="#2A1240" />
+              <Text style={styles.dropdownText}>Clear chat</Text>
+            </TouchableOpacity>
+            
+            <View style={styles.dropdownDivider} />
+            
+            <TouchableOpacity style={styles.dropdownItemRow} activeOpacity={0.7} onPress={() => setMenuVisible(false)}>
+              <Trash2 size={18} color="#E74C3C" />
+              <Text style={styles.dropdownTextDestructive}>Delete chat</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Body — Chat area with subtle Whatsapp-like background */}
         <ImageBackground 
@@ -379,31 +397,42 @@ const styles = StyleSheet.create({
   },
   dropdownMenu: {
     position: 'absolute',
-    top: 45,
-    right: 0,
+    top: Platform.OS === 'android' ? 85 : 75,
+    right: 16,
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 16,
     paddingVertical: 8,
-    width: 140,
+    width: 180,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 10,
+    zIndex: 1000,
+    borderWidth: 1,
+    borderColor: '#F0EAF6',
   },
-  dropdownItem: {
-    paddingVertical: 12,
+  dropdownItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
     paddingHorizontal: 16,
+    gap: 12,
+  },
+  dropdownDivider: {
+    height: 1,
+    backgroundColor: '#F5F0FA',
+    marginHorizontal: 12,
   },
   dropdownText: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#2A1240',
-    fontWeight: '500',
+    fontWeight: '600',
   },
   dropdownTextDestructive: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#E74C3C',
-    fontWeight: '500',
+    fontWeight: '600',
   },
   body: {
     flex: 1,
