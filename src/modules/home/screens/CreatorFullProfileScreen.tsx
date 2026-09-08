@@ -45,6 +45,7 @@ const CreatorFullProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   const [friendStatus, setFriendStatus] = useState<'none' | 'pending' | 'accepted' | 'sent'>('none');
   const [isReportModalVisible, setIsReportModalVisible] = useState(false);
   const [isBlockModalVisible, setIsBlockModalVisible] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const toastAnim = useRef(new Animated.Value(0)).current;
 
@@ -81,6 +82,7 @@ const CreatorFullProfileScreen: React.FC<Props> = ({ navigation, route }) => {
           setIsFavorite(res.data.data.friendshipStatus === 'favourite');
           setFriendStatus(res.data.data.friendshipStatus || 'none');
           setNotifyOnline(!!res.data.data.is_notify_online_enabled);
+          setIsBlocked(!!res.data.data.is_blocked);
         }
       } catch (error) {
         console.error('Failed to fetch creator profile', error);
@@ -161,11 +163,23 @@ const CreatorFullProfileScreen: React.FC<Props> = ({ navigation, route }) => {
 
     try {
       await apiClient.post(`/api/creator/${creatorId}/block`, { deleteChat });
-      showToast('User has been blocked');
-      setTimeout(() => navigation.goBack(), 1500); // Go back after toast starts
+      setIsBlocked(true);
+      showToast('User blocked successfully');
     } catch (error) {
       console.error('Failed to block user', error);
       showToast('Failed to block user');
+    }
+  };
+
+  const handleUnblock = async () => {
+    if (!creatorId) return;
+    try {
+      await apiClient.post(`/api/creator/${creatorId}/unblock`);
+      setIsBlocked(false);
+      showToast('User unblocked successfully');
+    } catch (error) {
+      console.error('Failed to unblock user', error);
+      showToast('Failed to unblock user');
     }
   };
 
@@ -335,14 +349,21 @@ const CreatorFullProfileScreen: React.FC<Props> = ({ navigation, route }) => {
               {/* Report User Card */}
               <TouchableOpacity style={[styles.actionCard, { flex: 1, marginRight: 6 }]} activeOpacity={0.7} onPress={() => setIsReportModalVisible(true)}>
                 <AlertCircle size={18} color="#F39C12" />
-                <Text style={styles.actionCardText}>Report</Text>
+                <Text style={styles.actionCardText}>Report user</Text>
               </TouchableOpacity>
 
-              {/* Block User Card */}
-              <TouchableOpacity style={[styles.actionCard, { flex: 1, marginLeft: 6 }]} activeOpacity={0.7} onPress={() => setIsBlockModalVisible(true)}>
-                <X size={18} color="#E74C3C" />
-                <Text style={[styles.actionCardText, { color: '#E74C3C' }]}>Block</Text>
-              </TouchableOpacity>
+              {/* Block / Unblock User Card */}
+              {isBlocked ? (
+                <TouchableOpacity style={[styles.actionCard, { flex: 1, marginLeft: 6 }]} activeOpacity={0.7} onPress={handleUnblock}>
+                  <X size={18} color="#E74C3C" />
+                  <Text style={[styles.actionCardText, { color: '#E74C3C' }]}>Unblock user</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity style={[styles.actionCard, { flex: 1, marginLeft: 6 }]} activeOpacity={0.7} onPress={() => setIsBlockModalVisible(true)}>
+                  <X size={18} color="#E74C3C" />
+                  <Text style={[styles.actionCardText, { color: '#E74C3C' }]}>Block user</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </Animated.ScrollView>
