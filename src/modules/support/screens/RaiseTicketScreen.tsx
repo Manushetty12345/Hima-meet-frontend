@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   TouchableOpacity, 
-  SafeAreaView, 
   Platform, 
   StatusBar,
   ScrollView,
@@ -12,12 +11,28 @@ import {
   TextInput,
   ActivityIndicator
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import { ArrowLeft, ChevronDown, ChevronRight, FileText } from 'lucide-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../../navigation/AuthNavigator';
 import { createTicket } from '../../../api/supportApi';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'RaiseTicket'>;
+
+// ---- Palette pulled from the Himameet mark ----
+const PLUM_ROYAL = '#5B0E8B';
+const GOLD = '#F5C542';
+const GOLD_DEEP = '#D4AF37';
+const IVORY = '#FBF6EC';
+const IVORY_LINE = '#EBDFC4';
+const TEXT_PLUM = '#2A1240';
+const TEXT_MUTED = '#8B7F98';
+
+// Light lavender header wash — matches the rest of the flow
+const LILAC_WHITE = '#FBF7FF';
+const LILAC_PALE = '#EFDFFB';
+
+const STATUSBAR_HEIGHT = Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 0;
 
 const SUPPORT_TOPICS = [
   {
@@ -108,16 +123,23 @@ const RaiseTicketScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.flex}>
       <StatusBar barStyle="dark-content" />
-      
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <ArrowLeft size={20} color="#EC1372" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Help & Support</Text>
-      </View>
+
+      <LinearGradient
+        colors={[LILAC_WHITE, LILAC_PALE]}
+        start={{ x: 0.15, y: 0 }}
+        end={{ x: 0.85, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.statusBarSpacer} />
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <ArrowLeft size={20} color={PLUM_ROYAL} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Help & Support</Text>
+        </View>
+      </LinearGradient>
 
       <ScrollView style={styles.content}>
         <View style={styles.introSection}>
@@ -134,9 +156,9 @@ const RaiseTicketScreen: React.FC<Props> = ({ navigation }) => {
             >
               <Text style={styles.topicTitle}>{topic.title}</Text>
               {expandedTopic === topic.id ? (
-                <ChevronDown size={20} color="#666" />
+                <ChevronDown size={20} color={TEXT_MUTED} />
               ) : (
-                <ChevronRight size={20} color="#666" />
+                <ChevronRight size={20} color={TEXT_MUTED} />
               )}
             </TouchableOpacity>
 
@@ -148,7 +170,7 @@ const RaiseTicketScreen: React.FC<Props> = ({ navigation }) => {
                     style={styles.issueItem}
                     onPress={() => handleIssueSelect(issue)}
                   >
-                    <FileText size={16} color="#EC1372" style={styles.issueIcon} />
+                    <FileText size={16} color={GOLD_DEEP} style={styles.issueIcon} />
                     <Text style={styles.issueText}>{issue}</Text>
                   </TouchableOpacity>
                 ))}
@@ -163,89 +185,110 @@ const RaiseTicketScreen: React.FC<Props> = ({ navigation }) => {
           <TextInput
             style={styles.textInput}
             placeholder="Describe your problem here..."
-            placeholderTextColor="#999"
+            placeholderTextColor={TEXT_MUTED}
             value={customIssue}
             onChangeText={setCustomIssue}
             multiline
             numberOfLines={4}
             textAlignVertical="top"
           />
-          <TouchableOpacity 
-            style={[styles.submitButton, (!customIssue.trim() || isSubmitting) && styles.submitButtonDisabled]}
+          <TouchableOpacity
+            activeOpacity={0.85}
             disabled={!customIssue.trim() || isSubmitting}
             onPress={() => {
               handleIssueSelect(customIssue.trim());
               setCustomIssue('');
             }}
+            style={styles.submitButtonWrapper}
           >
-            {isSubmitting ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
+            {!customIssue.trim() || isSubmitting ? (
+              <View style={[styles.submitButton, styles.submitButtonDisabled]}>
+                {isSubmitting ? (
+                  <ActivityIndicator color={TEXT_MUTED} size="small" />
+                ) : (
+                  <Text style={styles.submitButtonTextDisabled}>Submit Custom Issue</Text>
+                )}
+              </View>
             ) : (
-              <Text style={styles.submitButtonText}>Submit Custom Issue</Text>
+              <LinearGradient
+                colors={[GOLD, GOLD_DEEP]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.submitButton}
+              >
+                <Text style={styles.submitButtonText}>Submit Custom Issue</Text>
+              </LinearGradient>
             )}
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  flex: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
-    paddingTop: Platform.OS === 'android' ? 20 : 0,
+    backgroundColor: IVORY,
+    
+  },
+  headerGradient: {
+    overflow: 'hidden',
+  },
+  statusBarSpacer: {
+    height: STATUSBAR_HEIGHT,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    paddingTop: 12,
+    paddingBottom: 16,
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
+    borderRadius: 20,
+    backgroundColor: 'rgba(91, 14, 139, 0.10)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(91, 14, 139, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 15,
+    marginRight: 14,
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#1F1F1F',
+    fontWeight: '800',
+    color: TEXT_PLUM,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   content: {
     flex: 1,
   },
   introSection: {
-    padding: 20,
+    padding: 24,
     paddingBottom: 10,
   },
   introTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#1F1F1F',
+    fontSize: 21,
+    fontWeight: '800',
+    color: TEXT_PLUM,
     marginBottom: 8,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   introSubtitle: {
     fontSize: 14,
-    color: '#666666',
+    color: TEXT_MUTED,
     lineHeight: 20,
   },
   topicCard: {
     backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
+    marginHorizontal: 20,
     marginBottom: 12,
-    borderRadius: 12,
+    borderRadius: 18,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderWidth: 1.5,
+    borderColor: IVORY_LINE,
   },
   topicHeader: {
     flexDirection: 'row',
@@ -256,13 +299,13 @@ const styles = StyleSheet.create({
   },
   topicTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#333333',
+    fontWeight: '700',
+    color: TEXT_PLUM,
   },
   issuesList: {
-    backgroundColor: '#FAFAFA',
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
+    backgroundColor: IVORY,
+    borderTopWidth: 1.5,
+    borderTopColor: IVORY_LINE,
   },
   issueItem: {
     flexDirection: 'row',
@@ -270,56 +313,64 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: IVORY_LINE,
   },
   issueIcon: {
     marginRight: 12,
   },
   issueText: {
     fontSize: 14,
-    color: '#444444',
+    color: TEXT_MUTED,
     flex: 1,
   },
   customIssueContainer: {
-    marginHorizontal: 16,
+    marginHorizontal: 20,
     marginTop: 10,
     marginBottom: 40,
-    padding: 16,
+    padding: 18,
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: IVORY_LINE,
   },
   customIssueTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#333333',
+    fontWeight: '700',
+    color: TEXT_PLUM,
     marginBottom: 12,
   },
   textInput: {
-    backgroundColor: '#F8F9FA',
-    borderWidth: 1,
-    borderColor: '#EAEAEA',
-    borderRadius: 8,
+    backgroundColor: IVORY,
+    borderWidth: 1.5,
+    borderColor: IVORY_LINE,
+    borderRadius: 12,
     padding: 12,
     fontSize: 14,
-    color: '#333',
+    color: TEXT_PLUM,
     minHeight: 100,
     marginBottom: 16,
   },
+  submitButtonWrapper: {
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
   submitButton: {
-    backgroundColor: '#EC1372',
     paddingVertical: 14,
-    borderRadius: 8,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   submitButtonDisabled: {
-    backgroundColor: '#FFB8D2',
+    backgroundColor: IVORY_LINE,
   },
   submitButtonText: {
-    color: '#FFFFFF',
+    color: '#1A0733',
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
+  },
+  submitButtonTextDisabled: {
+    color: TEXT_MUTED,
+    fontSize: 15,
+    fontWeight: '700',
   }
 });
 

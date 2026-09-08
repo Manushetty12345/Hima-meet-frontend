@@ -11,10 +11,8 @@ import CreateProfileSetupScreen from '../modules/onboarding/screens/CreatorRevie
 import VoiceVerificationScreen from '../modules/onboarding/screens/VoiceVerificationScreen';
 import ProfileReviewScreen from '../modules/onboarding/screens/ProfileReviewScreen';
 import CreatorDashboardScreen from '../modules/creator/screens/CreatorDashboardScreen';
-import ProfileScreen from '../modules/profile/screens/ProfileScreen';
-import RecentCallsScreen from '../modules/recent/screens/RecentCallsScreen';
-import FriendsScreen from '../modules/friends/screens/FriendsScreen';
-import HomeScreen from '../modules/home/screens/HomeScreen';
+import EditProfileScreen from '../modules/profile/screens/EditProfileScreen';
+import MainBottomTabNavigator from './MainBottomTabNavigator';
 import WalletScreen from '../modules/wallet/screens/WalletScreen';
 import SettingsScreen from '../modules/profile/screens/SettingsScreen';
 import TermsScreen from '../modules/profile/screens/TermsScreen';
@@ -28,6 +26,10 @@ import DeleteAccountScreen from '../modules/profile/screens/DeleteAccountScreen'
 import TransactionsScreen from '../modules/profile/screens/TransactionsScreen';
 import ReferralScreen from '../modules/profile/screens/ReferralScreen';
 import PhonePeWebViewScreen from '../modules/wallet/screens/PhonePeWebViewScreen';
+import CreatorFullProfileScreen from '../modules/home/screens/CreatorFullProfileScreen';
+import AudioCallScreen from '../modules/call/screens/AudioCallScreen';
+import CallFeedbackScreen from '../modules/call/screens/CallFeedbackScreen';
+import VideoCallScreen from '../modules/call/screens/VideoCallScreen';
 
 import HelpSupportScreen from '../modules/support/screens/HelpSupportScreen';
 import MyTicketsScreen from '../modules/support/screens/MyTicketsScreen';
@@ -43,11 +45,9 @@ export type AuthStackParamList = {
   NotificationSetup: { gender?: string, avatar_id?: number, language_id?: number } | undefined;
   CreateProfileSetup: undefined;
   VoiceVerification: { gender?: string } | undefined;
-  Home: undefined;
-  Wallet: undefined;
-  Friends: undefined;
-  Recent: undefined;
-  Profile: undefined;
+  MainTabs: undefined;
+  Wallet: { paymentResult?: { success: boolean; coinsAdded: number; newBalance: number; transactionId: string } } | undefined;
+  EditProfile: undefined;
   Settings: undefined;
   Terms: undefined;
   RefundPolicy: undefined;
@@ -64,6 +64,10 @@ export type AuthStackParamList = {
   Transactions: undefined;
   Refer: undefined;
   PhonePeWebView: { paymentUrl: string; transactionId: string; coins: number };
+  CreatorFullProfile: { creator: any };
+  AudioCallScreen: { callerName?: string; calleeName?: string };
+  CallFeedbackScreen: { creatorName?: string };
+  VideoCallScreen: { callerName?: string; calleeName?: string };
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -83,11 +87,9 @@ const AuthNavigator = () => {
       <Stack.Screen name="CreateProfileSetup" component={CreateProfileSetupScreen} />
       <Stack.Screen name="VoiceVerification" component={VoiceVerificationScreen} />
       <Stack.Screen name="ProfileReview" component={ProfileReviewScreen} />
-      <Stack.Screen name="Home" component={HomeScreen} />
+      <Stack.Screen name="MainTabs" component={MainBottomTabNavigator} />
       <Stack.Screen name="Wallet" component={WalletScreen} />
-      <Stack.Screen name="Friends" component={FriendsScreen} />
-      <Stack.Screen name="Recent" component={RecentCallsScreen} />
-      <Stack.Screen name="Profile" component={ProfileScreen} />
+      <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="Terms" component={TermsScreen} />
       <Stack.Screen name="RefundPolicy" component={RefundPolicyScreen} />
@@ -104,12 +106,12 @@ const AuthNavigator = () => {
       <Stack.Screen name="Transactions" component={TransactionsScreen} />
       <Stack.Screen name="Refer" component={ReferralScreen} />
       <Stack.Screen name="PhonePeWebView" component={PhonePeWebViewScreen} options={{ presentation: 'fullScreenModal' }} />
+      <Stack.Screen name="CreatorFullProfile" component={CreatorFullProfileScreen} />
+      <Stack.Screen name="AudioCallScreen" component={AudioCallScreen} />
+      <Stack.Screen name="CallFeedbackScreen" component={CallFeedbackScreen} />
+      <Stack.Screen name="VideoCallScreen" component={VideoCallScreen} />
     </Stack.Navigator>
   );
 };
 
 export default AuthNavigator;
-
-
-
-

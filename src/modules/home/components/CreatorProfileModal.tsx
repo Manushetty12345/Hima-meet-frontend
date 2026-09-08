@@ -9,15 +9,16 @@ import {
   Platform,
   StatusBar,
   SafeAreaView,
-  TextInput,
-  KeyboardAvoidingView,
   ImageBackground,
   ActivityIndicator,
   Animated,
+  ScrollView,
+  FlatList,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import apiClient from '../../../api/apiClient';
-import { ArrowLeft, Phone, Video, MoreVertical, UserPlus, User, Coins, Send, Image as ImageIcon, Smile, Camera, Mic, Ban, Eraser, Trash2, Lock } from 'lucide-react-native';
+import { ArrowLeft, Phone, Video, MoreVertical, UserPlus, User, Coins, Send, Image as ImageIcon, Smile, Camera, Mic, Ban, Eraser, Trash2, Lock, Check, CheckCheck } from 'lucide-react-native';
+import { initSocket, disconnectSocket, getSocket } from '../../../api/socketClient';
 
 const PLUM_ROYAL = '#5B0E8B';
 const GOLD = '#F5C542';
@@ -62,10 +63,16 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
   const [isLoadingStatus, setIsLoadingStatus] = useState(true);
   const [message, setMessage] = useState('');
   
+  // Chat state
+  const [messagesList, setMessagesList] = useState<any[]>([]);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
+  
   // Toast state
   const [toastMessage, setToastMessage] = useState('');
   const toastAnim = useRef(new Animated.Value(0)).current;
 
+  // Fetch status
   useEffect(() => {
     if (visible && creator) {
       const fetchStatus = async () => {
@@ -82,6 +89,64 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
       fetchStatus();
     }
   }, [visible, creator]);
+
+  // Handle Socket
+  useEffect(() => {
+    let active = true;
+    let localSocket: any = null;
+
+    const setupChat = async () => {
+      if (friendStatus === 'friends' && creator) {
+        try {
+          // 1. Get conversation ID
+          const convRes = await apiClient.get(`/api/chat/conversation/${creator.id}`);
+          const convId = convRes.data?.data?.conversation_id;
+          if (!active || !convId) return;
+          setConversationId(convId);
+
+          // 2. Fetch old messages
+          const msgRes = await apiClient.get(`/api/chat/${convId}/messages`);
+          if (msgRes.data?.data) {
+            setMessagesList(msgRes.data.data.reverse()); // Show oldest at top
+          }
+
+          // 3. Setup socket
+          localSocket = await initSocket();
+          if (localSocket) {
+            localSocket.emit('join_chat', { conversationId: convId });
+
+            localSocket.on('receive_message', (data: any) => {
+              setMessagesList(prev => [...prev, data]);
+              localSocket.emit('message_delivered', { conversationId: convId, messageId: data.message_id });
+              localSocket.emit('message_read', { conversationId: convId, messageId: data.message_id });
+            });
+
+            localSocket.on('message_status_update', (data: any) => {
+              setMessagesList(prev => prev.map(msg => 
+                msg.message_id === data.message_id ? { ...msg, status: data.status } : msg
+              ));
+            });
+          }
+        } catch (e) {
+          console.error('Error setting up chat', e);
+        }
+      }
+    };
+
+    if (friendStatus === 'friends') {
+      setupChat();
+    } else {
+      disconnectSocket();
+    }
+
+    return () => {
+      active = false;
+      if (localSocket && conversationId) {
+        localSocket.emit('leave_chat', { conversationId });
+      }
+      disconnectSocket();
+    };
+  }, [friendStatus, creator]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -122,6 +187,20 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
       console.error('Failed to cancel request', e);
       setFriendStatus('pending');
       showToast('Failed to cancel request');
+    }
+  };
+
+  const handleSendMessage = () => {
+    if (!message.trim() || !conversationId) return;
+
+    const socket = getSocket();
+    if (socket) {
+      socket.emit('send_message', {
+        conversationId,
+        messageText: message,
+        messageType: 'text'
+      });
+      setMessage('');
     }
   };
 
@@ -239,16 +318,41 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
           imageStyle={{ opacity: 0.05 }}
         >
           {friendStatus === 'friends' ? (
-            <View style={styles.chatContainer}>
-              <View style={styles.dummyMessageLeft}>
-                <Text style={styles.dummyMessageText}>Hi there! 👋</Text>
-                <Text style={styles.dummyMessageTime}>10:00 AM</Text>
+            <ScrollView 
+              style={styles.chatContainer}
+              ref={scrollViewRef}
+              onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+            >
+              <View style={{ paddingBottom: 20 }}>
+                {messagesList.map((msg, index) => {
+                  const isMe = msg.sender_id !== creator.id;
+                  
+                  let StatusIcon = Check;
+                  let statusColor = '#B9AFC4';
+                  
+                  if (msg.status === 'delivered') {
+                    StatusIcon = CheckCheck;
+                  } else if (msg.status === 'read') {
+                    StatusIcon = CheckCheck;
+                    statusColor = '#34B7F1'; // Blue tick
+                  }
+
+                  return (
+                    <View key={msg.message_id || index} style={isMe ? styles.messageRight : styles.messageLeft}>
+                      <Text style={isMe ? styles.messageTextRight : styles.messageTextLeft}>{msg.content}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 4 }}>
+                        <Text style={isMe ? styles.messageTimeRight : styles.messageTimeLeft}>
+                          {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                        </Text>
+                        {isMe && (
+                          <StatusIcon size={14} color={statusColor} style={{ marginLeft: 4 }} />
+                        )}
+                      </View>
+                    </View>
+                  );
+                })}
               </View>
-              <View style={styles.dummyMessageRight}>
-                <Text style={styles.dummyMessageTextRight}>Hey {creator.name}! How are you?</Text>
-                <Text style={styles.dummyMessageTimeRight}>10:01 AM</Text>
-              </View>
-            </View>
+            </ScrollView>
           ) : (
             <View style={styles.emptyAreaContainer}>
               <View style={styles.encryptionBanner}>
@@ -358,7 +462,7 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
                 </View>
               </View>
               
-              <TouchableOpacity style={styles.sendBtnGradientWrap} activeOpacity={0.8}>
+              <TouchableOpacity style={styles.sendBtnGradientWrap} activeOpacity={0.8} onPress={handleSendMessage}>
                 <LinearGradient
                   colors={[PINK, '#C90E62']}
                   start={{ x: 0, y: 0 }}

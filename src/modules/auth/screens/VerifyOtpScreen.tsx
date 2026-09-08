@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -211,7 +211,7 @@ const VerifyOtpScreen: React.FC<Props> = ({ navigation, route }) => {
       if (is_new_user) {
         navigation.navigate('GenderSelect');
       } else {
-        navigation.replace('Home');
+        navigation.replace('MainTabs');
       }
     } catch (error: any) {
       triggerShake();

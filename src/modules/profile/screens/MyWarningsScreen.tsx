@@ -23,6 +23,24 @@ import apiClient from '../../../api/apiClient';
 const STATUSBAR_HEIGHT = Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 0;
 type Props = NativeStackScreenProps<AuthStackParamList, 'MyWarnings'>;
 
+// ---- Palette pulled from the Himameet mark ----
+const PLUM_ROYAL = '#5B0E8B';
+const GOLD = '#F5C542';
+const GOLD_DEEP = '#D4AF37';
+const IVORY = '#FBF6EC';
+const IVORY_LINE = '#EBDFC4';
+const TEXT_PLUM = '#2A1240';
+const TEXT_MUTED = '#8B7F98';
+
+// Light lavender header wash — matches the rest of the flow
+const LILAC_WHITE = '#FBF7FF';
+const LILAC_PALE = '#EFDFFB';
+
+const DANGER = '#D14343';
+const DANGER_BG = 'rgba(209, 67, 67, 0.08)';
+const DANGER_BORDER = 'rgba(209, 67, 67, 0.25)';
+const SUCCESS_GREEN = '#2DD36F';
+
 type WarningItem = {
   id: number;
   reason: string;
@@ -59,7 +77,7 @@ const MyWarningsScreen: React.FC<Props> = ({ navigation }) => {
     return (
       <View style={styles.warningCard}>
         <View style={styles.warningHeader}>
-          <AlertOctagon size={18} color="#FF3B3B" />
+          <AlertOctagon size={18} color={DANGER} />
           <Text style={styles.warningDate}>{dateStr}</Text>
         </View>
         <Text style={styles.warningReason}>{item.reason}</Text>
@@ -68,34 +86,41 @@ const MyWarningsScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.flex}>
       <StatusBar barStyle="dark-content" />
-      <View style={styles.statusBarSpacer} />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          activeOpacity={0.8}
-          onPress={() => navigation.goBack()}
-        >
-          <ArrowLeft size={19} color="#EC1372" />
-        </TouchableOpacity>
-        <View>
-          <Text style={styles.headerTitle}>My Warnings</Text>
-          <Text style={styles.headerSubtitle}>Your account warning status</Text>
+      <LinearGradient
+        colors={[LILAC_WHITE, LILAC_PALE]}
+        start={{ x: 0.15, y: 0 }}
+        end={{ x: 0.85, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.statusBarSpacer} />
+
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            activeOpacity={0.8}
+            onPress={() => navigation.goBack()}
+          >
+            <ArrowLeft size={20} color={PLUM_ROYAL} />
+          </TouchableOpacity>
+          <View>
+            <Text style={styles.headerTitle}>My Warnings</Text>
+            <Text style={styles.headerSubtitle}>Your account warning status</Text>
+          </View>
         </View>
-      </View>
+      </LinearGradient>
 
       {loading ? (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#EC1372" />
+          <ActivityIndicator size="large" color={GOLD_DEEP} />
         </View>
       ) : (
         <View style={styles.content}>
           {/* Status Banner */}
           <LinearGradient
-            colors={hasWarnings ? ['#FF416C', '#FF4B2B'] : ['#8E2DE2', '#EC1372']}
+            colors={hasWarnings ? [DANGER, '#FF6B6B'] : [PLUM_ROYAL, '#8E2DE2']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.statusBanner}
@@ -112,7 +137,7 @@ const MyWarningsScreen: React.FC<Props> = ({ navigation }) => {
                 <Text
                   style={[
                     styles.statusBadgeText,
-                    hasWarnings && { color: '#FF3B3B' },
+                    hasWarnings && { color: DANGER },
                   ]}
                 >
                   CURRENT LEVEL : {hasWarnings ? 'WARNING ISSUED' : 'GOOD STANDING'}
@@ -126,10 +151,10 @@ const MyWarningsScreen: React.FC<Props> = ({ navigation }) => {
             <View
               style={[
                 styles.verticalAccent,
-                hasWarnings && { backgroundColor: '#FF3B3B' },
+                hasWarnings && { backgroundColor: DANGER },
               ]}
             />
-            <Text style={[styles.infoCardText, hasWarnings && { color: '#FF3B3B' }]}>
+            <Text style={[styles.infoCardText, hasWarnings && { color: DANGER }]}>
               {hasWarnings
                 ? 'You have received warnings for violating our guidelines. Please review them below.'
                 : 'You have no warnings. Please keep following our community guidelines.'}
@@ -147,7 +172,7 @@ const MyWarningsScreen: React.FC<Props> = ({ navigation }) => {
             />
           ) : (
             <View style={styles.emptyStateContainer}>
-              <CheckCircle2 size={48} color="#2DD36F" strokeWidth={1.5} />
+              <CheckCircle2 size={48} color={SUCCESS_GREEN} strokeWidth={1.5} />
               <Text style={styles.emptyTitle}>All Clear!</Text>
               <Text style={styles.emptySubtitle}>
                 Thank you for helping us maintain a safe and respectful community on Himameet.
@@ -157,7 +182,7 @@ const MyWarningsScreen: React.FC<Props> = ({ navigation }) => {
 
           {/* Footer Notice */}
           <View style={styles.footerNotice}>
-            <AlertOctagon size={16} color="#EC1372" style={{ marginTop: 2 }} />
+            <AlertOctagon size={16} color={GOLD_DEEP} style={{ marginTop: 2 }} />
             <Text style={styles.footerNoticeText}>
               Repeated violations may lead to account suspension. Please follow our community guidelines.
             </Text>
@@ -169,43 +194,44 @@ const MyWarningsScreen: React.FC<Props> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
+  flex: {
     flex: 1,
-    backgroundColor: '#F9F7FB',
+    backgroundColor: IVORY,
+  },
+  headerGradient: {
+    overflow: 'hidden',
   },
   statusBarSpacer: {
     height: STATUSBAR_HEIGHT,
-    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0EBF5',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 16,
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#F0EBF5',
+    borderRadius: 20,
+    backgroundColor: 'rgba(91, 14, 139, 0.10)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(91, 14, 139, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
-    backgroundColor: '#FFFFFF',
+    marginRight: 14,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#1B0E22',
+    color: TEXT_PLUM,
     marginBottom: 2,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   headerSubtitle: {
     fontSize: 12,
-    color: '#8A7A9C',
+    color: TEXT_MUTED,
   },
   centerContainer: {
     flex: 1,
@@ -214,7 +240,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 16,
+    padding: 20,
   },
   statusBanner: {
     flexDirection: 'row',
@@ -222,11 +248,6 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 20,
     marginBottom: 16,
-    shadowColor: '#8E2DE2',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 4,
   },
   statusIconWrap: {
     width: 48,
@@ -246,40 +267,40 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 10,
     alignSelf: 'flex-start',
   },
   statusBadgeText: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#EC1372',
+    color: GOLD_DEEP,
     letterSpacing: 0.5,
   },
   infoCard: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
     padding: 16,
-    borderRadius: 16,
+    borderRadius: 18,
     marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#F3EDF9',
+    borderWidth: 1.5,
+    borderColor: IVORY_LINE,
     alignItems: 'center',
   },
   infoCardWarning: {
-    backgroundColor: '#FFF0F0',
-    borderColor: '#FFE0E0',
+    backgroundColor: DANGER_BG,
+    borderColor: DANGER_BORDER,
   },
   verticalAccent: {
     width: 3,
     height: '100%',
-    backgroundColor: '#EC1372',
+    backgroundColor: GOLD_DEEP,
     marginRight: 12,
     borderRadius: 2,
   },
   infoCardText: {
     flex: 1,
     fontSize: 13.5,
-    color: '#8E2DE2',
+    color: TEXT_PLUM,
     lineHeight: 20,
     fontWeight: '500',
   },
@@ -289,10 +310,10 @@ const styles = StyleSheet.create({
   warningCard: {
     backgroundColor: '#FFFFFF',
     padding: 16,
-    borderRadius: 16,
+    borderRadius: 18,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#FFE0E0',
+    borderWidth: 1.5,
+    borderColor: DANGER_BORDER,
   },
   warningHeader: {
     flexDirection: 'row',
@@ -302,12 +323,12 @@ const styles = StyleSheet.create({
   },
   warningDate: {
     fontSize: 12,
-    color: '#8A7A9C',
+    color: TEXT_MUTED,
     fontWeight: '600',
   },
   warningReason: {
     fontSize: 14,
-    color: '#1B0E22',
+    color: TEXT_PLUM,
     fontWeight: '500',
     lineHeight: 20,
   },
@@ -321,22 +342,23 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1B0E22',
+    color: TEXT_PLUM,
     marginTop: 16,
     marginBottom: 8,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   emptySubtitle: {
     fontSize: 13,
-    color: '#8A7A9C',
+    color: TEXT_MUTED,
     textAlign: 'center',
     lineHeight: 20,
   },
   footerNotice: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#FDE8F1',
+    backgroundColor: 'rgba(245, 197, 66, 0.12)',
     padding: 16,
-    borderRadius: 16,
+    borderRadius: 18,
     marginTop: 'auto',
     marginBottom: 16,
     gap: 12,
@@ -344,7 +366,7 @@ const styles = StyleSheet.create({
   footerNoticeText: {
     flex: 1,
     fontSize: 12.5,
-    color: '#4A3860',
+    color: TEXT_PLUM,
     lineHeight: 18,
   },
 });

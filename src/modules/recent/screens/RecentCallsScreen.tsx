@@ -9,27 +9,40 @@ import {
   FlatList,
   TextInput,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {
-  Home as HomeIcon,
-  Clock,
-  Users,
-  UserCircle2,
   Search,
   Users2,
   PhoneMissed,
   Clock4,
   ArrowDownAZ,
   PhoneOff,
+  Check,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
+import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import CallHistoryItem, { CallHistoryRecord } from '../components/CallHistoryItem';
+import { getCallHistory } from '../api/recentApi';
 
 const STATUSBAR_HEIGHT =
   Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 0;
+
+// ---- Palette pulled from the Himameet mark ----
+const PLUM_ROYAL = '#5B0E8B';
+const GOLD = '#F5C542';
+const GOLD_DEEP = '#D4AF37';
+const IVORY = '#FBF6EC';
+const IVORY_LINE = '#EBDFC4';
+const TEXT_PLUM = '#2A1240';
+const TEXT_MUTED = '#8B7F98';
+
+// Light lavender header wash — matches every other screen in the app
+const LILAC_WHITE = '#FBF7FF';
+const LILAC_PALE = '#EFDFFB';
 
 type RootStackParamList = {
   Recent: undefined;
@@ -39,17 +52,9 @@ type RootStackParamList = {
   [key: string]: undefined | object;
 };
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Recent'>;
+type Props = BottomTabScreenProps<RootStackParamList, 'Recent'>;
 
-type NavKey = 'home' | 'recent' | 'friends' | 'profile';
 type FilterKey = 'all' | 'missed' | 'talk_time' | 'a_z';
-
-const NAV_ITEMS: { key: NavKey; label: string; icon: LucideIcon }[] = [
-  { key: 'home', label: 'Home', icon: HomeIcon },
-  { key: 'recent', label: 'Recent', icon: Clock },
-  { key: 'friends', label: 'Friends', icon: Users },
-  { key: 'profile', label: 'Profile', icon: UserCircle2 },
-];
 
 const FILTERS: { key: FilterKey; label: string; icon: LucideIcon }[] = [
   { key: 'all', label: 'All', icon: Users2 },
@@ -58,19 +63,55 @@ const FILTERS: { key: FilterKey; label: string; icon: LucideIcon }[] = [
   { key: 'a_z', label: 'A - Z', icon: ArrowDownAZ },
 ];
 
-const TALK_TIME_RANGES = [
-  'Last 7 days',
-  'Last 15 days',
-  'Last 30 days'
-];
+const TALK_TIME_RANGES = ['Last 7 days', 'Last 15 days', 'Last 30 days'];
 
-// Switch to empty array to see the "No Data Found" empty state exactly as designed
-const DUMMY_CALLS: CallHistoryRecord[] = []; 
 
-const RecentCallsScreen: React.FC<Props> = ({ navigation }) => {
+
+const RecentCallsScreen: React.FC<Props> = () => {
   const [activeFilter, setActiveFilter] = useState<FilterKey>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showTalkTimeModal, setShowTalkTimeModal] = useState(false);
+  const [talkTimeRange, setTalkTimeRange] = useState(TALK_TIME_RANGES[0]);
+  
+  const [calls, setCalls] = useState<(CallHistoryRecord & { rawDate: Date })[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  React.useEffect(() => {
+    const fetchCalls = async () => {
+      setIsLoading(true);
+      try {
+        const res = await getCallHistory();
+        if (res?.data?.data) {
+          const formatted = res.data.data.map((item: any) => {
+            const isMissed = item.status === 'missed' || item.status === 'rejected';
+            const dateObj = new Date(item.timestamp);
+            
+            // Format time (e.g. "Today, 10:30 AM" or "Aug 12")
+            const timeString = dateObj.toLocaleDateString(undefined, {
+              month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+            });
+
+            return {
+              id: item.call_id?.toString() || Math.random().toString(),
+              name: item.user?.name || 'Unknown',
+              avatarUri: item.user?.avatar_url || 'https://hima-bucket.s3.amazonaws.com/default-female.png',
+              type: isMissed ? 'missed' : 'incoming', // Default to incoming since backend doesn't specify direction yet
+              media: item.call_type === 'video' ? 'video' : 'audio',
+              time: timeString,
+              duration: item.duration_seconds ? `${Math.floor(item.duration_seconds / 60)} mins` : undefined,
+              rawDate: dateObj,
+            };
+          });
+          setCalls(formatted);
+        }
+      } catch (err) {
+        console.error('Failed to fetch call history:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchCalls();
+  }, []);
 
   const handleFilterPress = (key: FilterKey) => {
     if (key === 'talk_time') {
@@ -80,92 +121,116 @@ const RecentCallsScreen: React.FC<Props> = ({ navigation }) => {
     setActiveFilter(key);
   };
 
-  const renderHeaderDecor = () => (
-    <View style={styles.headerDecor}>
-      <View style={[styles.decorStar, { top: 4, left: 14 }]} />
-      <View style={[styles.decorStar, { top: 22, left: -6 }]} />
-      <View style={[styles.decorStar, { bottom: 10, right: 6 }]} />
-      <View style={styles.decorIconWrap}>
-        <View style={styles.decorVideoIcon}>
-           <LinearGradient colors={['#FF3B8D', '#E0116F']} style={styles.decorIconGrad} />
-        </View>
-        <View style={styles.decorChatIcon}>
-           <LinearGradient colors={['#FCA5C7', '#F08AB3']} style={styles.decorIconGrad} />
-        </View>
-        <View style={styles.decorPhoneIcon}>
-           <LinearGradient colors={['#FF3B8D', '#E0116F']} style={styles.decorIconGrad} />
-        </View>
-      </View>
-    </View>
-  );
+  // Filter and Sort Data
+  const displayedCalls = React.useMemo(() => {
+    let result = [...calls];
+
+    // Search filter
+    if (searchQuery.trim()) {
+      result = result.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    }
+
+    // Tab filters
+    if (activeFilter === 'missed') {
+      result = result.filter(c => c.type === 'missed');
+    }
+    
+    if (activeFilter === 'talk_time') {
+      // Filter by selected range
+      const now = new Date();
+      let days = 7;
+      if (talkTimeRange === 'Last 15 days') days = 15;
+      if (talkTimeRange === 'Last 30 days') days = 30;
+      
+      const cutoff = new Date(now.setDate(now.getDate() - days));
+      result = result.filter(c => c.rawDate >= cutoff);
+    }
+
+    if (activeFilter === 'a_z') {
+      result.sort((a, b) => a.name.localeCompare(b.name));
+    } else {
+      // Default sort by date desc
+      result.sort((a, b) => b.rawDate.getTime() - a.rawDate.getTime());
+    }
+
+    return result;
+  }, [calls, activeFilter, searchQuery, talkTimeRange]);
 
   return (
     <View style={styles.flex}>
       <StatusBar barStyle="dark-content" />
-      <View style={styles.statusBarSpacer} />
 
-      {/* Header */}
-      <View style={styles.headerRow}>
-        <View style={styles.headerText}>
+      <LinearGradient
+        colors={[LILAC_WHITE, LILAC_PALE]}
+        start={{ x: 0.15, y: 0 }}
+        end={{ x: 0.85, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.statusBarSpacer} />
+
+        <View style={styles.headerRow}>
           <Text style={styles.title}>Recent Calls</Text>
           <Text style={styles.subtitle}>Your call history</Text>
         </View>
-        {renderHeaderDecor()}
-      </View>
 
-      {/* Filters */}
-      <View style={styles.filterRow}>
-        {FILTERS.map((filter) => {
-          const isActive = activeFilter === filter.key;
-          const Icon = filter.icon;
-          
-          if (isActive) {
+        {/* Filters */}
+        <View style={styles.filterRow}>
+          {FILTERS.map((filter) => {
+            const isActive = activeFilter === filter.key;
+            const Icon = filter.icon;
+
+            if (isActive) {
+              return (
+                <TouchableOpacity key={filter.key} activeOpacity={0.85} style={styles.filterChipActive}>
+                  <LinearGradient
+                    colors={[GOLD, GOLD_DEEP]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.filterGrad}
+                  >
+                    <Icon size={15} color="#2A1240" style={styles.filterIcon} />
+                    <Text style={styles.filterLabelActive}>{filter.label}</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              );
+            }
+
             return (
-              <TouchableOpacity key={filter.key} activeOpacity={0.8} style={styles.filterChipActive}>
-                <LinearGradient
-                  colors={['#8E2DE2', '#E0116F']} // Based on visual gradient for active "All"
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.filterGrad}
-                >
-                  <Icon size={14} color="#FFFFFF" style={styles.filterIcon} />
-                  <Text style={styles.filterLabelActive}>{filter.label}</Text>
-                </LinearGradient>
+              <TouchableOpacity
+                key={filter.key}
+                activeOpacity={0.8}
+                style={styles.filterChip}
+                onPress={() => handleFilterPress(filter.key)}
+              >
+                <Icon size={15} color={PLUM_ROYAL} style={styles.filterIcon} />
+                <Text style={styles.filterLabel}>{filter.label}</Text>
               </TouchableOpacity>
             );
-          }
+          })}
+        </View>
 
-          return (
-            <TouchableOpacity
-              key={filter.key}
-              activeOpacity={0.8}
-              style={styles.filterChip}
-              onPress={() => handleFilterPress(filter.key)}
-            >
-              <Icon size={14} color="#5B4B6E" style={styles.filterIcon} />
-              <Text style={styles.filterLabel}>{filter.label}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      {/* Search */}
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search by name"
-          placeholderTextColor="#B4A6BE"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-        <Search size={18} color="#5B4B6E" />
-      </View>
+        {/* Search */}
+        <View style={styles.searchContainer}>
+          <Search size={18} color={PLUM_ROYAL} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by name"
+            placeholderTextColor={TEXT_MUTED}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+      </LinearGradient>
 
       {/* List / Empty State */}
       <View style={styles.content}>
-        {DUMMY_CALLS.length > 0 ? (
+        {isLoading ? (
+          <View style={styles.loaderContainer}>
+            <ActivityIndicator size="large" color={GOLD_DEEP} />
+          </View>
+        ) : displayedCalls.length > 0 ? (
           <FlatList
-            data={DUMMY_CALLS}
+            data={displayedCalls}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => <CallHistoryItem item={item} />}
             contentContainerStyle={styles.listContent}
@@ -173,46 +238,13 @@ const RecentCallsScreen: React.FC<Props> = ({ navigation }) => {
           />
         ) : (
           <View style={styles.emptyState}>
-            <PhoneOff size={42} color="#A79FB3" strokeWidth={1.5} />
-            <Text style={styles.emptyTitle}>No Data Found</Text>
-            <Text style={styles.emptySubtitle}>Your call history will appear here</Text>
+            <LinearGradient colors={['#F6EFDD', IVORY]} style={styles.emptyIconCircle}>
+              <PhoneOff size={34} color={GOLD_DEEP} strokeWidth={1.6} />
+            </LinearGradient>
+            <Text style={styles.emptyTitle}>No calls found</Text>
+            <Text style={styles.emptySubtitle}>Try adjusting your filters or search query</Text>
           </View>
         )}
-      </View>
-
-      {/* Bottom Nav */}
-      <View style={styles.bottomNav}>
-        {NAV_ITEMS.map((navItem) => {
-          const isActive = navItem.key === 'recent';
-          const NavIcon = navItem.icon;
-          return (
-            <TouchableOpacity
-              key={navItem.key}
-              activeOpacity={0.8}
-              style={styles.navItem}
-              onPress={() => {
-                if (navItem.key !== 'recent') {
-                  navigation.navigate(
-                    navItem.key === 'home'
-                      ? 'Home'
-                      : navItem.key === 'friends'
-                      ? 'Friends'
-                      : 'Profile'
-                  );
-                }
-              }}
-            >
-              <NavIcon
-                size={22}
-                color={isActive ? '#EC1372' : '#B4A6BE'}
-                fill={isActive ? '#EC1372' : 'transparent'}
-              />
-              <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>
-                {navItem.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
       </View>
 
       {/* Talk Time Modal */}
@@ -222,22 +254,33 @@ const RecentCallsScreen: React.FC<Props> = ({ navigation }) => {
         animationType="fade"
         onRequestClose={() => setShowTalkTimeModal(false)}
       >
-        <TouchableOpacity 
-          style={styles.modalOverlay} 
-          activeOpacity={1} 
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
           onPress={() => setShowTalkTimeModal(false)}
         >
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select Talk Time Range</Text>
-            {TALK_TIME_RANGES.map((range, idx) => (
-              <TouchableOpacity
-                key={idx}
-                style={styles.modalOption}
-                onPress={() => setShowTalkTimeModal(false)}
-              >
-                <Text style={styles.modalOptionText}>{range}</Text>
-              </TouchableOpacity>
-            ))}
+            <Text style={styles.modalTitle}>Select talk time range</Text>
+            {TALK_TIME_RANGES.map((range) => {
+              const isSelected = range === talkTimeRange;
+              return (
+                <TouchableOpacity
+                  key={range}
+                  style={styles.modalOption}
+                  onPress={() => {
+                    setTalkTimeRange(range);
+                    setShowTalkTimeModal(false);
+                  }}
+                >
+                  <Text
+                    style={[styles.modalOptionText, isSelected && styles.modalOptionTextActive]}
+                  >
+                    {range}
+                  </Text>
+                  {isSelected && <Check size={17} color={GOLD_DEEP} strokeWidth={2.5} />}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </TouchableOpacity>
       </Modal>
@@ -248,106 +291,50 @@ const RecentCallsScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   flex: {
     flex: 1,
-    backgroundColor: '#F9F7FB', // Light greyish background seen in design
+    backgroundColor: IVORY,
+  },
+  headerGradient: {
+    overflow: 'hidden',
   },
   statusBarSpacer: {
     height: STATUSBAR_HEIGHT,
-    backgroundColor: '#FFFFFF',
   },
   headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
-  },
-  headerText: {
-    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 18,
   },
   title: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '800',
-    color: '#3B4043',
+    color: TEXT_PLUM,
     marginBottom: 4,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   subtitle: {
-    fontSize: 13,
-    color: '#8A7A9C',
-  },
-  headerDecor: {
-    width: 70,
-    height: 50,
-    position: 'relative',
-  },
-  decorStar: {
-    position: 'absolute',
-    width: 6,
-    height: 6,
-    backgroundColor: '#FCA5C7',
-    transform: [{ rotate: '45deg' }],
-  },
-  decorIconWrap: {
-    position: 'absolute',
-    right: 0,
-    top: 4,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  decorIconGrad: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 8,
-  },
-  decorVideoIcon: {
-    width: 18,
-    height: 14,
-    borderRadius: 4,
-    overflow: 'hidden',
-    position: 'absolute',
-    right: 0,
-    top: -8,
-  },
-  decorChatIcon: {
-    width: 14,
-    height: 12,
-    borderRadius: 3,
-    overflow: 'hidden',
-    position: 'absolute',
-    right: 22,
-    top: 4,
-  },
-  decorPhoneIcon: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    overflow: 'hidden',
-    position: 'absolute',
-    right: 4,
-    top: 10,
+    fontSize: 13.5,
+    color: TEXT_MUTED,
   },
   filterRow: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
-    gap: 8,
+    paddingHorizontal: 24,
+    gap: 9,
   },
   filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#EFE7F3',
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: IVORY_LINE,
     backgroundColor: '#FFFFFF',
   },
   filterChipActive: {
-    borderRadius: 20,
+    borderRadius: 22,
     overflow: 'hidden',
-    borderWidth: 0,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
   },
   filterGrad: {
     flexDirection: 'row',
@@ -359,80 +346,79 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   filterLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#5B4B6E',
+    fontSize: 13,
+    fontWeight: '700',
+    color: PLUM_ROYAL,
   },
   filterLabelActive: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#2A1240',
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: 20,
-    marginBottom: 16,
-    backgroundColor: '#FFFFFF',
+    gap: 10,
+    marginHorizontal: 24,
+    marginTop: 16,
+    marginBottom: 12,
+    backgroundColor: LILAC_PALE,
     borderWidth: 1.5,
-    borderColor: '#F05899', // Pink border from design
+    borderColor: PLUM_ROYAL,
     borderRadius: 14,
     paddingHorizontal: 14,
-    height: 46,
+    height: 48,
   },
   searchInput: {
     flex: 1,
-    fontSize: 14,
-    color: '#1B0E22',
+    fontSize: 14.5,
+    color: TEXT_PLUM,
   },
   content: {
     flex: 1,
   },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   listContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingBottom: 20,
   },
   emptyState: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingBottom: 60, // visual offset
+    paddingHorizontal: 40,
+    paddingBottom: 80,
+  },
+  emptyIconCircle: {
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 22,
+    borderWidth: 1.5,
+    borderColor: IVORY_LINE,
   },
   emptyTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#4A4A4A',
-    marginTop: 16,
-    marginBottom: 6,
+    fontSize: 17.5,
+    fontWeight: '800',
+    color: TEXT_PLUM,
+    marginBottom: 8,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   emptySubtitle: {
-    fontSize: 13,
-    color: '#8A7A9C',
-  },
-  bottomNav: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    paddingTop: 10,
-    paddingBottom: Platform.OS === 'ios' ? 36 : 24,
-    borderTopWidth: 1,
-    borderTopColor: '#F1EAF6',
-  },
-  navItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  navLabel: {
-    fontSize: 11,
-    color: '#B4A6BE',
-    marginTop: 4,
-    fontWeight: '600',
-  },
-  navLabelActive: {
-    color: '#EC1372',
+    fontSize: 13.5,
+    color: TEXT_MUTED,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: 'rgba(42, 18, 64, 0.35)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 30,
@@ -440,27 +426,38 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '100%',
     backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    paddingVertical: 20,
+    borderRadius: 20,
+    paddingVertical: 22,
     paddingHorizontal: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
+    borderWidth: 1.5,
+    borderColor: IVORY_LINE,
+    shadowColor: '#3A0F63',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 20,
     elevation: 8,
   },
   modalTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333333',
-    marginBottom: 16,
+    fontSize: 16,
+    fontWeight: '800',
+    color: TEXT_PLUM,
+    marginBottom: 14,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   modalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingVertical: 14,
   },
   modalOptionText: {
-    fontSize: 13,
-    color: '#666666',
+    fontSize: 14.5,
+    color: TEXT_MUTED,
+    fontWeight: '600',
+  },
+  modalOptionTextActive: {
+    color: TEXT_PLUM,
+    fontWeight: '700',
   },
 });
 

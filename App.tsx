@@ -77,7 +77,7 @@ async function handlePaymentDeepLink() {
     navigationRef.current?.reset({
       index: 1,
       routes: [
-        { name: 'Home' },
+        { name: 'MainTabs' },
         {
           name: 'Wallet',
           params: {
@@ -98,7 +98,7 @@ async function handlePaymentDeepLink() {
     // Navigate to Wallet anyway so user can see their balance
     navigationRef.current?.reset({
       index: 1,
-      routes: [{ name: 'Home' }, { name: 'Wallet' }],
+      routes: [{ name: 'MainTabs' }, { name: 'Wallet' }],
     });
   }
 }

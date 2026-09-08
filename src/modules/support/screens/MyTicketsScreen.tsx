@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   TouchableOpacity, 
-  SafeAreaView, 
   Platform, 
   StatusBar,
   FlatList,
   ActivityIndicator,
   Alert
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import { ArrowLeft, Info, FileText } from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -18,6 +18,24 @@ import type { AuthStackParamList } from '../../../navigation/AuthNavigator';
 import { getTickets, Ticket } from '../../../api/supportApi';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'MyTickets'>;
+
+// ---- Palette pulled from the Himameet mark ----
+const PLUM_ROYAL = '#5B0E8B';
+const GOLD = '#F5C542';
+const GOLD_DEEP = '#D4AF37';
+const IVORY = '#FBF6EC';
+const IVORY_LINE = '#EBDFC4';
+const TEXT_PLUM = '#2A1240';
+const TEXT_MUTED = '#8B7F98';
+
+// Light lavender header wash — matches the rest of the flow
+const LILAC_WHITE = '#FBF7FF';
+const LILAC_PALE = '#EFDFFB';
+
+const SUCCESS_GREEN = '#2DD36F';
+const SUCCESS_GREEN_BG = '#E8FBF0';
+
+const STATUSBAR_HEIGHT = Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 0;
 
 const MyTicketsScreen: React.FC<Props> = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState<'ACTIVE' | 'RESOLVED'>('ACTIVE');
@@ -56,35 +74,42 @@ const MyTicketsScreen: React.FC<Props> = ({ navigation }) => {
       </View>
       <Text style={styles.ticketTitle}>{item.title}</Text>
       <View style={styles.ticketFooter}>
-        <FileText size={14} color="#999" style={styles.dateIcon} />
+        <FileText size={14} color={TEXT_MUTED} style={styles.dateIcon} />
         <Text style={styles.ticketDate}>{item.date}</Text>
       </View>
     </View>
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.flex}>
       <StatusBar barStyle="dark-content" />
-      
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <ArrowLeft size={20} color="#EC1372" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Tickets</Text>
-      </View>
+
+      <LinearGradient
+        colors={[LILAC_WHITE, LILAC_PALE]}
+        start={{ x: 0.15, y: 0 }}
+        end={{ x: 0.85, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.statusBarSpacer} />
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <ArrowLeft size={20} color={PLUM_ROYAL} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>My Tickets</Text>
+        </View>
+      </LinearGradient>
 
       {/* Tabs */}
       <View style={styles.tabContainer}>
-        <TouchableOpacity 
-          style={[styles.tabButton, activeTab === 'ACTIVE' && styles.activeTabButton]} 
+        <TouchableOpacity
+          style={[styles.tabButton, activeTab === 'ACTIVE' && styles.activeTabButton]}
           onPress={() => setActiveTab('ACTIVE')}
           activeOpacity={0.8}
         >
           <Text style={[styles.tabText, activeTab === 'ACTIVE' && styles.activeTabText]}>ACTIVE</Text>
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.tabButton, activeTab === 'RESOLVED' && styles.activeTabButton]} 
+        <TouchableOpacity
+          style={[styles.tabButton, activeTab === 'RESOLVED' && styles.activeTabButton]}
           onPress={() => setActiveTab('RESOLVED')}
           activeOpacity={0.8}
         >
@@ -96,7 +121,7 @@ const MyTicketsScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.content}>
         {isLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#EC1372" />
+            <ActivityIndicator size="large" color={GOLD_DEEP} />
           </View>
         ) : filteredTickets.length > 0 ? (
           <FlatList
@@ -107,57 +132,64 @@ const MyTicketsScreen: React.FC<Props> = ({ navigation }) => {
           />
         ) : (
           <View style={styles.emptyStateContainer}>
-            <View style={styles.emptyIconCircle}>
-              <Info size={40} color="#FFFFFF" />
-            </View>
+            <LinearGradient colors={[GOLD, GOLD_DEEP]} style={styles.emptyIconCircle}>
+              <Info size={38} color={TEXT_PLUM} />
+            </LinearGradient>
             <Text style={styles.emptyStateTitle}>
               {activeTab === 'ACTIVE' ? 'No Active Tickets' : 'No Resolved Tickets'}
             </Text>
             <Text style={styles.emptyStateSubtitle}>
-              {activeTab === 'ACTIVE' 
-                ? "You don't have any active tickets" 
+              {activeTab === 'ACTIVE'
+                ? "You don't have any active tickets"
                 : "You don't have any resolved tickets"}
             </Text>
           </View>
         )}
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  flex: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
-    paddingTop: Platform.OS === 'android' ? 20 : 0,
+    backgroundColor: IVORY,
+  },
+  headerGradient: {
+    overflow: 'hidden',
+  },
+  statusBarSpacer: {
+    height: STATUSBAR_HEIGHT,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: '#FFFFFF',
+    paddingTop: 12,
+    paddingBottom: 16,
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
+    borderRadius: 20,
+    backgroundColor: 'rgba(91, 14, 139, 0.10)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(91, 14, 139, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 15,
+    marginRight: 14,
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#1F1F1F',
+    fontWeight: '800',
+    color: TEXT_PLUM,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   tabContainer: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomWidth: 1.5,
+    borderBottomColor: IVORY_LINE,
   },
   tabButton: {
     flex: 1,
@@ -167,16 +199,16 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   activeTabButton: {
-    borderBottomColor: '#FF8BB4',
+    borderBottomColor: GOLD_DEEP,
   },
   tabText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#999999',
+    fontWeight: '700',
+    color: TEXT_MUTED,
     letterSpacing: 0.5,
   },
   activeTabText: {
-    color: '#FF8BB4',
+    color: GOLD_DEEP,
   },
   content: {
     flex: 1,
@@ -187,20 +219,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   listContent: {
-    padding: 16,
+    padding: 20,
   },
   ticketCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 18,
     padding: 16,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#EAEAEA',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 2,
+    borderWidth: 1.5,
+    borderColor: IVORY_LINE,
   },
   ticketHeader: {
     flexDirection: 'row',
@@ -211,33 +238,33 @@ const styles = StyleSheet.create({
   ticketId: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#666',
+    color: TEXT_MUTED,
   },
   statusBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   statusActive: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: SUCCESS_GREEN_BG,
   },
   statusResolved: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: IVORY,
   },
   statusText: {
     fontSize: 11,
     fontWeight: '700',
   },
   statusTextActive: {
-    color: '#4CAF50',
+    color: SUCCESS_GREEN,
   },
   statusTextResolved: {
-    color: '#9E9E9E',
+    color: TEXT_MUTED,
   },
   ticketTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: '700',
+    color: TEXT_PLUM,
     marginBottom: 12,
   },
   ticketFooter: {
@@ -249,7 +276,7 @@ const styles = StyleSheet.create({
   },
   ticketDate: {
     fontSize: 12,
-    color: '#999',
+    color: TEXT_MUTED,
   },
   emptyStateContainer: {
     flex: 1,
@@ -261,20 +288,20 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#C4C4C4',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24,
   },
   emptyStateTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#1F1F1F',
+    fontWeight: '800',
+    color: TEXT_PLUM,
     marginBottom: 8,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   emptyStateSubtitle: {
     fontSize: 14,
-    color: '#999999',
+    color: TEXT_MUTED,
     textAlign: 'center',
   },
 });

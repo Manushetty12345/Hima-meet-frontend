@@ -1,12 +1,16 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { Star } from 'lucide-react-native';
+
+// ---- Palette pulled from the Himameet mark ----
+const PLUM_ROYAL = '#5B0E8B';
+const PLUM_DEEP = '#3D0A63';
+const GOLD = '#F5C542';
+const GOLD_DEEP = '#D4AF37';
+const IVORY_LINE = '#EBDFC4';
+const TEXT_PLUM = '#2A1240';
+const TEXT_MUTED = '#8B7F98';
 
 export type CoinPackage = {
   id: string;
@@ -32,10 +36,10 @@ const CoinPackageCard: React.FC<CoinPackageCardProps> = ({ pkg, isSelected, onSe
       style={[styles.card, isSelected && styles.cardSelected]}
     >
       {pkg.popular && (
-        <View style={styles.popularBadge}>
-          <Star size={9} color="#FFFFFF" fill="#FFFFFF" />
+        <LinearGradient colors={[GOLD, GOLD_DEEP]} style={styles.popularBadge}>
+          <Star size={9} color="#2A1240" fill="#2A1240" />
           <Text style={styles.popularBadgeText}>Popular</Text>
-        </View>
+        </LinearGradient>
       )}
 
       <Text style={styles.coinGlyph}>🪙</Text>
@@ -45,7 +49,7 @@ const CoinPackageCard: React.FC<CoinPackageCardProps> = ({ pkg, isSelected, onSe
       <View style={styles.cardBottom}>
         {pkg.savePercent ? (
           <LinearGradient
-            colors={['#FF7A45', '#E0116F']}
+            colors={[GOLD, GOLD_DEEP]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.saveBadge}
@@ -57,7 +61,7 @@ const CoinPackageCard: React.FC<CoinPackageCardProps> = ({ pkg, isSelected, onSe
         )}
 
         <LinearGradient
-          colors={['#33C6F0', '#0F9DC7']}
+          colors={[PLUM_ROYAL, PLUM_DEEP]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.pricePill}
@@ -75,22 +79,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
     borderWidth: 1.5,
-    borderColor: '#EFE7F3',
+    borderColor: IVORY_LINE,
     alignItems: 'center',
     paddingTop: 16,
     paddingBottom: 10,
     paddingHorizontal: 6,
     marginBottom: 14,
-    shadowColor: '#4A0F6E',
+    shadowColor: '#3A0F63',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
   },
   cardSelected: {
-    borderColor: '#EC1372',
+    borderColor: GOLD_DEEP,
+    borderWidth: 1.75,
+    backgroundColor: 'rgba(245, 197, 66, 0.06)',
     shadowOpacity: 0.14,
-    shadowColor: '#EC1372',
+    shadowColor: GOLD_DEEP,
   },
   popularBadge: {
     position: 'absolute',
@@ -99,7 +105,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: '#3B6FE0',
     borderRadius: 10,
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -107,7 +112,7 @@ const styles = StyleSheet.create({
   popularBadgeText: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#2A1240',
   },
   coinGlyph: {
     fontSize: 26,
@@ -116,11 +121,12 @@ const styles = StyleSheet.create({
   coinAmount: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#1B0E22',
+    color: TEXT_PLUM,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   coinLabel: {
     fontSize: 11,
-    color: '#9A8FA8',
+    color: TEXT_MUTED,
     marginBottom: 10,
   },
   cardBottom: {
@@ -140,7 +146,7 @@ const styles = StyleSheet.create({
   saveBadgeText: {
     fontSize: 9.5,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#2A1240',
   },
   pricePill: {
     width: '100%',

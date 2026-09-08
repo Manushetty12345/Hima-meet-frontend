@@ -11,6 +11,7 @@ import {
   Image,
   Switch,
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import { ArrowLeft, BellOff } from 'lucide-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../../navigation/AuthNavigator';
@@ -18,6 +19,19 @@ import apiClient from '../../../api/apiClient';
 
 const STATUSBAR_HEIGHT = Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 0;
 type Props = NativeStackScreenProps<AuthStackParamList, 'ManageNotifications'>;
+
+// ---- Palette pulled from the Himameet mark ----
+const PLUM_ROYAL = '#5B0E8B';
+const GOLD = '#F5C542';
+const GOLD_DEEP = '#D4AF37';
+const IVORY = '#FBF6EC';
+const IVORY_LINE = '#EBDFC4';
+const TEXT_PLUM = '#2A1240';
+const TEXT_MUTED = '#8B7F98';
+
+// Light lavender header wash — matches the rest of the flow
+const LILAC_WHITE = '#FBF7FF';
+const LILAC_PALE = '#EFDFFB';
 
 type TrackedCreator = {
   creator_id: number;
@@ -49,7 +63,7 @@ const ManageNotificationsScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleToggle = async (creatorId: number, currentValue: boolean) => {
     const newValue = !currentValue;
-    
+
     // Optimistic UI update
     setCreators(prev =>
       prev.map(c =>
@@ -84,30 +98,37 @@ const ManageNotificationsScreen: React.FC<Props> = ({ navigation }) => {
       <Switch
         value={item.notify_enabled}
         onValueChange={() => handleToggle(item.creator_id, item.notify_enabled)}
-        trackColor={{ false: '#E2DCE8', true: '#2DD36F' }}
+        trackColor={{ false: IVORY_LINE, true: GOLD_DEEP }}
         thumbColor="#FFFFFF"
-        ios_backgroundColor="#E2DCE8"
+        ios_backgroundColor={IVORY_LINE}
         style={styles.toggle}
       />
     </View>
   );
 
   return (
-    <View style={styles.container}>
+    <View style={styles.flex}>
       <StatusBar barStyle="dark-content" />
-      <View style={styles.statusBarSpacer} />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          activeOpacity={0.8}
-          onPress={() => navigation.goBack()}
-        >
-          <ArrowLeft size={19} color="#EC1372" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Manage Notifications</Text>
-      </View>
+      <LinearGradient
+        colors={[LILAC_WHITE, LILAC_PALE]}
+        start={{ x: 0.15, y: 0 }}
+        end={{ x: 0.85, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.statusBarSpacer} />
+
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            activeOpacity={0.8}
+            onPress={() => navigation.goBack()}
+          >
+            <ArrowLeft size={20} color={PLUM_ROYAL} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Manage Notifications</Text>
+        </View>
+      </LinearGradient>
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Creator online alerts</Text>
@@ -118,12 +139,12 @@ const ManageNotificationsScreen: React.FC<Props> = ({ navigation }) => {
 
       {loading ? (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#EC1372" />
+          <ActivityIndicator size="large" color={GOLD_DEEP} />
         </View>
       ) : creators.length === 0 ? (
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIconWrap}>
-            <BellOff size={32} color="#8A7A9C" />
+            <BellOff size={30} color={GOLD_DEEP} />
           </View>
           <Text style={styles.emptyText}>
             You're not tracking any creator yet. Tap the bell next to a creator in Chats to start.
@@ -143,52 +164,56 @@ const ManageNotificationsScreen: React.FC<Props> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
+  flex: {
     flex: 1,
-    backgroundColor: '#F9F7FB',
+    backgroundColor: IVORY,
+  },
+  headerGradient: {
+    overflow: 'hidden',
   },
   statusBarSpacer: {
     height: STATUSBAR_HEIGHT,
-    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0EBF5',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 16,
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#F0EBF5',
+    borderRadius: 20,
+    backgroundColor: 'rgba(91, 14, 139, 0.10)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(91, 14, 139, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
-    backgroundColor: '#FFFFFF',
+    marginRight: 14,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#1B0E22',
+    color: TEXT_PLUM,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   sectionHeader: {
-    padding: 20,
+    paddingHorizontal: 24,
+    paddingTop: 20,
     paddingBottom: 16,
   },
   sectionTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#4A3860',
+    color: TEXT_PLUM,
     marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
   sectionSubtitle: {
     fontSize: 13,
-    color: '#8A7A9C',
+    color: TEXT_MUTED,
     lineHeight: 20,
   },
   centerContainer: {
@@ -205,19 +230,21 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#F0EBF5',
+    backgroundColor: 'rgba(245, 197, 66, 0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 197, 66, 0.3)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
   },
   emptyText: {
     fontSize: 13.5,
-    color: '#8A7A9C',
+    color: TEXT_MUTED,
     textAlign: 'center',
     lineHeight: 22,
   },
   listContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingBottom: 24,
   },
   creatorCard: {
@@ -225,19 +252,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     padding: 16,
-    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: IVORY_LINE,
+    borderRadius: 18,
     marginBottom: 12,
-    shadowColor: '#5B0E8B',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
   },
   avatar: {
     width: 46,
     height: 46,
     borderRadius: 23,
     marginRight: 14,
+    backgroundColor: IVORY,
   },
   creatorInfo: {
     flex: 1,
@@ -245,12 +270,12 @@ const styles = StyleSheet.create({
   creatorName: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1B0E22',
+    color: TEXT_PLUM,
     marginBottom: 4,
   },
   creatorSubtitle: {
     fontSize: 12,
-    color: '#8A7A9C',
+    color: TEXT_MUTED,
   },
   toggle: {
     transform: [{ scaleX: 0.9 }, { scaleY: 0.9 }],

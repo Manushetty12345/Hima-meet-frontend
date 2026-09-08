@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,6 @@ import {
   StatusBar,
   Platform,
   ScrollView,
-  Animated,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {
@@ -31,22 +30,31 @@ import type { AuthStackParamList } from '../../../navigation/AuthNavigator';
 const STATUSBAR_HEIGHT = Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 0;
 type Props = NativeStackScreenProps<AuthStackParamList, 'Terms'>;
 
-const PLUM = '#5B0E8B';
-const PINK = '#EC1372';
+// ---- Palette pulled from the Himameet mark ----
+const PLUM_ROYAL = '#5B0E8B';
 const GOLD = '#F5C542';
+const GOLD_DEEP = '#D4AF37';
+const IVORY = '#FBF6EC';
+const IVORY_LINE = '#EBDFC4';
+const TEXT_PLUM = '#2A1240';
+const TEXT_MUTED = '#8B7F98';
+
+// Light lavender header wash — matches Login / VerifyOtp / GenderSelect / SelectLanguage
+const LILAC_WHITE = '#FBF7FF';
+const LILAC_PALE = '#EFDFFB';
 
 const SECTIONS = [
   {
     id: 1,
     icon: FileText,
-    iconBg: ['#8E2DE2', '#EC1372'] as string[],
+    iconBg: [PLUM_ROYAL, '#8E2DE2'] as string[],
     title: 'Introduction',
     body: 'Welcome to Himameet ("Platform"). These Terms and Conditions outline the rules and regulations for the use of the application Himameet, owned and operated by Innovfix Private Limited. By accessing or using our app, you agree to be bound by these Terms and Conditions. If you do not agree with any part of these Terms, please refrain from using our app.',
   },
   {
     id: 2,
     icon: UserCheck,
-    iconBg: ['#EC1372', '#FF6B6B'] as string[],
+    iconBg: [GOLD, GOLD_DEEP] as string[],
     title: 'Eligibility',
     bullets: [
       'You must be at least 18 years old to use Himameet.',
@@ -57,7 +65,7 @@ const SECTIONS = [
   {
     id: 3,
     icon: Lock,
-    iconBg: ['#8E2DE2', '#4A00E0'] as string[],
+    iconBg: [PLUM_ROYAL, '#8E2DE2'] as string[],
     title: 'Account Responsibilities',
     bullets: [
       'You are responsible for maintaining the confidentiality of your account credentials.',
@@ -68,7 +76,7 @@ const SECTIONS = [
   {
     id: 4,
     icon: CheckCircle2,
-    iconBg: ['#11998e', '#38ef7d'] as string[],
+    iconBg: [GOLD, GOLD_DEEP] as string[],
     title: 'Acceptable Use',
     bullets: [
       'Users must engage respectfully and professionally.',
@@ -79,7 +87,7 @@ const SECTIONS = [
   {
     id: 5,
     icon: Globe,
-    iconBg: ['#f7971e', '#ffd200'] as string[],
+    iconBg: [PLUM_ROYAL, '#8E2DE2'] as string[],
     title: 'Content & Intellectual Property',
     bullets: [
       'Users retain ownership of the content they share but grant Himameet a non-exclusive license to display and share it within the platform.',
@@ -90,7 +98,7 @@ const SECTIONS = [
   {
     id: 6,
     icon: ShieldCheck,
-    iconBg: ['#0052D4', '#4364F7'] as string[],
+    iconBg: [GOLD, GOLD_DEEP] as string[],
     title: 'Privacy & Data Protection',
     bullets: [
       'We value your privacy. Our data practices are outlined in our Privacy Policy.',
@@ -101,7 +109,7 @@ const SECTIONS = [
   {
     id: 7,
     icon: AlertTriangle,
-    iconBg: ['#FF416C', '#FF4B2B'] as string[],
+    iconBg: [PLUM_ROYAL, '#8E2DE2'] as string[],
     title: 'Limitation of Liability',
     bullets: [
       'Himameet is not responsible for the accuracy of content shared by users.',
@@ -112,17 +120,17 @@ const SECTIONS = [
   {
     id: 8,
     icon: Zap,
-    iconBg: ['#8E2DE2', '#EC1372'] as string[],
+    iconBg: [GOLD, GOLD_DEEP] as string[],
     title: 'Termination of Service',
     bullets: [
-      'Himameet reserves the right to suspend or terminate accounts violating these terms.',,
+      'Himameet reserves the right to suspend or terminate accounts violating these terms.',
       'Users may request account deletion at any time.',
     ],
   },
   {
     id: 9,
     icon: RefreshCw,
-    iconBg: ['#11998e', '#38ef7d'] as string[],
+    iconBg: [PLUM_ROYAL, '#8E2DE2'] as string[],
     title: 'Changes to Terms',
     bullets: [
       'These Terms may be updated periodically.',
@@ -132,63 +140,54 @@ const SECTIONS = [
   {
     id: 10,
     icon: XCircle,
-    iconBg: ['#EC1372', '#FF6B6B'] as string[],
+    iconBg: [GOLD, GOLD_DEEP] as string[],
     title: 'Termination',
     body: 'We reserve the right to terminate or suspend access to our Service immediately, without prior notice or liability, for any reason whatsoever, including without limitation if you breach these Terms.',
   },
 ];
 
 const TermsScreen: React.FC<Props> = ({ navigation }) => {
-  const scrollY = useRef(new Animated.Value(0)).current;
-
-  const headerOpacity = scrollY.interpolate({
-    inputRange: [0, 80],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
-
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      <View style={styles.statusBarSpacer} />
+    <View style={styles.flex}>
+      <StatusBar barStyle="dark-content" />
 
-      {/* Sticky shadow header on scroll */}
-      <Animated.View style={[styles.scrollHeader, { opacity: headerOpacity }]} />
+      <LinearGradient
+        colors={[LILAC_WHITE, LILAC_PALE]}
+        start={{ x: 0.15, y: 0 }}
+        end={{ x: 0.85, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.statusBarSpacer} />
 
-      {/* Back button row */}
-      <View style={styles.topBar}>
-        <TouchableOpacity
-          style={styles.backButton}
-          activeOpacity={0.8}
-          onPress={() => navigation.goBack()}
-        >
-          <ArrowLeft size={19} color={PINK} />
-        </TouchableOpacity>
-        <Text style={styles.topBarTitle}>Terms &amp; Conditions</Text>
-      </View>
+        <View style={styles.topBar}>
+          <TouchableOpacity
+            style={styles.backButton}
+            activeOpacity={0.8}
+            onPress={() => navigation.goBack()}
+          >
+            <ArrowLeft size={20} color={PLUM_ROYAL} />
+          </TouchableOpacity>
+          <Text style={styles.topBarTitle}>Terms &amp; Conditions</Text>
+        </View>
+      </LinearGradient>
 
-      <Animated.ScrollView
+      <ScrollView
+        style={styles.scrollFlex}
         showsVerticalScrollIndicator={false}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
-        )}
-        scrollEventThrottle={16}
         contentContainerStyle={styles.scrollContent}
       >
         {/* Hero Banner */}
         <LinearGradient
-          colors={['#5B0E8B', '#8E2DE2', '#EC1372']}
+          colors={[PLUM_ROYAL, '#8E2DE2']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.heroBanner}
         >
-          {/* Decorative circles */}
           <View style={styles.heroCircle1} />
           <View style={styles.heroCircle2} />
 
           <View style={styles.heroIconWrap}>
-            <ShieldCheck size={38} color="#FFFFFF" strokeWidth={1.5} />
+            <ShieldCheck size={36} color={GOLD} strokeWidth={1.5} />
           </View>
           <Text style={styles.heroTitle}>Terms &amp; Conditions</Text>
           <Text style={styles.heroSubtitle}>
@@ -206,7 +205,6 @@ const TermsScreen: React.FC<Props> = ({ navigation }) => {
             const Icon = section.icon;
             return (
               <View key={section.id} style={styles.sectionCard}>
-                {/* Section header */}
                 <View style={styles.sectionHeader}>
                   <LinearGradient
                     colors={section.iconBg}
@@ -222,20 +220,15 @@ const TermsScreen: React.FC<Props> = ({ navigation }) => {
                   </View>
                 </View>
 
-                {/* Divider */}
                 <View style={styles.sectionDivider} />
 
-                {/* Body or Bullets */}
                 {section.body ? (
                   <Text style={styles.bodyText}>{section.body}</Text>
                 ) : (
                   <View style={styles.bulletList}>
                     {section.bullets!.map((bullet, bIdx) => (
                       <View key={bIdx} style={styles.bulletRow}>
-                        <LinearGradient
-                          colors={section.iconBg}
-                          style={styles.bulletDot}
-                        />
+                        <LinearGradient colors={section.iconBg} style={styles.bulletDot} />
                         <Text style={styles.bulletText}>{bullet}</Text>
                       </View>
                     ))}
@@ -247,7 +240,7 @@ const TermsScreen: React.FC<Props> = ({ navigation }) => {
 
           {/* Acknowledgement */}
           <LinearGradient
-            colors={['#5B0E8B', '#8E2DE2']}
+            colors={[PLUM_ROYAL, '#8E2DE2']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.acknowledgementCard}
@@ -268,8 +261,8 @@ const TermsScreen: React.FC<Props> = ({ navigation }) => {
             </Text>
 
             <View style={styles.contactRow}>
-              <LinearGradient colors={['#EC1372', '#FF6B6B']} style={styles.contactIcon}>
-                <Mail size={15} color="#FFFFFF" />
+              <LinearGradient colors={[GOLD, GOLD_DEEP]} style={styles.contactIcon}>
+                <Mail size={15} color={TEXT_PLUM} />
               </LinearGradient>
               <View style={styles.contactEmailBadge}>
                 <Text style={styles.contactEmail}>himaapp000@gmail.com</Text>
@@ -278,7 +271,7 @@ const TermsScreen: React.FC<Props> = ({ navigation }) => {
 
             <Text style={styles.contactAddressLabel}>Address</Text>
             <View style={styles.contactRow}>
-              <LinearGradient colors={['#8E2DE2', '#4A00E0']} style={styles.contactIcon}>
+              <LinearGradient colors={[PLUM_ROYAL, '#8E2DE2']} style={styles.contactIcon}>
                 <MapPin size={15} color="#FFFFFF" />
               </LinearGradient>
               <Text style={styles.contactAddressText}>
@@ -292,54 +285,61 @@ const TermsScreen: React.FC<Props> = ({ navigation }) => {
 
           <View style={{ height: 32 }} />
         </View>
-      </Animated.ScrollView>
+      </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F4F0FA' },
-  statusBarSpacer: { height: STATUSBAR_HEIGHT, backgroundColor: '#5B0E8B' },
-
-  scrollHeader: {
-    position: 'absolute',
-    top: STATUSBAR_HEIGHT + 52,
-    left: 0,
-    right: 0,
-    height: 8,
-    backgroundColor: 'rgba(91,14,139,0.08)',
-    zIndex: 10,
+  flex: {
+    flex: 1,
+    backgroundColor: IVORY,
   },
-
+  headerGradient: {
+    overflow: 'hidden',
+  },
+  statusBarSpacer: {
+    height: STATUSBAR_HEIGHT,
+  },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0EBF5',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 16,
   },
   backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#F0EBF5',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(91, 14, 139, 0.10)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(91, 14, 139, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
-    backgroundColor: '#FFF0F5',
   },
-  topBarTitle: { fontSize: 17, fontWeight: '700', color: '#1B0E22' },
+  topBarTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: TEXT_PLUM,
+    fontFamily: 'PlayfairDisplay-Bold',
+  },
 
-  scrollContent: { paddingBottom: 24 },
+  scrollFlex: {
+    flex: 1,
+    backgroundColor: IVORY,
+  },
+  scrollContent: {
+    paddingBottom: 24,
+  },
 
   // Hero Banner
   heroBanner: {
-    margin: 16,
-    borderRadius: 24,
-    padding: 28,
+    marginHorizontal: 24,
+    marginTop: 24,
+    borderRadius: 22,
+    padding: 26,
     overflow: 'hidden',
     position: 'relative',
   },
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
     width: 140,
     height: 140,
     borderRadius: 70,
-    backgroundColor: 'rgba(255,255,255,0.07)',
+    backgroundColor: 'rgba(245, 197, 66, 0.08)',
     top: -30,
     right: -30,
   },
@@ -357,27 +357,28 @@ const styles = StyleSheet.create({
     width: 90,
     height: 90,
     borderRadius: 45,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(245, 197, 66, 0.06)',
     bottom: -20,
     left: -20,
   },
   heroIconWrap: {
-    width: 68,
-    height: 68,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    width: 64,
+    height: 64,
+    borderRadius: 18,
+    backgroundColor: 'rgba(245, 197, 66, 0.16)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.25)',
+    borderColor: 'rgba(245, 197, 66, 0.35)',
   },
   heroTitle: {
-    fontSize: 24,
+    fontSize: 23,
     fontWeight: '800',
     color: '#FFFFFF',
     marginBottom: 10,
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   heroSubtitle: {
     fontSize: 13,
@@ -387,29 +388,37 @@ const styles = StyleSheet.create({
   },
   lastUpdatedBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: 'rgba(245, 197, 66, 0.18)',
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderColor: 'rgba(245, 197, 66, 0.35)',
   },
-  lastUpdatedText: { fontSize: 11, color: '#FFFFFF', fontWeight: '600' },
+  lastUpdatedText: {
+    fontSize: 11,
+    color: GOLD,
+    fontWeight: '700',
+  },
 
   // Sections
-  sectionsContainer: { paddingHorizontal: 16 },
+  sectionsContainer: {
+    paddingHorizontal: 24,
+    paddingTop: 22,
+  },
   sectionCard: {
     backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: IVORY_LINE,
     borderRadius: 18,
     padding: 18,
     marginBottom: 14,
-    shadowColor: '#5B0E8B',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.07,
-    shadowRadius: 10,
-    elevation: 3,
   },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   sectionIconBox: {
     width: 40,
     height: 40,
@@ -418,20 +427,55 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 12,
   },
-  sectionTitleWrap: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 6 },
-  sectionNumber: { fontSize: 15, fontWeight: '800', color: '#EC1372' },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#1B0E22', flex: 1 },
+  sectionTitleWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 6,
+  },
+  sectionNumber: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: GOLD_DEEP,
+  },
+  sectionTitle: {
+    fontSize: 15.5,
+    fontWeight: '700',
+    color: TEXT_PLUM,
+    flex: 1,
+    fontFamily: 'PlayfairDisplay-Bold',
+  },
   sectionDivider: {
     height: 1,
-    backgroundColor: '#F3EDF9',
+    backgroundColor: IVORY_LINE,
     marginBottom: 14,
   },
-  bodyText: { fontSize: 13.5, color: '#4A3860', lineHeight: 21 },
+  bodyText: {
+    fontSize: 13.5,
+    color: TEXT_MUTED,
+    lineHeight: 21,
+  },
 
-  bulletList: { gap: 10 },
-  bulletRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  bulletDot: { width: 7, height: 7, borderRadius: 4, marginTop: 6 },
-  bulletText: { fontSize: 13.5, color: '#4A3860', lineHeight: 20, flex: 1 },
+  bulletList: {
+    gap: 10,
+  },
+  bulletRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  bulletDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    marginTop: 6,
+  },
+  bulletText: {
+    fontSize: 13.5,
+    color: TEXT_MUTED,
+    lineHeight: 20,
+    flex: 1,
+  },
 
   // Acknowledgement
   acknowledgementCard: {
@@ -439,18 +483,14 @@ const styles = StyleSheet.create({
     padding: 24,
     alignItems: 'center',
     marginBottom: 14,
-    shadowColor: PLUM,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 14,
-    elevation: 6,
   },
   ackTitle: {
     fontSize: 18,
     fontWeight: '800',
     color: '#FFFFFF',
     marginBottom: 10,
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   ackBody: {
     fontSize: 13.5,
@@ -462,28 +502,60 @@ const styles = StyleSheet.create({
   // Contact
   contactCard: {
     backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: IVORY_LINE,
     borderRadius: 18,
     padding: 20,
-    shadowColor: '#5B0E8B',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.07,
-    shadowRadius: 10,
-    elevation: 3,
   },
-  contactHeading: { fontSize: 16, fontWeight: '800', color: '#1B0E22', marginBottom: 6 },
-  contactSubtitle: { fontSize: 13, color: '#8A7A9C', marginBottom: 16 },
-  contactRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 14 },
-  contactIcon: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  contactHeading: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: TEXT_PLUM,
+    marginBottom: 6,
+    fontFamily: 'PlayfairDisplay-Bold',
+  },
+  contactSubtitle: {
+    fontSize: 13,
+    color: TEXT_MUTED,
+    marginBottom: 16,
+  },
+  contactRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 14,
+  },
+  contactIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   contactEmailBadge: {
-    backgroundColor: '#FDE8F1',
+    backgroundColor: 'rgba(245, 197, 66, 0.12)',
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 8,
     flex: 1,
   },
-  contactEmail: { fontSize: 13, fontWeight: '600', color: '#EC1372' },
-  contactAddressLabel: { fontSize: 13, fontWeight: '700', color: '#1B0E22', marginBottom: 10 },
-  contactAddressText: { fontSize: 12.5, color: '#4A3860', lineHeight: 20, flex: 1 },
+  contactEmail: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: GOLD_DEEP,
+  },
+  contactAddressLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: TEXT_PLUM,
+    marginBottom: 10,
+  },
+  contactAddressText: {
+    fontSize: 12.5,
+    color: TEXT_MUTED,
+    lineHeight: 20,
+    flex: 1,
+  },
 });
 
 export default TermsScreen;

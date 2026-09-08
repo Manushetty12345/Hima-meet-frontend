@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   StatusBar,
   Platform,
-  Animated,
+  ScrollView,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {
@@ -26,13 +26,24 @@ import type { AuthStackParamList } from '../../../navigation/AuthNavigator';
 const STATUSBAR_HEIGHT = Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 0;
 type Props = NativeStackScreenProps<AuthStackParamList, 'CommunityGuidelines'>;
 
+// ---- Palette pulled from the Himameet mark ----
+const PLUM_ROYAL = '#5B0E8B';
 const GOLD = '#F5C542';
+const GOLD_DEEP = '#D4AF37';
+const IVORY = '#FBF6EC';
+const IVORY_LINE = '#EBDFC4';
+const TEXT_PLUM = '#2A1240';
+const TEXT_MUTED = '#8B7F98';
+
+// Light lavender header wash — matches the rest of the flow
+const LILAC_WHITE = '#FBF7FF';
+const LILAC_PALE = '#EFDFFB';
 
 const SECTIONS = [
   {
     id: 1,
     icon: XCircle,
-    iconBg: ['#FF416C', '#FF4B2B'] as string[],
+    iconBg: [PLUM_ROYAL, '#8E2DE2'] as string[],
     title: 'Strictly Not Allowed',
     bullets: [
       'Abusive, threatening, or hateful language.',
@@ -45,7 +56,7 @@ const SECTIONS = [
   {
     id: 2,
     icon: ShieldCheck,
-    iconBg: ['#11998e', '#38ef7d'] as string[],
+    iconBg: [GOLD, GOLD_DEEP] as string[],
     title: 'How We Moderate',
     bullets: [
       'Our AI moderation tools monitor video/audio content in real time (e.g., face detection, voice filters).',
@@ -57,7 +68,7 @@ const SECTIONS = [
   {
     id: 3,
     icon: Heart,
-    iconBg: ['#EC1372', '#FF6B6B'] as string[],
+    iconBg: [PLUM_ROYAL, '#8E2DE2'] as string[],
     title: 'Respectful Interactions',
     bullets: [
       'Always treat other users with respect and dignity.',
@@ -69,7 +80,7 @@ const SECTIONS = [
   {
     id: 4,
     icon: MessageCircle,
-    iconBg: ['#8E2DE2', '#4A00E0'] as string[],
+    iconBg: [GOLD, GOLD_DEEP] as string[],
     title: 'Content Standards',
     bullets: [
       'Keep conversations relevant and constructive.',
@@ -81,7 +92,7 @@ const SECTIONS = [
   {
     id: 5,
     icon: AlertTriangle,
-    iconBg: ['#f7971e', '#ffd200'] as string[],
+    iconBg: [PLUM_ROYAL, '#8E2DE2'] as string[],
     title: 'Consequences of Violations',
     bullets: [
       'First offense: Warning issued with explanation.',
@@ -93,7 +104,7 @@ const SECTIONS = [
   {
     id: 6,
     icon: BadgeCheck,
-    iconBg: ['#0052D4', '#4364F7'] as string[],
+    iconBg: [GOLD, GOLD_DEEP] as string[],
     title: 'Creator Responsibilities',
     bullets: [
       'Creators must maintain a professional and respectful demeanor.',
@@ -105,44 +116,38 @@ const SECTIONS = [
 ];
 
 const CommunityGuidelinesScreen: React.FC<Props> = ({ navigation }) => {
-  const scrollY = useRef(new Animated.Value(0)).current;
-
-  const headerOpacity = scrollY.interpolate({
-    inputRange: [0, 80],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
-
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      <View style={styles.statusBarSpacer} />
+    <View style={styles.flex}>
+      <StatusBar barStyle="dark-content" />
 
-      <Animated.View style={[styles.scrollHeader, { opacity: headerOpacity }]} />
+      <LinearGradient
+        colors={[LILAC_WHITE, LILAC_PALE]}
+        start={{ x: 0.15, y: 0 }}
+        end={{ x: 0.85, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.statusBarSpacer} />
 
-      <View style={styles.topBar}>
-        <TouchableOpacity
-          style={styles.backButton}
-          activeOpacity={0.8}
-          onPress={() => navigation.goBack()}
-        >
-          <ArrowLeft size={19} color="#EC1372" />
-        </TouchableOpacity>
-        <Text style={styles.topBarTitle}>Community Guidelines</Text>
-      </View>
+        <View style={styles.topBar}>
+          <TouchableOpacity
+            style={styles.backButton}
+            activeOpacity={0.8}
+            onPress={() => navigation.goBack()}
+          >
+            <ArrowLeft size={20} color={PLUM_ROYAL} />
+          </TouchableOpacity>
+          <Text style={styles.topBarTitle}>Community Guidelines</Text>
+        </View>
+      </LinearGradient>
 
-      <Animated.ScrollView
+      <ScrollView
+        style={styles.scrollFlex}
         showsVerticalScrollIndicator={false}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
-        )}
-        scrollEventThrottle={16}
         contentContainerStyle={styles.scrollContent}
       >
         {/* Hero Banner */}
         <LinearGradient
-          colors={['#EC1372', '#8E2DE2', '#5B0E8B']}
+          colors={[PLUM_ROYAL, '#8E2DE2']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.heroBanner}
@@ -150,7 +155,7 @@ const CommunityGuidelinesScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.heroCircle1} />
           <View style={styles.heroCircle2} />
           <View style={styles.heroIconWrap}>
-            <BadgeCheck size={38} color="#FFFFFF" strokeWidth={1.5} />
+            <BadgeCheck size={36} color={GOLD} strokeWidth={1.5} />
           </View>
           <Text style={styles.heroTitle}>Community Guidelines</Text>
           <Text style={styles.heroSubtitle}>
@@ -196,7 +201,7 @@ const CommunityGuidelinesScreen: React.FC<Props> = ({ navigation }) => {
 
           {/* Acknowledgement */}
           <LinearGradient
-            colors={['#EC1372', '#8E2DE2']}
+            colors={[PLUM_ROYAL, '#8E2DE2']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.acknowledgementCard}
@@ -213,8 +218,8 @@ const CommunityGuidelinesScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.contactHeading}>Contact Us</Text>
             <Text style={styles.contactSubtitle}>For any concerns, contact our support team:</Text>
             <View style={styles.contactRow}>
-              <LinearGradient colors={['#EC1372', '#FF6B6B']} style={styles.contactIcon}>
-                <Mail size={15} color="#FFFFFF" />
+              <LinearGradient colors={[GOLD, GOLD_DEEP]} style={styles.contactIcon}>
+                <Mail size={15} color={TEXT_PLUM} />
               </LinearGradient>
               <View style={styles.contactEmailBadge}>
                 <Text style={styles.contactEmail}>himaapp000@gmail.com</Text>
@@ -222,7 +227,7 @@ const CommunityGuidelinesScreen: React.FC<Props> = ({ navigation }) => {
             </View>
             <Text style={styles.contactAddressLabel}>Address</Text>
             <View style={styles.contactRow}>
-              <LinearGradient colors={['#8E2DE2', '#4A00E0']} style={styles.contactIcon}>
+              <LinearGradient colors={[PLUM_ROYAL, '#8E2DE2']} style={styles.contactIcon}>
                 <MapPin size={15} color="#FFFFFF" />
               </LinearGradient>
               <Text style={styles.contactAddressText}>
@@ -235,95 +240,259 @@ const CommunityGuidelinesScreen: React.FC<Props> = ({ navigation }) => {
           </View>
           <View style={{ height: 32 }} />
         </View>
-      </Animated.ScrollView>
+      </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F4F0FA' },
-  statusBarSpacer: { height: STATUSBAR_HEIGHT, backgroundColor: '#EC1372' },
-  scrollHeader: {
-    position: 'absolute', top: STATUSBAR_HEIGHT + 52,
-    left: 0, right: 0, height: 8,
-    backgroundColor: 'rgba(236,19,114,0.08)', zIndex: 10,
+  flex: {
+    flex: 1,
+    backgroundColor: IVORY,
+  },
+  headerGradient: {
+    overflow: 'hidden',
+  },
+  statusBarSpacer: {
+    height: STATUSBAR_HEIGHT,
   },
   topBar: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 16, paddingVertical: 10,
-    backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#F0EBF5',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 16,
   },
   backButton: {
-    width: 36, height: 36, borderRadius: 10, borderWidth: 1,
-    borderColor: '#F0EBF5', alignItems: 'center', justifyContent: 'center',
-    marginRight: 14, backgroundColor: '#FFF0F5',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(91, 14, 139, 0.10)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(91, 14, 139, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
   },
-  topBarTitle: { fontSize: 17, fontWeight: '700', color: '#1B0E22' },
-  scrollContent: { paddingBottom: 24 },
+  topBarTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: TEXT_PLUM,
+    fontFamily: 'PlayfairDisplay-Bold',
+  },
+  scrollFlex: {
+    flex: 1,
+    backgroundColor: IVORY,
+  },
+  scrollContent: {
+    paddingBottom: 24,
+  },
   heroBanner: {
-    margin: 16, borderRadius: 24, padding: 28, overflow: 'hidden',
+    marginHorizontal: 24,
+    marginTop: 24,
+    borderRadius: 22,
+    padding: 26,
+    overflow: 'hidden',
   },
   heroCircle1: {
-    position: 'absolute', width: 140, height: 140, borderRadius: 70,
-    backgroundColor: 'rgba(255,255,255,0.07)', top: -30, right: -30,
+    position: 'absolute',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(245, 197, 66, 0.08)',
+    top: -30,
+    right: -30,
   },
   heroCircle2: {
-    position: 'absolute', width: 90, height: 90, borderRadius: 45,
-    backgroundColor: 'rgba(255,255,255,0.06)', bottom: -20, left: -20,
+    position: 'absolute',
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: 'rgba(245, 197, 66, 0.06)',
+    bottom: -20,
+    left: -20,
   },
   heroIconWrap: {
-    width: 68, height: 68, borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center',
-    justifyContent: 'center', marginBottom: 16,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)',
+    width: 64,
+    height: 64,
+    borderRadius: 18,
+    backgroundColor: 'rgba(245, 197, 66, 0.16)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 197, 66, 0.35)',
   },
-  heroTitle: { fontSize: 24, fontWeight: '800', color: '#FFFFFF', marginBottom: 10 },
-  heroSubtitle: { fontSize: 13, color: 'rgba(255,255,255,0.88)', lineHeight: 20, marginBottom: 16 },
+  heroTitle: {
+    fontSize: 23,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 10,
+    fontFamily: 'PlayfairDisplay-Bold',
+  },
+  heroSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.85)',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
   lastUpdatedBadge: {
-    alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.18)',
-    borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(245, 197, 66, 0.18)',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 197, 66, 0.35)',
   },
-  lastUpdatedText: { fontSize: 11, color: '#FFFFFF', fontWeight: '600' },
-  sectionsContainer: { paddingHorizontal: 16 },
+  lastUpdatedText: {
+    fontSize: 11,
+    color: GOLD,
+    fontWeight: '700',
+  },
+  sectionsContainer: {
+    paddingHorizontal: 24,
+    paddingTop: 22,
+  },
   sectionCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 18, padding: 18, marginBottom: 14,
-    shadowColor: '#5B0E8B', shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.07, shadowRadius: 10, elevation: 3,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: IVORY_LINE,
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 14,
   },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   sectionIconBox: {
-    width: 40, height: 40, borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center', marginRight: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
   },
-  sectionTitleWrap: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 6 },
-  sectionNumber: { fontSize: 15, fontWeight: '800', color: '#EC1372' },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#1B0E22', flex: 1 },
-  sectionDivider: { height: 1, backgroundColor: '#F3EDF9', marginBottom: 14 },
-  bulletList: { gap: 10 },
-  bulletRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  bulletDot: { width: 7, height: 7, borderRadius: 4, marginTop: 6 },
-  bulletText: { fontSize: 13.5, color: '#4A3860', lineHeight: 20, flex: 1 },
+  sectionTitleWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 6,
+  },
+  sectionNumber: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: GOLD_DEEP,
+  },
+  sectionTitle: {
+    fontSize: 15.5,
+    fontWeight: '700',
+    color: TEXT_PLUM,
+    flex: 1,
+    fontFamily: 'PlayfairDisplay-Bold',
+  },
+  sectionDivider: {
+    height: 1,
+    backgroundColor: IVORY_LINE,
+    marginBottom: 14,
+  },
+  bulletList: {
+    gap: 10,
+  },
+  bulletRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  bulletDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    marginTop: 6,
+  },
+  bulletText: {
+    fontSize: 13.5,
+    color: TEXT_MUTED,
+    lineHeight: 20,
+    flex: 1,
+  },
   acknowledgementCard: {
-    borderRadius: 20, padding: 24, alignItems: 'center', marginBottom: 14,
-    shadowColor: '#EC1372', shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2, shadowRadius: 14, elevation: 6,
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+    marginBottom: 14,
   },
-  ackTitle: { fontSize: 18, fontWeight: '800', color: '#FFFFFF', marginBottom: 10 },
-  ackBody: { fontSize: 13.5, color: 'rgba(255,255,255,0.88)', lineHeight: 21, textAlign: 'center' },
+  ackTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 10,
+    fontFamily: 'PlayfairDisplay-Bold',
+  },
+  ackBody: {
+    fontSize: 13.5,
+    color: 'rgba(255,255,255,0.88)',
+    lineHeight: 21,
+    textAlign: 'center',
+  },
   contactCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 18, padding: 20,
-    shadowColor: '#5B0E8B', shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.07, shadowRadius: 10, elevation: 3,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: IVORY_LINE,
+    borderRadius: 18,
+    padding: 20,
   },
-  contactHeading: { fontSize: 16, fontWeight: '800', color: '#1B0E22', marginBottom: 6 },
-  contactSubtitle: { fontSize: 13, color: '#8A7A9C', marginBottom: 16 },
-  contactRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 14 },
-  contactIcon: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  contactEmailBadge: { backgroundColor: '#FDE8F1', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8, flex: 1 },
-  contactEmail: { fontSize: 13, fontWeight: '600', color: '#EC1372' },
-  contactAddressLabel: { fontSize: 13, fontWeight: '700', color: '#1B0E22', marginBottom: 10 },
-  contactAddressText: { fontSize: 12.5, color: '#4A3860', lineHeight: 20, flex: 1 },
+  contactHeading: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: TEXT_PLUM,
+    marginBottom: 6,
+    fontFamily: 'PlayfairDisplay-Bold',
+  },
+  contactSubtitle: {
+    fontSize: 13,
+    color: TEXT_MUTED,
+    marginBottom: 16,
+  },
+  contactRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 14,
+  },
+  contactIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  contactEmailBadge: {
+    backgroundColor: 'rgba(245, 197, 66, 0.12)',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    flex: 1,
+  },
+  contactEmail: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: GOLD_DEEP,
+  },
+  contactAddressLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: TEXT_PLUM,
+    marginBottom: 10,
+  },
+  contactAddressText: {
+    fontSize: 12.5,
+    color: TEXT_MUTED,
+    lineHeight: 20,
+    flex: 1,
+  },
 });
 
 export default CommunityGuidelinesScreen;

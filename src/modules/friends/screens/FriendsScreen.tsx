@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,21 +7,31 @@ import {
   TouchableOpacity,
   Platform,
   FlatList,
+  ActivityIndicator,
 } from 'react-native';
-import {
-  UserPlus,
-  Home as HomeIcon,
-  Clock,
-  Users,
-  UserCircle2,
-} from 'lucide-react-native';
-import type { LucideIcon } from 'lucide-react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import { UserPlus } from 'lucide-react-native';
+import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import FriendRequestCard, { FriendRequestItem } from '../components/FriendRequestCard';
+import { getFriends, getFavourites, getRequestsReceived, getRequestsSent } from '../api/friendsApi';
 
 const STATUSBAR_HEIGHT =
   Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 0;
+
+// ---- Palette pulled from the Himameet mark ----
+const PLUM_ROYAL = '#5B0E8B';
+const GOLD = '#F5C542';
+const GOLD_DEEP = '#D4AF37';
+const IVORY = '#FBF6EC';
+const IVORY_LINE = '#EBDFC4';
+const TEXT_PLUM = '#2A1240';
+const TEXT_MUTED = '#8B7F98';
+
+// Light lavender header wash — matches Login / VerifyOtp / GenderSelect / SelectLanguage
+const LILAC_WHITE = '#FBF7FF';
+const LILAC_PALE = '#EFDFFB';
 
 type RootStackParamList = {
   Friends: undefined;
@@ -31,26 +41,17 @@ type RootStackParamList = {
   [key: string]: undefined | object;
 };
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Friends'>;
+type Props = BottomTabScreenProps<RootStackParamList, 'Friends'>;
 
 type TabKey = 'friends' | 'favourite' | 'requests' | 'sent';
 
-const DUMMY_DATA: Record<TabKey, FriendRequestItem[]> = {
-  friends: [
-    { id: 'f1', name: 'Priya', avatarUri: 'https://i.pravatar.cc/200?img=41', type: 'friend' },
-    { id: 'f2', name: 'Neha', avatarUri: 'https://i.pravatar.cc/200?img=42', type: 'friend' },
-  ],
-  favourite: [
-    { id: 'fav1', name: 'Anita', avatarUri: 'https://i.pravatar.cc/200?img=45', type: 'favourite' },
-  ],
-  requests: [
-    { id: 'req1', name: 'Meera', avatarUri: 'https://i.pravatar.cc/200?img=47', type: 'received' },
-  ],
-  sent: [
-    { id: 's1', name: 'Latha', avatarUri: 'https://i.pravatar.cc/200?img=32', type: 'sent' },
-    { id: 's2', name: 'Sarika', avatarUri: 'https://i.pravatar.cc/200?img=38', type: 'sent' },
-  ],
-};
+const TABS: { key: TabKey; label: string }[] = [
+  { key: 'friends', label: 'Friends' },
+  { key: 'favourite', label: 'Favourite' },
+  { key: 'requests', label: 'Requests' },
+  { key: 'sent', label: 'Sent' },
+];
+
 
 const EMPTY_STATE_COPY: Record<TabKey, { title: string; subtitle: string }> = {
   friends: {
@@ -71,120 +72,145 @@ const EMPTY_STATE_COPY: Record<TabKey, { title: string; subtitle: string }> = {
   },
 };
 
-type NavKey = 'home' | 'recent' | 'friends' | 'profile';
-
-const NAV_ITEMS: { key: NavKey; label: string; icon: LucideIcon }[] = [
-  { key: 'home', label: 'Home', icon: HomeIcon },
-  { key: 'recent', label: 'Recent', icon: Clock },
-  { key: 'friends', label: 'Friends', icon: Users },
-  { key: 'profile', label: 'Profile', icon: UserCircle2 },
-];
-
-const FriendsScreen: React.FC<Props> = ({ navigation }) => {
+const FriendsScreen: React.FC<Props> = () => {
   const [activeTab, setActiveTab] = useState<TabKey>('friends');
+  const [data, setData] = useState<Record<TabKey, FriendRequestItem[]>>({
+    friends: [],
+    favourite: [],
+    requests: [],
+    sent: [],
+  });
+  const [isLoading, setIsLoading] = useState(false);
 
+  React.useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        let res;
+        let type: 'friend' | 'favourite' | 'received' | 'sent' = 'friend';
+        switch (activeTab) {
+          case 'friends':
+            res = await getFriends();
+            type = 'friend';
+            break;
+          case 'favourite':
+            res = await getFavourites();
+            type = 'favourite';
+            break;
+          case 'requests':
+            res = await getRequestsReceived();
+            type = 'received';
+            break;
+          case 'sent':
+            res = await getRequestsSent();
+            type = 'sent';
+            break;
+        }
+
+        if (res?.data?.data) {
+          const formatted = res.data.data.map((item: any) => ({
+            id: item.user_id?.toString() || item.id?.toString(),
+            name: item.name || item.full_name,
+            avatarUri: item.avatar_url || 'https://hima-bucket.s3.amazonaws.com/default-avatar.png',
+            type,
+          }));
+          setData(prev => ({ ...prev, [activeTab]: formatted }));
+        }
+      } catch (err) {
+        console.error('Failed to fetch data for tab:', activeTab, err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, [activeTab]);
   const renderEmptyState = (tab: TabKey) => (
     <View style={styles.emptyState}>
-      <View style={styles.emptyIconCircle}>
-        <UserPlus size={40} color="#C9C3D2" strokeWidth={1.6} />
-      </View>
+      <LinearGradient
+        colors={['#F6EFDD', IVORY]}
+        style={styles.emptyIconCircle}
+      >
+        <UserPlus size={36} color={GOLD_DEEP} strokeWidth={1.6} />
+      </LinearGradient>
       <Text style={styles.emptyTitle}>{EMPTY_STATE_COPY[tab].title}</Text>
-      <Text style={styles.emptySubtitle}>
-        {EMPTY_STATE_COPY[tab].subtitle}
-      </Text>
+      <Text style={styles.emptySubtitle}>{EMPTY_STATE_COPY[tab].subtitle}</Text>
     </View>
   );
+
+  const requestCount = data.requests.length;
 
   return (
     <View style={styles.flex}>
       <StatusBar barStyle="dark-content" />
-      <View style={styles.statusBarSpacer} />
 
-      <View style={styles.headerRow}>
-        <View style={styles.headerTextBlock}>
-          <Text style={styles.headerTitle}>Friends</Text>
-          <Text style={styles.headerSubtitle}>Your friends and requests</Text>
+      <LinearGradient
+        colors={[LILAC_WHITE, LILAC_PALE]}
+        start={{ x: 0.15, y: 0 }}
+        end={{ x: 0.85, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.statusBarSpacer} />
+
+        <View style={styles.headerRow}>
+          <View style={styles.headerTextBlock}>
+            <Text style={styles.headerTitle}>Friends</Text>
+            <Text style={styles.headerSubtitle}>Your circle of connections</Text>
+          </View>
         </View>
 
-        <View style={styles.decorWrap}>
-          <View style={[styles.decorDot, styles.decorDot1]} />
-          <View style={[styles.decorDot, styles.decorDot2]} />
-          <View style={[styles.decorDot, styles.decorDot3]} />
-          <View style={[styles.decorRing, styles.decorRing1]} />
-          <View style={[styles.decorRing, styles.decorRing2]} />
+        <View style={styles.tabRow}>
+          {TABS.map(({ key, label }) => {
+            const isActive = activeTab === key;
+            return (
+              <TouchableOpacity
+                key={key}
+                style={styles.tabItem}
+                activeOpacity={0.7}
+                onPress={() => setActiveTab(key)}
+              >
+                <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
+                  {label}
+                </Text>
+                {key === 'requests' && requestCount > 0 && (
+                  <View style={[styles.tabBadge, isActive && styles.tabBadgeActive]}>
+                    <Text
+                      style={[styles.tabBadgeText, isActive && styles.tabBadgeTextActive]}
+                    >
+                      {requestCount}
+                    </Text>
+                  </View>
+                )}
+                {isActive && (
+                  <LinearGradient
+                    colors={[GOLD, GOLD_DEEP]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.tabUnderline}
+                  />
+                )}
+              </TouchableOpacity>
+            );
+          })}
         </View>
-      </View>
+      </LinearGradient>
 
-      <View style={styles.tabRow}>
-        {(['friends', 'favourite', 'requests', 'sent'] as TabKey[]).map((tab) => (
-          <TouchableOpacity
-            key={tab}
-            style={styles.tabItem}
-            activeOpacity={0.7}
-            onPress={() => setActiveTab(tab)}
-          >
-            <Text
-              style={[
-                styles.tabLabel,
-                activeTab === tab && styles.tabLabelActive,
-              ]}
-            >
-              {tab.toUpperCase()} {tab === 'sent' && `(${DUMMY_DATA.sent.length})`}
-            </Text>
-            {activeTab === tab && <View style={styles.tabUnderline} />}
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <View style={styles.tabDivider} />
-
-      {DUMMY_DATA[activeTab].length > 0 ? (
-        <FlatList
-          data={DUMMY_DATA[activeTab]}
-          keyExtractor={item => item.id}
-          renderItem={({ item }) => <FriendRequestCard item={item} />}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-        />
+      {isLoading ? (
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="large" color={GOLD_DEEP} />
+        </View>
+      ) : data[activeTab].length > 0 ? (
+        <View style={styles.listFlex}>
+          <FlatList
+            data={data[activeTab]}
+            keyExtractor={item => item.id}
+            renderItem={({ item }) => <FriendRequestCard item={item} />}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+          />
+        </View>
       ) : (
         renderEmptyState(activeTab)
       )}
-
-      <View style={styles.bottomNav}>
-        {NAV_ITEMS.map(navItem => {
-          const isActive = navItem.key === 'friends';
-          const NavIcon = navItem.icon;
-          return (
-            <TouchableOpacity
-              key={navItem.key}
-              activeOpacity={0.8}
-              style={styles.navItem}
-              onPress={() => {
-                if (navItem.key !== 'friends') {
-                  navigation.navigate(
-                    navItem.key === 'home'
-                      ? 'Home'
-                      : navItem.key === 'recent'
-                      ? 'Recent'
-                      : 'Profile'
-                  );
-                }
-              }}
-            >
-              <NavIcon
-                size={22}
-                color={isActive ? '#EC1372' : '#B4A6BE'}
-                fill={isActive ? '#EC1372' : 'transparent'}
-              />
-              <Text
-                style={[styles.navLabel, isActive && styles.navLabelActive]}
-              >
-                {navItem.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
     </View>
   );
 };
@@ -192,110 +218,97 @@ const FriendsScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   flex: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: IVORY,
+  },
+  headerGradient: {
+    overflow: 'hidden',
+    paddingBottom: 10,
   },
   statusBarSpacer: {
     height: STATUSBAR_HEIGHT,
-    backgroundColor: '#FFFFFF',
   },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    paddingHorizontal: 20,
-    paddingTop: 14,
-    paddingBottom: 16,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 18,
   },
   headerTextBlock: {
     flex: 1,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '800',
-    color: '#1B0E22',
+    color: TEXT_PLUM,
     marginBottom: 4,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   headerSubtitle: {
-    fontSize: 13,
-    color: '#8A7A9C',
-  },
-  decorWrap: {
-    width: 60,
-    height: 40,
-  },
-  decorDot: {
-    position: 'absolute',
-    borderRadius: 999,
-    backgroundColor: '#EC1372',
-  },
-  decorDot1: {
-    width: 14,
-    height: 14,
-    top: 0,
-    right: 4,
-  },
-  decorDot2: {
-    width: 8,
-    height: 8,
-    top: 18,
-    right: 24,
-    opacity: 0.6,
-  },
-  decorDot3: {
-    width: 5,
-    height: 5,
-    top: 4,
-    right: 34,
-    opacity: 0.4,
-  },
-  decorRing: {
-    position: 'absolute',
-    borderRadius: 999,
-    borderWidth: 1.5,
-    borderColor: '#F5C8DC',
-  },
-  decorRing1: {
-    width: 12,
-    height: 12,
-    top: 22,
-    right: 2,
-  },
-  decorRing2: {
-    width: 7,
-    height: 7,
-    top: 10,
-    right: 44,
-    borderColor: '#F0A8C7',
+    fontSize: 13.5,
+    color: TEXT_MUTED,
   },
   tabRow: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
+    paddingTop: 4,
   },
   tabItem: {
-    marginRight: 22,
-    paddingBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 28,
+    paddingBottom: 18,
   },
   tabLabel: {
-    fontSize: 12.5,
+    fontSize: 16.5,
     fontWeight: '700',
-    color: '#B4A6BE',
-    letterSpacing: 0.3,
+    color: TEXT_MUTED,
   },
   tabLabelActive: {
-    color: '#EC1372',
+    color: TEXT_PLUM,
+  },
+  tabBadge: {
+    marginLeft: 7,
+    minWidth: 21,
+    height: 21,
+    borderRadius: 10.5,
+    paddingHorizontal: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(139, 127, 152, 0.16)',
+  },
+  tabBadgeActive: {
+    backgroundColor: GOLD_DEEP,
+  },
+  tabBadgeText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: TEXT_MUTED,
+  },
+  tabBadgeTextActive: {
+    color: '#2A1240',
   },
   tabUnderline: {
     position: 'absolute',
     bottom: 0,
     left: 0,
-    right: 0,
-    height: 2.5,
-    backgroundColor: '#EC1372',
+    right: 14,
+    height: 4,
     borderRadius: 2,
   },
-  tabDivider: {
-    height: 1,
-    backgroundColor: '#F1EAF6',
+  listFlex: {
+    flex: 1,
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  listContent: {
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 24,
   },
   emptyState: {
     flex: 1,
@@ -305,52 +318,28 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
   },
   emptyIconCircle: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: '#F7F5FA',
+    width: 92,
+    height: 92,
+    borderRadius: 46,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
+    marginBottom: 22,
+    borderWidth: 1.5,
+    borderColor: IVORY_LINE,
   },
   emptyTitle: {
-    fontSize: 17,
+    fontSize: 17.5,
     fontWeight: '800',
-    color: '#1B0E22',
+    color: TEXT_PLUM,
     marginBottom: 8,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   emptySubtitle: {
-    fontSize: 13,
-    color: '#8A7A9C',
+    fontSize: 13.5,
+    color: TEXT_MUTED,
     textAlign: 'center',
-    lineHeight: 19,
-  },
-  listContent: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-  },
-  bottomNav: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    paddingTop: 10,
-    paddingBottom: Platform.OS === 'ios' ? 36 : 24,
-    borderTopWidth: 1,
-    borderTopColor: '#F1EAF6',
-  },
-  navItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  navLabel: {
-    fontSize: 11,
-    color: '#B4A6BE',
-    marginTop: 4,
-    fontWeight: '600',
-  },
-  navLabelActive: {
-    color: '#EC1372',
+    lineHeight: 20,
   },
 });
 
 export default FriendsScreen;
-

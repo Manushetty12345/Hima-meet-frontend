@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import {
   ArrowLeft,
   ArrowDownCircle,
@@ -24,22 +25,42 @@ import { getTransactions, Transaction } from '../../../api/transactionApi';
 const STATUSBAR_HEIGHT = Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 0;
 type Props = NativeStackScreenProps<AuthStackParamList, 'Transactions'>;
 
+// ---- Palette pulled from the Himameet mark ----
+const PLUM_ROYAL = '#5B0E8B';
+const GOLD = '#F5C542';
+const GOLD_DEEP = '#D4AF37';
+const IVORY = '#FBF6EC';
+const IVORY_LINE = '#EBDFC4';
+const TEXT_PLUM = '#2A1240';
+const TEXT_MUTED = '#8B7F98';
+
+// Light lavender header wash — matches the rest of the flow
+const LILAC_WHITE = '#FBF7FF';
+const LILAC_PALE = '#EFDFFB';
+
+const CREDIT_GREEN = '#2DD36F';
+const CREDIT_GREEN_BG = '#E8FBF0';
+const DEBIT_ROSE = '#C4176B';
+const DEBIT_ROSE_BG = '#FCE7F2';
+const PENDING_AMBER = '#C98A1B';
+const PENDING_AMBER_BG = '#FFF3E0';
+
 // Determine icon/colors based on transaction type
 const getTypeConfig = (type: string) => {
   const t = type?.toLowerCase() || '';
   if (t.includes('purchase') || t.includes('credit') || t.includes('add') || t.includes('recharge') || t.includes('topup') || t.includes('reward') || t.includes('bonus') || t.includes('refund')) {
     return {
       icon: ArrowDownCircle,
-      color: '#2DD36F',
-      bg: '#E8FBF0',
+      color: CREDIT_GREEN,
+      bg: CREDIT_GREEN_BG,
       label: 'Credited',
       sign: '+',
     };
   }
   return {
     icon: ArrowUpCircle,
-    color: '#EC1372',
-    bg: '#FDE8F1',
+    color: DEBIT_ROSE,
+    bg: DEBIT_ROSE_BG,
     label: 'Debited',
     sign: '-',
   };
@@ -97,7 +118,7 @@ const TransactionsScreen: React.FC<Props> = ({ navigation }) => {
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
       <View style={styles.emptyIconWrap}>
-        <FileText size={48} color="#D0C8DC" strokeWidth={1.2} />
+        <FileText size={44} color={GOLD_DEEP} strokeWidth={1.2} />
       </View>
       <Text style={styles.emptyTitle}>No Transactions Yet</Text>
       <Text style={styles.emptySubtitle}>Your transaction history will appear here</Text>
@@ -107,8 +128,15 @@ const TransactionsScreen: React.FC<Props> = ({ navigation }) => {
   const renderError = () => (
     <View style={styles.emptyContainer}>
       <Text style={styles.errorText}>{error}</Text>
-      <TouchableOpacity style={styles.retryButton} onPress={() => fetchTransactions()}>
-        <Text style={styles.retryText}>Retry</Text>
+      <TouchableOpacity activeOpacity={0.85} onPress={() => fetchTransactions()}>
+        <LinearGradient
+          colors={[GOLD, GOLD_DEEP]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.retryButton}
+        >
+          <Text style={styles.retryText}>Retry</Text>
+        </LinearGradient>
       </TouchableOpacity>
     </View>
   );
@@ -155,28 +183,35 @@ const TransactionsScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.flex}>
       <StatusBar barStyle="dark-content" />
-      <View style={styles.statusBarSpacer} />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          activeOpacity={0.8}
-          onPress={() => navigation.goBack()}
-        >
-          <ArrowLeft size={20} color="#EC1372" />
-        </TouchableOpacity>
-        <View>
-          <Text style={styles.headerTitle}>Transactions</Text>
-          <Text style={styles.headerSubtitle}>View your transaction history</Text>
+      <LinearGradient
+        colors={[LILAC_WHITE, LILAC_PALE]}
+        start={{ x: 0.15, y: 0 }}
+        end={{ x: 0.85, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.statusBarSpacer} />
+
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            activeOpacity={0.8}
+            onPress={() => navigation.goBack()}
+          >
+            <ArrowLeft size={20} color={PLUM_ROYAL} />
+          </TouchableOpacity>
+          <View>
+            <Text style={styles.headerTitle}>Transactions</Text>
+            <Text style={styles.headerSubtitle}>View your transaction history</Text>
+          </View>
         </View>
-      </View>
+      </LinearGradient>
 
       {isLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#EC1372" />
+          <ActivityIndicator size="large" color={GOLD_DEEP} />
         </View>
       ) : error ? (
         renderError()
@@ -195,8 +230,8 @@ const TransactionsScreen: React.FC<Props> = ({ navigation }) => {
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={() => fetchTransactions(true)}
-              colors={['#EC1372']}
-              tintColor="#EC1372"
+              colors={[GOLD_DEEP]}
+              tintColor={GOLD_DEEP}
             />
           }
           ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -207,43 +242,44 @@ const TransactionsScreen: React.FC<Props> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
+  flex: {
     flex: 1,
-    backgroundColor: '#F9F7FB',
+    backgroundColor: IVORY,
+  },
+  headerGradient: {
+    overflow: 'hidden',
   },
   statusBarSpacer: {
     height: STATUSBAR_HEIGHT,
-    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0EBF5',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 16,
     gap: 14,
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#F0EBF5',
+    borderRadius: 20,
+    backgroundColor: 'rgba(91, 14, 139, 0.10)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(91, 14, 139, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
   },
   headerTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#1B0E22',
+    fontSize: 18,
+    fontWeight: '800',
+    color: TEXT_PLUM,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   headerSubtitle: {
-    fontSize: 12,
-    color: '#8A7A9C',
-    marginTop: 1,
+    fontSize: 12.5,
+    color: TEXT_MUTED,
+    marginTop: 2,
   },
   loadingContainer: {
     flex: 1,
@@ -251,7 +287,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   listContent: {
-    padding: 16,
+    padding: 20,
     paddingBottom: 40,
   },
   listContentEmpty: {
@@ -261,13 +297,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: IVORY_LINE,
+    borderRadius: 18,
     padding: 14,
-    shadowColor: '#4A0F6E',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
   },
   itemRowFirst: {},
   itemIconWrap: {
@@ -282,14 +315,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   itemType: {
-    fontSize: 14,
+    fontSize: 14.5,
     fontWeight: '700',
-    color: '#1B0E22',
+    color: TEXT_PLUM,
     marginBottom: 3,
   },
   itemDate: {
     fontSize: 11,
-    color: '#A0A0A0',
+    color: TEXT_MUTED,
     marginBottom: 6,
   },
   itemStatusRow: {
@@ -301,10 +334,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   statusSuccess: {
-    backgroundColor: '#E8FBF0',
+    backgroundColor: CREDIT_GREEN_BG,
   },
   statusPending: {
-    backgroundColor: '#FFF3E0',
+    backgroundColor: PENDING_AMBER_BG,
   },
   statusText: {
     fontSize: 10,
@@ -312,10 +345,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   statusTextSuccess: {
-    color: '#2DD36F',
+    color: CREDIT_GREEN,
   },
   statusTextPending: {
-    color: '#F5A623',
+    color: PENDING_AMBER,
   },
   itemRight: {
     alignItems: 'flex-end',
@@ -332,7 +365,7 @@ const styles = StyleSheet.create({
   },
   amountText: {
     fontSize: 11,
-    color: '#8A7A9C',
+    color: TEXT_MUTED,
     fontWeight: '500',
   },
   separator: {
@@ -345,41 +378,43 @@ const styles = StyleSheet.create({
     padding: 40,
   },
   emptyIconWrap: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: '#F4F0F8',
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: 'rgba(245, 197, 66, 0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 197, 66, 0.3)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#1B0E22',
+    fontWeight: '800',
+    color: TEXT_PLUM,
     marginBottom: 8,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   emptySubtitle: {
     fontSize: 13,
-    color: '#8A7A9C',
+    color: TEXT_MUTED,
     textAlign: 'center',
     lineHeight: 20,
   },
   errorText: {
     fontSize: 14,
-    color: '#EC1372',
+    color: TEXT_PLUM,
     textAlign: 'center',
     marginBottom: 16,
   },
   retryButton: {
-    backgroundColor: '#EC1372',
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 12,
+    paddingHorizontal: 28,
+    paddingVertical: 12,
+    borderRadius: 999,
   },
   retryText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
+    color: '#1A0733',
+    fontWeight: '700',
     fontSize: 14,
   },
 });

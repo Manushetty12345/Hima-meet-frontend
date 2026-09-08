@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+﻿import React, { useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -138,11 +138,11 @@ const NotificationSetupScreen: React.FC<Props> = ({ route, navigation }) => {
       if (res.data?.data?.token) {
         await setAuthToken(res.data.data.token);
       }
-      navigation.navigate('Home');
+      navigation.navigate('MainTabs');
     } catch (e) {
       console.error('Failed to complete setup', e);
       // Fallback
-      navigation.navigate('Home');
+      navigation.navigate('MainTabs');
     }
   };
 

@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { WebView, WebViewNavigation } from 'react-native-webview';
+import LinearGradient from 'react-native-linear-gradient';
 import { ArrowLeft, X } from 'lucide-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../../navigation/AuthNavigator';
@@ -18,6 +19,18 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STATUSBAR_HEIGHT = Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 0;
 type Props = NativeStackScreenProps<AuthStackParamList, 'PhonePeWebView'>;
+
+// ---- Palette pulled from the Himameet mark ----
+const PLUM_ROYAL = '#5B0E8B';
+const GOLD_DEEP = '#D4AF37';
+const IVORY = '#FBF6EC';
+const IVORY_LINE = '#EBDFC4';
+const TEXT_PLUM = '#2A1240';
+const TEXT_MUTED = '#8B7F98';
+
+// Light lavender header wash — matches every other screen in the app
+const LILAC_WHITE = '#FBF7FF';
+const LILAC_PALE = '#EFDFFB';
 
 // These URLs signal payment is done
 const SUCCESS_INDICATORS = [
@@ -66,7 +79,7 @@ const PhonePeWebViewScreen: React.FC<Props> = ({ navigation, route }) => {
       await AsyncStorage.removeItem('hima_pending_payment');
 
       // Navigate back to Wallet with result params
-      navigation.replace('Wallet', {
+      navigation.navigate('Wallet', {
         paymentResult: {
           success: isSuccess,
           coinsAdded,
@@ -74,10 +87,12 @@ const PhonePeWebViewScreen: React.FC<Props> = ({ navigation, route }) => {
           transactionId,
         },
       } as any);
-    } catch (err) {
-      console.error('Verify payment error:', err);
+    } catch (err: any) {
+      if (err.response?.status !== 404) {
+        console.error('Verify payment error:', err.message);
+      }
       await AsyncStorage.removeItem('hima_pending_payment');
-      navigation.replace('Wallet', {
+      navigation.navigate('Wallet', {
         paymentResult: {
           success: false,
           coinsAdded: 0,
@@ -106,53 +121,43 @@ const PhonePeWebViewScreen: React.FC<Props> = ({ navigation, route }) => {
         {
           text: 'Yes, Cancel',
           style: 'destructive',
-          onPress: () => navigation.replace('Wallet', {} as any),
+          onPress: () => navigation.navigate('Wallet', {} as any),
         },
       ]
     );
   };
 
-  if (isVerifying) {
-    return (
-      <View style={styles.verifyingContainer}>
-        <ActivityIndicator size="large" color="#EC1372" />
-        <Text style={styles.verifyingTitle}>Verifying Payment...</Text>
-        <Text style={styles.verifyingSubText}>Please wait, do not close the app</Text>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" {...{ backgroundColor: '#FFFFFF' } as any} />
-      <View style={styles.statusBarSpacer} />
+      <StatusBar barStyle="dark-content" />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          activeOpacity={0.8}
-          onPress={() => navigation.goBack()}
-        >
-          <ArrowLeft size={20} color="#EC1372" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>PhonePe Payment</Text>
-        <TouchableOpacity
-          style={styles.closeButton}
-          activeOpacity={0.8}
-          onPress={handleClose}
-        >
-          <X size={20} color="#8A7A9C" />
-        </TouchableOpacity>
-      </View>
+      <LinearGradient
+        colors={[LILAC_WHITE, LILAC_PALE]}
+        start={{ x: 0.15, y: 0 }}
+        end={{ x: 0.85, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.statusBarSpacer} />
 
-      {/* Loading indicator */}
-      {isLoading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#5A2D8F" />
-          <Text style={styles.loadingText}>Opening PhonePe...</Text>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            activeOpacity={0.8}
+            onPress={() => navigation.goBack()}
+          >
+            <ArrowLeft size={20} color={PLUM_ROYAL} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>PhonePe Payment</Text>
+          <TouchableOpacity
+            style={styles.closeButton}
+            activeOpacity={0.8}
+            onPress={handleClose}
+          >
+            <X size={20} color={TEXT_MUTED} />
+          </TouchableOpacity>
         </View>
-      )}
+      </LinearGradient>
+
 
       <WebView
         ref={webViewRef}
@@ -175,43 +180,46 @@ const PhonePeWebViewScreen: React.FC<Props> = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: IVORY,
+  },
+  headerGradient: {
+    overflow: 'hidden',
   },
   statusBarSpacer: {
     height: STATUSBAR_HEIGHT,
-    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0EBF5',
+    paddingTop: 12,
+    paddingBottom: 16,
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#F0EBF5',
+    borderRadius: 20,
+    backgroundColor: 'rgba(91, 14, 139, 0.10)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(91, 14, 139, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   headerTitle: {
     flex: 1,
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1B0E22',
+    fontSize: 17,
+    fontWeight: '800',
+    color: TEXT_PLUM,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   closeButton: {
     width: 40,
     height: 40,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#F0EBF5',
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: IVORY_LINE,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -220,11 +228,11 @@ const styles = StyleSheet.create({
   },
   loadingOverlay: {
     position: 'absolute',
-    top: STATUSBAR_HEIGHT + 68,
+    top: STATUSBAR_HEIGHT + 84,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: IVORY,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10,
@@ -232,24 +240,25 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: '#8A7A9C',
+    color: TEXT_MUTED,
     fontWeight: '500',
   },
   verifyingContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: IVORY,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 16,
   },
   verifyingTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#1B0E22',
+    fontWeight: '800',
+    color: TEXT_PLUM,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   verifyingSubText: {
     fontSize: 13,
-    color: '#8A7A9C',
+    color: TEXT_MUTED,
   },
 });
 

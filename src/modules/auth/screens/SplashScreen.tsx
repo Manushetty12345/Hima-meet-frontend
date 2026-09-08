@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+﻿import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -254,7 +254,7 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
                 nextScreen = 'CreatorDashboard';
               } else {
                 // Male user with complete profile → go straight to Home 🏠
-                nextScreen = 'Home';
+                nextScreen = 'MainTabs';
               }
             }
           }

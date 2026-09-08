@@ -25,6 +25,18 @@ import CoinPackageCard, { CoinPackage } from '../components/CoinPackageCard';
 const STATUSBAR_HEIGHT =
   Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 0;
 
+// ---- Palette pulled from the Himameet mark ----
+const PLUM_ROYAL = '#5B0E8B';
+const GOLD = '#F5C542';
+const GOLD_DEEP = '#D4AF37';
+const IVORY = '#FBF6EC';
+const TEXT_PLUM = '#2A1240';
+const RUST_FAIL = '#B23A2E';
+
+// Light lavender header wash — matches every other screen in the app
+const LILAC_WHITE = '#FBF7FF';
+const LILAC_PALE = '#EFDFFB';
+
 type PaymentResult = {
   success: boolean;
   coinsAdded: number;
@@ -213,9 +225,9 @@ const WalletScreen: React.FC<Props> = ({ navigation, route }) => {
         ? { coins: selectedPackage.coins, price: selectedPackage.price }
         : { package_id: Number(selectedPackage.id) };
       const response = await apiClient.post('/api/wallet/recharge/initiate', payload);
-      
+
       const { payment_url, merchant_transaction_id, coins } = response.data.data;
-      
+
       if (payment_url) {
         navigation.navigate('PhonePeWebView', {
           paymentUrl: payment_url,
@@ -245,8 +257,8 @@ const WalletScreen: React.FC<Props> = ({ navigation, route }) => {
           ]}
         >
           {paymentResult.success
-            ? <CheckCircle2 size={18} color="#2DD36F" />
-            : <XCircle size={18} color="#EC1372" />
+            ? <CheckCircle2 size={18} color="#2DA35A" />
+            : <XCircle size={18} color={RUST_FAIL} />
           }
           <Text style={styles.resultBannerText}>
             {paymentResult.success
@@ -256,36 +268,43 @@ const WalletScreen: React.FC<Props> = ({ navigation, route }) => {
         </Animated.View>
       )}
       <StatusBar barStyle="dark-content" />
-      <View style={styles.statusBarSpacer} />
 
-      {/* Header */}
-      <View style={styles.headerRow}>
-        <TouchableOpacity
-          style={styles.backButton}
-          activeOpacity={0.8}
-          onPress={() => navigation.goBack()}
-        >
-          <ArrowLeft size={20} color="#EC1372" />
-        </TouchableOpacity>
+      <LinearGradient
+        colors={[LILAC_WHITE, LILAC_PALE]}
+        start={{ x: 0.15, y: 0 }}
+        end={{ x: 0.85, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.statusBarSpacer} />
 
-        <Text style={styles.headerTitle}>Wallet</Text>
+        <View style={styles.headerRow}>
+          <TouchableOpacity
+            style={styles.backButton}
+            activeOpacity={0.8}
+            onPress={() => navigation.goBack()}
+          >
+            <ArrowLeft size={20} color={PLUM_ROYAL} />
+          </TouchableOpacity>
 
-        <View style={styles.balancePill}>
-          <View style={styles.balanceCoinDot}>
-            <Coins size={12} color="#E0166F" />
-          </View>
-          {isLoading ? (
-            <ActivityIndicator size="small" color="#FFFFFF" style={{ marginHorizontal: 8 }} />
-          ) : (
-            <Text style={styles.balanceText}>{formatCoins(coinBalance)}</Text>
-          )}
+          <Text style={styles.headerTitle}>Wallet</Text>
+
+          <LinearGradient colors={[GOLD, GOLD_DEEP]} style={styles.balancePill}>
+            <View style={styles.balanceCoinDot}>
+              <Coins size={12} color={GOLD_DEEP} />
+            </View>
+            {isLoading ? (
+              <ActivityIndicator size="small" color={TEXT_PLUM} style={{ marginHorizontal: 8 }} />
+            ) : (
+              <Text style={styles.balanceText}>{formatCoins(coinBalance)}</Text>
+            )}
+          </LinearGradient>
         </View>
-      </View>
+      </LinearGradient>
 
       {/* Coin package grid */}
       {isLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#EC1372" />
+          <ActivityIndicator size="large" color={GOLD_DEEP} />
         </View>
       ) : (
         <ScrollView
@@ -295,8 +314,8 @@ const WalletScreen: React.FC<Props> = ({ navigation, route }) => {
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={() => fetchWalletData(true)}
-              colors={['#EC1372']}
-              tintColor="#EC1372"
+              colors={[GOLD_DEEP]}
+              tintColor={GOLD_DEEP}
             />
           }
         >
@@ -331,13 +350,13 @@ const WalletScreen: React.FC<Props> = ({ navigation, route }) => {
             style={styles.ctaWrapper}
           >
             <LinearGradient
-              colors={['#FF3B8D', '#E0116F']}
+              colors={[GOLD, GOLD_DEEP]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.ctaButton}
             >
               <Text style={styles.ctaText}>
-                Add {formatCoins(selectedPackage.coins)} Coins
+                Pay ₹{selectedPackage.price.toLocaleString('en-IN')}
               </Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -350,38 +369,42 @@ const WalletScreen: React.FC<Props> = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   flex: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: IVORY,
+  },
+  headerGradient: {
+    overflow: 'hidden',
   },
   statusBarSpacer: {
     height: STATUSBAR_HEIGHT,
-    backgroundColor: '#FFFFFF',
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 14,
+    paddingTop: 16,
+    paddingBottom: 18,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FDE6EF',
+    backgroundColor: 'rgba(91, 14, 139, 0.10)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(91, 14, 139, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
   },
   headerTitle: {
     flex: 1,
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '800',
-    color: '#1B0E22',
+    color: TEXT_PLUM,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   balancePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EC1372',
     borderRadius: 20,
     paddingLeft: 4,
     paddingRight: 14,
@@ -391,7 +414,7 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: '#FFE9A8',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
@@ -399,7 +422,7 @@ const styles = StyleSheet.create({
   balanceText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: TEXT_PLUM,
   },
   loadingContainer: {
     flex: 1,
@@ -408,7 +431,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingTop: 16,
   },
   grid: {
     flexDirection: 'row',
@@ -422,23 +445,18 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 0,
+    bottom: 14,
     paddingHorizontal: 24,
     paddingTop: 12,
     paddingBottom: 24,
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#4A0F6E',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 10,
+    backgroundColor: IVORY,
   },
   ctaWrapper: {
     borderRadius: 28,
     overflow: 'hidden',
-    shadowColor: '#E0116F',
+    shadowColor: GOLD_DEEP,
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.28,
+    shadowOpacity: 0.32,
     shadowRadius: 14,
     elevation: 6,
   },
@@ -450,7 +468,7 @@ const styles = StyleSheet.create({
   ctaText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#1A0733',
     letterSpacing: 0.3,
   },
   resultBanner: {
@@ -472,20 +490,20 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   resultBannerSuccess: {
-    backgroundColor: '#F0FDF6',
+    backgroundColor: '#F0FBF3',
     borderWidth: 1,
-    borderColor: 'rgba(45, 211, 111, 0.35)',
+    borderColor: 'rgba(45, 163, 90, 0.3)',
   },
   resultBannerFail: {
-    backgroundColor: '#FFF0F5',
+    backgroundColor: '#FBF0EE',
     borderWidth: 1,
-    borderColor: 'rgba(236, 19, 114, 0.25)',
+    borderColor: 'rgba(178, 58, 46, 0.25)',
   },
   resultBannerText: {
     flex: 1,
     fontSize: 13.5,
     fontWeight: '700',
-    color: '#1B0E22',
+    color: TEXT_PLUM,
   },
 });
 

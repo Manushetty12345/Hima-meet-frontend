@@ -20,7 +20,6 @@ import {
   Users,
   Coins,
   Share2,
-  ChevronRight,
   ArrowRight,
 } from 'lucide-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -29,6 +28,22 @@ import { getReferralStats, ReferralStats } from '../../../api/referralApi';
 
 const STATUSBAR_HEIGHT = Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 0;
 type Props = NativeStackScreenProps<AuthStackParamList, 'Refer'>;
+
+// ---- Palette pulled from the Himameet mark ----
+const PLUM_ROYAL = '#5B0E8B';
+const GOLD = '#F5C542';
+const GOLD_DEEP = '#D4AF37';
+const IVORY = '#FBF6EC';
+const IVORY_LINE = '#EBDFC4';
+const TEXT_PLUM = '#2A1240';
+const TEXT_MUTED = '#8B7F98';
+
+// Light lavender header wash — matches the rest of the flow
+const LILAC_WHITE = '#FBF7FF';
+const LILAC_PALE = '#EFDFFB';
+
+const WHATSAPP_GREEN = '#25D366';
+const SUCCESS_GREEN = '#2DD36F';
 
 const ReferralScreen: React.FC<Props> = ({ navigation }) => {
   const [stats, setStats] = useState<ReferralStats | null>(null);
@@ -71,25 +86,32 @@ const ReferralScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.flex}>
       <StatusBar barStyle="dark-content" />
-      <View style={styles.statusBarSpacer} />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          activeOpacity={0.8}
-          onPress={() => navigation.goBack()}
-        >
-          <ArrowLeft size={20} color="#EC1372" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Share & Get Coins</Text>
-      </View>
+      <LinearGradient
+        colors={[LILAC_WHITE, LILAC_PALE]}
+        start={{ x: 0.15, y: 0 }}
+        end={{ x: 0.85, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.statusBarSpacer} />
+
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            activeOpacity={0.8}
+            onPress={() => navigation.goBack()}
+          >
+            <ArrowLeft size={20} color={PLUM_ROYAL} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Share & Get Coins</Text>
+        </View>
+      </LinearGradient>
 
       {isLoading || !stats ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#EC1372" />
+          <ActivityIndicator size="large" color={GOLD_DEEP} />
         </View>
       ) : (
         <View style={styles.content}>
@@ -97,15 +119,15 @@ const ReferralScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.statsRow}>
             <View style={styles.statBox}>
               <View style={styles.statIconWrap}>
-                <Users size={20} color="#EC1372" />
+                <Users size={20} color={PLUM_ROYAL} />
               </View>
               <Text style={styles.statValue}>{stats.total_invites}</Text>
               <Text style={styles.statLabel}>My Invites</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statBox}>
-              <View style={[styles.statIconWrap, { backgroundColor: '#FFF6E5' }]}>
-                <Coins size={20} color="#F5A623" />
+              <View style={[styles.statIconWrap, { backgroundColor: 'rgba(245, 197, 66, 0.16)' }]}>
+                <Coins size={20} color={GOLD_DEEP} />
               </View>
               <Text style={styles.statValue}>{stats.coins_per_invite}</Text>
               <Text style={styles.statLabel}>Per Invite</Text>
@@ -114,7 +136,7 @@ const ReferralScreen: React.FC<Props> = ({ navigation }) => {
 
           {/* Total Earned Card */}
           <LinearGradient
-            colors={['#EC1372', '#FF6B9D']}
+            colors={[PLUM_ROYAL, '#8E2DE2']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.earnedCard}
@@ -122,7 +144,7 @@ const ReferralScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.earnedLabel}>Total Coins Earned</Text>
             <View style={styles.earnedRow}>
               <View style={styles.earnedIconWrap}>
-                <Coins size={20} color="#F5A623" />
+                <Coins size={20} color={GOLD} />
               </View>
               <Text style={styles.earnedValue}>{stats.total_coins_earned}</Text>
             </View>
@@ -139,8 +161,8 @@ const ReferralScreen: React.FC<Props> = ({ navigation }) => {
                 onPress={handleCopy}
               >
                 {copied
-                  ? <CheckCircle2 size={20} color="#2DD36F" />
-                  : <Copy size={20} color="#EC1372" />
+                  ? <CheckCircle2 size={20} color={SUCCESS_GREEN} />
+                  : <Copy size={20} color={GOLD_DEEP} />
                 }
               </TouchableOpacity>
             </View>
@@ -160,19 +182,19 @@ const ReferralScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.howSection}>
             <View style={styles.howHeader}>
               <Text style={styles.howTitle}>How to Get Coins?</Text>
-              <Gift size={16} color="#8A7A9C" />
+              <Gift size={16} color={GOLD_DEEP} />
             </View>
             <View style={styles.stepsRow}>
               <View style={styles.step}>
-                <View style={[styles.stepIconWrap, { backgroundColor: '#FDE8F1' }]}>
-                  <Share2 size={20} color="#EC1372" />
+                <View style={[styles.stepIconWrap, { backgroundColor: 'rgba(91, 14, 139, 0.10)' }]}>
+                  <Share2 size={20} color={PLUM_ROYAL} />
                 </View>
                 <Text style={styles.stepLabel}>Share your{'\n'}link</Text>
               </View>
-              <ArrowRight size={18} color="#C9C3D2" style={{ marginTop: 10 }} />
+              <ArrowRight size={18} color={IVORY_LINE} style={{ marginTop: 10 }} />
               <View style={styles.step}>
-                <View style={[styles.stepIconWrap, { backgroundColor: '#FFF6E5' }]}>
-                  <Coins size={20} color="#F5A623" />
+                <View style={[styles.stepIconWrap, { backgroundColor: 'rgba(245, 197, 66, 0.16)' }]}>
+                  <Coins size={20} color={GOLD_DEEP} />
                 </View>
                 <Text style={styles.stepLabel}>Get FREE{'\n'}Coins</Text>
               </View>
@@ -185,38 +207,39 @@ const ReferralScreen: React.FC<Props> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
+  flex: {
     flex: 1,
-    backgroundColor: '#F9F7FB',
+    backgroundColor: IVORY,
+  },
+  headerGradient: {
+    overflow: 'hidden',
   },
   statusBarSpacer: {
     height: STATUSBAR_HEIGHT,
-    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0EBF5',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 16,
     gap: 14,
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#F0EBF5',
+    borderRadius: 20,
+    backgroundColor: 'rgba(91, 14, 139, 0.10)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(91, 14, 139, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
   },
   headerTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#1B0E22',
+    fontSize: 18,
+    fontWeight: '800',
+    color: TEXT_PLUM,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   loadingContainer: {
     flex: 1,
@@ -225,19 +248,16 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 16,
+    padding: 20,
     gap: 14,
   },
   statsRow: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: IVORY_LINE,
+    borderRadius: 18,
     overflow: 'hidden',
-    shadowColor: '#4A0F6E',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
   },
   statBox: {
     flex: 1,
@@ -249,27 +269,27 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FDE8F1',
+    backgroundColor: 'rgba(91, 14, 139, 0.10)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   statValue: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#1B0E22',
+    color: TEXT_PLUM,
   },
   statLabel: {
     fontSize: 12,
-    color: '#8A7A9C',
+    color: TEXT_MUTED,
     fontWeight: '500',
   },
   statDivider: {
     width: 1,
-    backgroundColor: '#F0EBF5',
+    backgroundColor: IVORY_LINE,
     marginVertical: 12,
   },
   earnedCard: {
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 20,
     alignItems: 'center',
   },
@@ -288,7 +308,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -299,17 +319,14 @@ const styles = StyleSheet.create({
   },
   codeCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: IVORY_LINE,
+    borderRadius: 18,
     padding: 18,
-    shadowColor: '#4A0F6E',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
   },
   codeLabel: {
     fontSize: 12,
-    color: '#8A7A9C',
+    color: TEXT_MUTED,
     fontWeight: '500',
     marginBottom: 10,
   },
@@ -318,34 +335,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1.5,
-    borderColor: '#EC1372',
-    borderRadius: 12,
+    borderColor: GOLD_DEEP,
+    borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFF5F9',
+    backgroundColor: 'rgba(245, 197, 66, 0.08)',
   },
   codeText: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#1B0E22',
+    color: TEXT_PLUM,
     letterSpacing: 2,
   },
   copyButton: {
     padding: 4,
   },
   whatsappButton: {
-    backgroundColor: '#25D366',
+    backgroundColor: WHATSAPP_GREEN,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    borderRadius: 14,
+    borderRadius: 999,
     paddingVertical: 16,
-    shadowColor: '#25D366',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
   },
   whatsappButtonText: {
     color: '#FFFFFF',
@@ -354,13 +366,10 @@ const styles = StyleSheet.create({
   },
   howSection: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: IVORY_LINE,
+    borderRadius: 18,
     padding: 18,
-    shadowColor: '#4A0F6E',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
   },
   howHeader: {
     flexDirection: 'row',
@@ -371,7 +380,7 @@ const styles = StyleSheet.create({
   howTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1B0E22',
+    color: TEXT_PLUM,
   },
   stepsRow: {
     flexDirection: 'row',
@@ -392,7 +401,7 @@ const styles = StyleSheet.create({
   },
   stepLabel: {
     fontSize: 12,
-    color: '#8A7A9C',
+    color: TEXT_MUTED,
     textAlign: 'center',
     lineHeight: 17,
   },
