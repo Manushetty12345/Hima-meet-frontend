@@ -6,7 +6,7 @@ import { AppRegistry } from 'react-native';
 import App from './App';
 import { name as appName } from './app.json';
 import messaging from '@react-native-firebase/messaging';
-import notifee, { AndroidImportance, EventType } from '@notifee/react-native';
+import notifee, { AndroidImportance, EventType, AndroidCategory } from '@notifee/react-native';
 
 const BACKEND_URL = 'https://himameet-backend.onrender.com';
 
@@ -14,10 +14,10 @@ const BACKEND_URL = 'https://himameet-backend.onrender.com';
 const ensureChannelExists = async () => {
   try {
     await notifee.createChannel({
-      id: 'incoming_calls',
+      id: 'incoming_calls_v2', // Changed ID to force Android to register new settings
       name: 'Incoming Calls',
       importance: AndroidImportance.HIGH,
-      sound: 'default',
+      sound: 'ringtone', // Uses the custom ringtone.mp3 in res/raw
       vibration: true,
     });
   } catch (e) {
@@ -44,11 +44,14 @@ try {
           title: `${callTypeLabel} Call`,
           body: `${callerName || 'Someone'} is calling you`,
           android: {
-            channelId: 'incoming_calls',
+            channelId: 'incoming_calls_v2',
             importance: AndroidImportance.HIGH,
+            category: AndroidCategory.CALL, // Tells Android this is a call to show as heads-up
+            autoCancel: false,
             ongoing: true,
+            loopSound: true, // Loops the ringtone
             asForegroundService: false,
-            pressAction: { id: 'default' },
+            pressAction: { id: 'default', launchActivity: 'default' },
             actions: [
               {
                 title: '✅ Accept',
