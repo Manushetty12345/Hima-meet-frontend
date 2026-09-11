@@ -47,17 +47,21 @@ const CreatorHomeScreen = () => {
   const fetchAll = async () => {
     try {
       // Force sync FCM token when Creator Home loads to guarantee backend has it
+      let token = null;
       try {
-        const token = await messaging().getToken();
-        if (token) {
+        token = await messaging().getToken();
+      } catch (fcmErr: any) {
+        console.log('FCM Sync error on creator home:', fcmErr);
+        Alert.alert("Firebase Native Error", "messaging().getToken() failed: " + (fcmErr?.message || String(fcmErr)));
+      }
+
+      if (token) {
+        try {
           await apiClient.post('/api/user/fcm-token', { fcm_token: token });
           console.log('[FCM] Token saved successfully');
-        } else {
-          Alert.alert("Push Notifications Error", "Could not generate device token. Make sure Google Play Services is active.");
+        } catch (apiErr: any) {
+          Alert.alert("API Error", "apiClient.post failed: " + (apiErr?.message || String(apiErr)));
         }
-      } catch (fcmErr) {
-        console.log('FCM Sync error on creator home:', fcmErr);
-        Alert.alert("Push Notifications Error", "Failed to fetch FCM token: " + String(fcmErr));
       }
 
       // Profile
