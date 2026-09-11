@@ -51,6 +51,7 @@ try {
             ongoing: true,
             loopSound: true, // Loops the ringtone
             asForegroundService: false,
+            fullScreenAction: { id: 'default' }, // Wakes up the screen when locked!
             pressAction: { id: 'default', launchActivity: 'default' },
             actions: [
               {
