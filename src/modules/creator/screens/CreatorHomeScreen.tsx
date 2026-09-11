@@ -18,6 +18,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useCallOverlay } from '../../../context/CallOverlayContext';
 import apiClient from '../../../api/apiClient';
 import { getSocket, initSocket } from '../../../api/socketClient';
+import messaging from '@react-native-firebase/messaging';
 
 const STATUSBAR_HEIGHT =
   Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 0;
@@ -44,6 +45,16 @@ const CreatorHomeScreen = () => {
 
   const fetchAll = async () => {
     try {
+      // Force sync FCM token when Creator Home loads to guarantee backend has it
+      try {
+        const token = await messaging().getToken();
+        if (token) {
+          await apiClient.post('/api/user/fcm-token', { fcm_token: token });
+        }
+      } catch (fcmErr) {
+        console.log('FCM Sync error on creator home:', fcmErr);
+      }
+
       // Profile
       const profileRes = await apiClient.get('/api/user/me');
       if (profileRes.data?.data) {
