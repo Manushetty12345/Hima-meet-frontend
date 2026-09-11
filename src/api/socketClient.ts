@@ -1,6 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 import Config from 'react-native-config';
 import { getSavedToken } from './apiClient';
+import messaging from '@react-native-firebase/messaging';
 
 const SOCKET_URL = Config.API_BASE_URL || 'https://himameet-backend.onrender.com';
 
@@ -14,9 +15,17 @@ export const initSocket = async () => {
   const token = await getSavedToken();
   if (!token) return null;
 
+  let fcmToken = null;
+  try {
+    fcmToken = await messaging().getToken();
+  } catch (err) {
+    console.log('Socket FCM fetch error:', err);
+  }
+
   socket = io(SOCKET_URL, {
     auth: {
       token,
+      fcmToken,
     },
     transports: ['websocket'],
   });
