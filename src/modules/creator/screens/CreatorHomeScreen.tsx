@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { Coins, Phone, Video, Radio, Check, X, BellRing } from 'lucide-react-native';
@@ -50,9 +51,13 @@ const CreatorHomeScreen = () => {
         const token = await messaging().getToken();
         if (token) {
           await apiClient.post('/api/user/fcm-token', { fcm_token: token });
+          console.log('[FCM] Token saved successfully');
+        } else {
+          Alert.alert("Push Notifications Error", "Could not generate device token. Make sure Google Play Services is active.");
         }
       } catch (fcmErr) {
         console.log('FCM Sync error on creator home:', fcmErr);
+        Alert.alert("Push Notifications Error", "Failed to fetch FCM token: " + String(fcmErr));
       }
 
       // Profile
