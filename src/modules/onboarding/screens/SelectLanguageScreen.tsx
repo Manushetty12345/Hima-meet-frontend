@@ -16,8 +16,9 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import LanguageCard, { LanguageItem } from '../components/LanguageCard';
 import type { AuthStackParamList } from '../../../navigation/AuthNavigator';
-import { getLanguages } from '../api/onboardingApi';
-
+import { getLanguages, saveProfileSetup } from '../api/onboardingApi';
+import { submitCreatorApplication } from '../api/creatorOnboardingApi';
+import { setAuthToken } from '../../../api/apiClient';
 const STATUSBAR_HEIGHT =
   Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 0;
 
@@ -39,12 +40,15 @@ const TEXT_MUTED = '#8B7F98';
 const LILAC_WHITE = '#FBF7FF';
 const LILAC_PALE = '#EFDFFB';
 
-const SelectLanguageScreen: React.FC<Props> = ({ route, navigation }) => {
-  const [selectedLanguageId, setSelectedLanguageId] = useState<string>('');
-  const [languages, setLanguages] = useState<LanguageItem[]>([]);
+const SelectLanguageScreen: React.FC<Props> = ({ navigation, route }) => {
+  const gender = route.params?.gender || 'male';
+  const avatarId = route.params?.avatar_id || 1;
+  const age = route.params?.age;
+  const selectedInterests = route.params?.selectedInterests;
+  const bio = route.params?.bio;
 
-  const gender = route.params?.gender;
-  const avatarId = route.params?.avatar_id;
+  const [languages, setLanguages] = useState<LanguageItem[]>([]);
+  const [selectedLanguageId, setSelectedLanguageId] = useState<string | null>(null);
 
   const ctaOpacity = useRef(new Animated.Value(0)).current;
   const ctaTranslateY = useRef(new Animated.Value(24)).current;
@@ -88,13 +92,40 @@ const SelectLanguageScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const isContinueEnabled = !!selectedLanguageId;
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!isContinueEnabled) return;
-    navigation.navigate('NotificationSetup', {
-      gender,
-      avatar_id: avatarId,
-      language_id: parseInt(selectedLanguageId, 10)
-    });
+    
+    if (gender === 'female') {
+      try {
+        // First, create the user profile to get the full Auth Token
+        const setupRes = await saveProfileSetup({ 
+          gender, 
+          avatar_id: avatarId, 
+          language_id: parseInt(selectedLanguageId as string, 10) 
+        });
+
+        if (setupRes.data?.data?.token) {
+          await setAuthToken(setupRes.data.data.token);
+        }
+
+        // Then submit the creator specific details (bypassing voice as requested)
+        await submitCreatorApplication({
+          age: age || '',
+          bio: bio || '',
+          interest_names: selectedInterests || []
+        });
+
+        navigation.navigate('CreatorDashboard');
+      } catch (error) {
+        console.error('Failed to setup creator profile:', error);
+      }
+    } else {
+      navigation.navigate('NotificationSetup', {
+        gender,
+        avatar_id: avatarId,
+        language_id: parseInt(selectedLanguageId as string, 10)
+      });
+    }
   };
 
   return (

@@ -80,7 +80,7 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
   onVideoCall,
 }) => {
   const [menuVisible, setMenuVisible] = useState(false);
-  const [friendStatus, setFriendStatus] = useState<'none' | 'pending' | 'friends'>('none');
+  const [friendStatus, setFriendStatus] = useState<'none' | 'pending' | 'friends' | 'blocked'>('none');
   const [isLoadingStatus, setIsLoadingStatus] = useState(true);
   const [message, setMessage] = useState('');
   
@@ -279,6 +279,52 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
     }
   };
 
+  const handleClearChat = async () => {
+    setMenuVisible(false);
+    if (!conversationId) return;
+    try {
+      await apiClient.post(`/api/chat/${conversationId}/clear`);
+      setMessagesList([]); // Optimistically clear messages locally
+      showToast('Chat history cleared');
+    } catch (e) {
+      console.error('Failed to clear chat', e);
+      Alert.alert('Error', 'Failed to clear chat. Please try again.');
+    }
+  };
+
+  const handleDeleteChat = async () => {
+    setMenuVisible(false);
+    try {
+      // 1. Remove friend
+      await apiClient.post(`/api/friends/remove`, { target_user_id: creator.id });
+      // 2. Clear chat history
+      if (conversationId) {
+        await apiClient.post(`/api/chat/${conversationId}/clear`);
+      }
+      setFriendStatus('none');
+      setMessagesList([]);
+      showToast('Chat deleted and friend removed');
+      // onClose(); // Removed so the modal stays open
+    } catch (e) {
+      console.error('Failed to delete chat', e);
+      Alert.alert('Error', 'Failed to delete chat. Please try again.');
+    }
+  };
+
+  const handleBlockUser = async () => {
+    setMenuVisible(false);
+    try {
+      await apiClient.post(`/api/friends/block`, { target_user_id: creator.id });
+      setFriendStatus('blocked');
+      disconnectSocket();
+      showToast('User blocked');
+      // onClose(); // Removed so the modal stays open on the 'Blocked' state
+    } catch (e) {
+      console.error('Failed to block user', e);
+      Alert.alert('Error', 'Failed to block user. Please try again.');
+    }
+  };
+
   return (
     <Modal
       visible={visible}
@@ -365,21 +411,21 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
         {/* Dropdown Menu */}
         {menuVisible && (
           <View style={styles.dropdownMenu}>
-            <TouchableOpacity style={styles.dropdownItemRow} activeOpacity={0.7} onPress={() => setMenuVisible(false)}>
+            <TouchableOpacity style={styles.dropdownItemRow} activeOpacity={0.7} onPress={handleBlockUser}>
               <Ban size={18} color="#2A1240" />
               <Text style={styles.dropdownText}>Block user</Text>
             </TouchableOpacity>
             
             <View style={styles.dropdownDivider} />
             
-            <TouchableOpacity style={styles.dropdownItemRow} activeOpacity={0.7} onPress={() => setMenuVisible(false)}>
+            <TouchableOpacity style={styles.dropdownItemRow} activeOpacity={0.7} onPress={handleClearChat}>
               <Eraser size={18} color="#2A1240" />
               <Text style={styles.dropdownText}>Clear chat</Text>
             </TouchableOpacity>
             
             <View style={styles.dropdownDivider} />
             
-            <TouchableOpacity style={styles.dropdownItemRow} activeOpacity={0.7} onPress={() => setMenuVisible(false)}>
+            <TouchableOpacity style={styles.dropdownItemRow} activeOpacity={0.7} onPress={handleDeleteChat}>
               <Trash2 size={18} color="#E74C3C" />
               <Text style={styles.dropdownTextDestructive}>Delete chat</Text>
             </TouchableOpacity>
@@ -541,6 +587,11 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
               >
                 <Text style={styles.viewProfileText}>View profile</Text>
               </TouchableOpacity>
+            </View>
+          ) : friendStatus === 'blocked' ? (
+            <View style={styles.footer}>
+              <Text style={[styles.footerTitle, { color: '#E74C3C' }]}>User Blocked</Text>
+              <Text style={styles.footerSubtitle}>You have blocked this user. They cannot contact you.</Text>
             </View>
           ) : (
             <View style={styles.chatFooterContainer}>

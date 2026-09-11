@@ -10,7 +10,13 @@ import NotificationSetupScreen from '../modules/onboarding/screens/NotificationS
 import CreateProfileSetupScreen from '../modules/onboarding/screens/CreatorReviewScreen';
 import VoiceVerificationScreen from '../modules/onboarding/screens/VoiceVerificationScreen';
 import ProfileReviewScreen from '../modules/onboarding/screens/ProfileReviewScreen';
-import CreatorDashboardScreen from '../modules/creator/screens/CreatorDashboardScreen';
+import CreatorBottomTabNavigator from './CreatorBottomTabNavigator';
+import CreatorEditProfileScreen from '../modules/creator/screens/CreatorEditProfileScreen';
+import CreatorCallRatesScreen from '../modules/creator/screens/CreatorCallRatesScreen';
+import WithdrawalRequestScreen from '../modules/creator/screens/WithdrawalRequestScreen';
+import EarningsDetailScreen from '../modules/creator/screens/EarningsDetailScreen';
+import BankDetailsScreen from '../modules/creator/screens/BankDetailsScreen';
+import WithdrawalHistoryScreen from '../modules/creator/screens/WithdrawalHistoryScreen';
 import EditProfileScreen from '../modules/profile/screens/EditProfileScreen';
 import MainBottomTabNavigator from './MainBottomTabNavigator';
 import WalletScreen from '../modules/wallet/screens/WalletScreen';
@@ -40,11 +46,11 @@ export type AuthStackParamList = {
   LoginScreen: undefined;
   VerifyOtpScreen: { phoneNumber: string; generatedOtp: string };
   GenderSelect: undefined;
-  ProfileReview: { gender?: string } | undefined;
-  SelectLanguage: { gender?: string, avatar_id?: number } | undefined;
+  ProfileReview: { gender?: string, avatar_id?: number, language_id?: number } | undefined;
+  SelectLanguage: { gender?: string, avatar_id?: number, age?: string, selectedInterests?: string[], bio?: string } | undefined;
   NotificationSetup: { gender?: string, avatar_id?: number, language_id?: number } | undefined;
-  CreateProfileSetup: undefined;
-  VoiceVerification: { gender?: string } | undefined;
+  CreateProfileSetup: { gender?: string, avatar_id?: number } | undefined;
+  VoiceVerification: { gender?: string, avatar_id?: number, language_id?: number } | undefined;
   MainTabs: undefined;
   Wallet: { paymentResult?: { success: boolean; coinsAdded: number; newBalance: number; transactionId: string } } | undefined;
   EditProfile: undefined;
@@ -55,6 +61,12 @@ export type AuthStackParamList = {
   MyWarnings: undefined;
   ManageNotifications: undefined;
   CreatorDashboard: undefined;
+  CreatorEditProfile: undefined;
+  CreatorCallRates: undefined;
+  WithdrawalRequest: undefined;
+  EarningsDetail: undefined;
+  BankDetails: undefined;
+  WithdrawalHistory: undefined;
   HelpSupport: undefined;
   MyTickets: { newTicket?: { id: string, title: string, status: 'ACTIVE' | 'RESOLVED', date: string } } | undefined;
   RaiseTicket: undefined;
@@ -65,9 +77,9 @@ export type AuthStackParamList = {
   Refer: undefined;
   PhonePeWebView: { paymentUrl: string; transactionId: string; coins: number };
   CreatorFullProfile: { creator: any };
-  AudioCallScreen: { callerName?: string; calleeName?: string };
-  CallFeedbackScreen: { creatorName?: string };
-  VideoCallScreen: { callerName?: string; calleeName?: string };
+  AudioCallScreen: { callerName?: string; calleeName?: string; callerAvatar?: string; calleeAvatar?: string; channelId?: string; callId?: string | number; targetId?: string | number };
+  CallFeedbackScreen: { creatorName?: string; creatorId?: string | number; callId?: string | number };
+  VideoCallScreen: { callerName?: string; calleeName?: string; callerAvatar?: string; calleeAvatar?: string; channelId?: string; callId?: string; targetId?: string };
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -96,7 +108,13 @@ const AuthNavigator = () => {
       <Stack.Screen name="CommunityGuidelines" component={CommunityGuidelinesScreen} />
       <Stack.Screen name="MyWarnings" component={MyWarningsScreen} />
       <Stack.Screen name="ManageNotifications" component={ManageNotificationsScreen} />
-      <Stack.Screen name="CreatorDashboard" component={CreatorDashboardScreen} />
+      <Stack.Screen name="CreatorDashboard" component={CreatorBottomTabNavigator} />
+      <Stack.Screen name="CreatorEditProfile" component={CreatorEditProfileScreen} />
+      <Stack.Screen name="CreatorCallRates" component={CreatorCallRatesScreen} />
+      <Stack.Screen name="WithdrawalRequest" component={WithdrawalRequestScreen} />
+      <Stack.Screen name="EarningsDetail" component={EarningsDetailScreen} />
+      <Stack.Screen name="BankDetails" component={BankDetailsScreen} />
+      <Stack.Screen name="WithdrawalHistory" component={WithdrawalHistoryScreen} />
       <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
       <Stack.Screen name="MyTickets" component={MyTicketsScreen} />
       <Stack.Screen name="RaiseTicket" component={RaiseTicketScreen} />

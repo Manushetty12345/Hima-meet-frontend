@@ -6,7 +6,21 @@ import {
   TouchableOpacity,
   Pressable,
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import { Mic, Lightbulb, Play, RotateCcw } from 'lucide-react-native';
+
+// ---- Palette pulled from the Himameet mark ----
+const PLUM_ROYAL = '#5B0E8B';
+const PLUM_DEEP = '#3D0A63';
+const GOLD = '#F5C542';
+const GOLD_DEEP = '#D4AF37';
+const IVORY = '#FBF6EC';
+const IVORY_LINE = '#EBDFC4';
+const TEXT_PLUM = '#2A1240';
+const TEXT_MUTED = '#8B7F98';
+
+// Light lavender wash — matches the header treatment used across the app
+const LILAC_PALE = '#EFDFFB';
 
 type RecordingState = 'IDLE' | 'RECORDING' | 'PLAYBACK';
 
@@ -47,7 +61,7 @@ const VoiceReader: React.FC<VoiceReaderProps> = ({ onSubmit }) => {
       {recordingState === 'IDLE' && (
         <View style={styles.idleContainer}>
           <View style={styles.tipCard}>
-            <Lightbulb size={20} color="#FDB813" />
+            <Lightbulb size={20} color={GOLD_DEEP} />
             <Text style={styles.tipText}>
               Find a quiet place and speak clearly for better recognition
             </Text>
@@ -57,12 +71,19 @@ const VoiceReader: React.FC<VoiceReaderProps> = ({ onSubmit }) => {
             {/* Ripple effect background (static for now) */}
             <View style={styles.rippleOuter} />
             <TouchableOpacity
-              style={styles.startRecordingButton}
-              activeOpacity={0.8}
+              style={styles.startRecordingWrapper}
+              activeOpacity={0.85}
               onPressIn={handleStartRecording}
             >
-              <Mic size={20} color="#FFFFFF" style={styles.buttonIcon} />
-              <Text style={styles.buttonText}>Start Recording</Text>
+              <LinearGradient
+                colors={[GOLD, GOLD_DEEP]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.startRecordingButton}
+              >
+                <Mic size={20} color="#2A1240" style={styles.buttonIcon} />
+                <Text style={styles.buttonText}>Start Recording</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         </View>
@@ -71,11 +92,13 @@ const VoiceReader: React.FC<VoiceReaderProps> = ({ onSubmit }) => {
       {/* RECORDING STATE */}
       {recordingState === 'RECORDING' && (
         <View style={styles.recordingContainer}>
-          <Pressable
-            style={styles.recordingCircle}
-            onPressOut={handleStopRecording}
-          >
-            <Mic size={32} color="#FFFFFF" strokeWidth={2} />
+          <Pressable onPressOut={handleStopRecording}>
+            <LinearGradient
+              colors={[PLUM_ROYAL, PLUM_DEEP]}
+              style={styles.recordingCircle}
+            >
+              <Mic size={32} color="#FFFFFF" strokeWidth={2} />
+            </LinearGradient>
           </Pressable>
         </View>
       )}
@@ -83,12 +106,12 @@ const VoiceReader: React.FC<VoiceReaderProps> = ({ onSubmit }) => {
       {/* PLAYBACK STATE */}
       {recordingState === 'PLAYBACK' && (
         <View style={styles.playbackContainer}>
-          <Text style={styles.playbackTitle}>Play to Listen</Text>
+          <Text style={styles.playbackTitle}>Play to listen</Text>
 
           {/* Audio Slider */}
           <View style={styles.sliderRow}>
             <TouchableOpacity style={styles.playButton}>
-              <Play size={16} color="#EC1372" fill="#EC1372" />
+              <Play size={16} color={PLUM_ROYAL} fill={PLUM_ROYAL} />
             </TouchableOpacity>
             <View style={styles.sliderTrack}>
               <View style={styles.sliderProgress} />
@@ -101,16 +124,23 @@ const VoiceReader: React.FC<VoiceReaderProps> = ({ onSubmit }) => {
             activeOpacity={0.8}
             onPress={handleRecordAgain}
           >
-            <RotateCcw size={18} color="#4A4A4A" style={styles.buttonIcon} />
+            <RotateCcw size={18} color={TEXT_PLUM} style={styles.buttonIcon} />
             <Text style={styles.secondaryButtonText}>Record Again</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.primaryButton}
-            activeOpacity={0.8}
+            style={styles.primaryButtonWrapper}
+            activeOpacity={0.85}
             onPress={onSubmit}
           >
-            <Text style={styles.primaryButtonText}>Submit</Text>
+            <LinearGradient
+              colors={[GOLD, GOLD_DEEP]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.primaryButton}
+            >
+              <Text style={styles.primaryButtonText}>Submit</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
       )}
@@ -125,7 +155,7 @@ const styles = StyleSheet.create({
   },
   sentenceCard: {
     width: '100%',
-    backgroundColor: '#F3EBF4', // Light pink/purple tint
+    backgroundColor: LILAC_PALE,
     borderRadius: 16,
     paddingVertical: 24,
     paddingHorizontal: 20,
@@ -134,18 +164,19 @@ const styles = StyleSheet.create({
   },
   sentenceLabel: {
     fontSize: 13,
-    color: '#D83872', // Pinkish text
+    color: PLUM_ROYAL,
     fontWeight: '600',
     marginBottom: 12,
   },
   sentenceText: {
     fontSize: 24,
-    color: '#D83872',
+    color: TEXT_PLUM,
     fontWeight: '700',
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   instructionText: {
     fontSize: 14,
-    color: '#666666',
+    color: TEXT_MUTED,
     fontWeight: '500',
     marginBottom: 24,
   },
@@ -155,18 +186,18 @@ const styles = StyleSheet.create({
   },
   tipCard: {
     flexDirection: 'row',
-    backgroundColor: '#FDF7E7', // Light yellow tint
+    backgroundColor: '#F6EFDD',
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#F2E8D3',
+    borderColor: IVORY_LINE,
     alignItems: 'center',
     marginBottom: 40,
   },
   tipText: {
     flex: 1,
     fontSize: 13,
-    color: '#8A7A60',
+    color: TEXT_MUTED,
     marginLeft: 12,
     lineHeight: 20,
   },
@@ -180,29 +211,32 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: '100%',
     height: 70,
-    backgroundColor: 'rgba(236, 19, 114, 0.15)',
+    backgroundColor: 'rgba(212, 175, 55, 0.16)',
     borderRadius: 35,
     transform: [{ scale: 1.15 }],
   },
+  startRecordingWrapper: {
+    width: '100%',
+    borderRadius: 28,
+    overflow: 'hidden',
+    shadowColor: GOLD_DEEP,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.28,
+    shadowRadius: 10,
+    elevation: 4,
+  },
   startRecordingButton: {
     flexDirection: 'row',
-    backgroundColor: '#D13271', // Magenta
     width: '100%',
     height: 56,
-    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 2,
-    shadowColor: '#EC1372',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
   },
   buttonIcon: {
     marginRight: 8,
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: '#2A1240',
     fontSize: 16,
     fontWeight: '700',
   },
@@ -215,13 +249,12 @@ const styles = StyleSheet.create({
     width: 90,
     height: 90,
     borderRadius: 45,
-    backgroundColor: '#FF1493', // Bright pink/magenta
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 4,
-    shadowColor: '#FF1493',
+    shadowColor: PLUM_ROYAL,
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.35,
     shadowRadius: 10,
   },
   playbackContainer: {
@@ -230,9 +263,10 @@ const styles = StyleSheet.create({
   },
   playbackTitle: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#2A2A2A',
+    fontWeight: '800',
+    color: TEXT_PLUM,
     marginBottom: 24,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   sliderRow: {
     flexDirection: 'row',
@@ -242,15 +276,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
+    borderWidth: 1.5,
+    borderColor: IVORY_LINE,
     marginBottom: 24,
   },
   playButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F8E9F1', // Very light magenta background
+    backgroundColor: LILAC_PALE,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -258,40 +292,50 @@ const styles = StyleSheet.create({
   sliderTrack: {
     flex: 1,
     height: 4,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: IVORY_LINE,
     borderRadius: 2,
   },
   sliderProgress: {
     width: '100%', // Full for now, can be dynamic later
     height: '100%',
-    backgroundColor: '#EC1372',
+    backgroundColor: GOLD_DEEP,
     borderRadius: 2,
   },
   secondaryButton: {
     flexDirection: 'row',
     width: '100%',
     height: 56,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: IVORY_LINE,
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
   },
   secondaryButtonText: {
-    color: '#4A4A4A',
+    color: TEXT_PLUM,
     fontSize: 16,
     fontWeight: '700',
+  },
+  primaryButtonWrapper: {
+    width: '100%',
+    borderRadius: 28,
+    overflow: 'hidden',
+    shadowColor: GOLD_DEEP,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.28,
+    shadowRadius: 12,
+    elevation: 5,
   },
   primaryButton: {
     width: '100%',
     height: 56,
-    backgroundColor: '#EC1372',
-    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },
   primaryButtonText: {
-    color: '#FFFFFF',
+    color: '#1A0733',
     fontSize: 16,
     fontWeight: '700',
   },

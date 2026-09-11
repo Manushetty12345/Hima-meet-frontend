@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -206,12 +206,16 @@ const VerifyOtpScreen: React.FC<Props> = ({ navigation, route }) => {
     try {
       // Backend verifies OTP against its in-memory store (bhashsms flow)
       const result = await verifyOtp(mobileNumber, otpValue, '+91');
-      const { is_new_user } = result.data;
+      const { is_new_user, user } = result.data;
 
       if (is_new_user) {
         navigation.navigate('GenderSelect');
       } else {
-        navigation.replace('MainTabs');
+        if (user && user.role === 'creator') {
+          navigation.replace('CreatorDashboard');
+        } else {
+          navigation.replace('MainTabs');
+        }
       }
     } catch (error: any) {
       triggerShake();

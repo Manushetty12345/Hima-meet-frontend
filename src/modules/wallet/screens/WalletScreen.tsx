@@ -45,7 +45,7 @@ type PaymentResult = {
 };
 
 type RootStackParamList = {
-  Wallet: { paymentResult?: PaymentResult } | undefined;
+  Wallet: { paymentResult?: PaymentResult; showWarning?: string; requiredCoins?: number; callType?: string } | undefined;
   Home: undefined;
   PhonePeWebView: { paymentUrl: string; transactionId: string; coins: number };
   [key: string]: undefined | object;
@@ -75,6 +75,7 @@ const WalletScreen: React.FC<Props> = ({ navigation, route }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [paymentResult, setPaymentResult] = useState<PaymentResult | null>(null);
+  const [warningMessage, setWarningMessage] = useState<string | null>(null);
 
   const ctaOpacity = useRef(new Animated.Value(0)).current;
   const ctaTranslateY = useRef(new Animated.Value(24)).current;
@@ -139,6 +140,17 @@ const WalletScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   }, [route.params?.paymentResult]);
 
+  useEffect(() => {
+    if (route.params?.showWarning === 'insufficient_coins') {
+      const type = route.params?.callType === 'video' ? 'video call' : 'audio call';
+      const minCoins = route.params?.requiredCoins || 10;
+      setWarningMessage(`Insufficient coins for ${type}.\nMinimum ${minCoins} coins required.`);
+      setTimeout(() => setWarningMessage(null), 4000);
+      
+      // Clear the warning param so it doesn't show again on re-render
+      navigation.setParams({ showWarning: undefined, requiredCoins: undefined, callType: undefined });
+    }
+  }, [route.params?.showWarning, route.params?.requiredCoins, route.params?.callType, navigation]);
   useEffect(() => {
     StatusBar.setBarStyle('dark-content');
     fetchWalletData();
@@ -344,6 +356,12 @@ const WalletScreen: React.FC<Props> = ({ navigation, route }) => {
             },
           ]}
         >
+          {/* Warning Toast */}
+          {warningMessage && (
+            <View style={styles.warningToast}>
+              <Text style={styles.warningToastText}>{warningMessage}</Text>
+            </View>
+          )}
           <TouchableOpacity
             activeOpacity={0.85}
             onPress={handleAddCoins}
@@ -504,6 +522,31 @@ const styles = StyleSheet.create({
     fontSize: 13.5,
     fontWeight: '700',
     color: TEXT_PLUM,
+  },
+  resultTextFail: {
+    color: RUST_FAIL,
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  warningToast: {
+    backgroundColor: '#F5F5F5',
+    marginHorizontal: 16,
+    padding: 16,
+    borderRadius: 20,
+    marginBottom: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  warningToastText: {
+    color: '#6B6B6B',
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
 

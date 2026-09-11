@@ -1,68 +1,93 @@
-import React from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { Phone, Video, Clock } from 'lucide-react-native';
+import { Phone, Video, Pin, Bell, BellOff } from 'lucide-react-native';
 
 const TEXT_DARK = '#1A1A2E';
 const TEXT_MUTED = '#9B9BAD';
 
-export type CallType = 'incoming' | 'outgoing' | 'missed';
-export type CallMediaType = 'audio' | 'video';
-
-export interface CallHistoryRecord {
+export type FriendItem = {
   id: string;
   name: string;
   avatarUri: string;
-  type: CallType;
-  media: CallMediaType;
-  time: string;
-  duration?: string;
+  lastMessage?: string;
   isOnline?: boolean;
   callRate?: number;
   videoRate?: number;
+};
+
+interface FriendCardProps {
+  item: FriendItem;
+  onPress: () => void;
+  onCall: () => void;
+  onVideoCall: () => void;
+  onShowToast: (message: string, type?: 'error' | 'info', icon?: React.ReactNode) => void;
 }
 
-interface CallHistoryItemProps {
-  item: CallHistoryRecord;
-  onPress?: () => void;
-  onCall?: () => void;
-  onVideoCall?: () => void;
-}
+const FriendCard: React.FC<FriendCardProps> = ({ item, onPress, onCall, onVideoCall, onShowToast }) => {
+  const [isMuted, setIsMuted] = useState(false);
 
-const CallHistoryItem: React.FC<CallHistoryItemProps> = ({ item, onPress, onCall, onVideoCall }) => {
+  const toggleMute = () => {
+    setIsMuted(!isMuted);
+    if (!isMuted) {
+      onShowToast(`Notifications turned off for ${item.name}`);
+    } else {
+      onShowToast(`You'll be notified when ${item.name} comes online`, 'info', <Bell size={16} color="#FF1493" />);
+    }
+  };
+
+  const handleAudioCall = () => {
+    if (!item.isOnline) {
+      onShowToast('This user is not available for audio calls right now.', 'error');
+    } else {
+      onCall();
+    }
+  };
+
+  const handleVideoCall = () => {
+    if (!item.isOnline) {
+      onShowToast('This user is not available for video calls right now.', 'error');
+    } else {
+      onVideoCall();
+    }
+  };
+
   return (
     <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={onPress}>
-      {/* Left Column: Avatar + Duration */}
-      <View style={styles.leftContainer}>
-        <LinearGradient
-          colors={['#C850C0', '#FF1493']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.avatarRing}
-        >
-          <View style={styles.avatarInner}>
-            <Image source={{ uri: item.avatarUri }} style={styles.avatar} />
-          </View>
-        </LinearGradient>
-        <View style={styles.durationRow}>
-          <Clock size={12} color="#FF1493" strokeWidth={2.5} />
-          <Text style={styles.durationText}>{item.duration}</Text>
+      {/* Avatar with purple ring */}
+      <LinearGradient
+        colors={['#C850C0', '#FF1493']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.avatarRing}
+      >
+        <View style={styles.avatarInner}>
+          <Image source={{ uri: item.avatarUri }} style={styles.avatar} />
         </View>
-      </View>
+      </LinearGradient>
 
-      {/* Middle Column: Name + Time */}
+      {/* Name + Message */}
       <View style={styles.textContainer}>
-        <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
-        <View style={styles.timePill}>
-          <Text style={styles.timeText}>{item.time}</Text>
+        <View style={styles.nameRow}>
+          <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
+          <TouchableOpacity onPress={toggleMute} style={styles.iconBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            {isMuted ? (
+              <BellOff size={14} color="#9CA3AF" />
+            ) : (
+              <Bell size={14} color="#FF1493" />
+            )}
+          </TouchableOpacity>
         </View>
+        <TouchableOpacity style={styles.chatNowBtn} activeOpacity={0.7} onPress={onPress}>
+          <Text style={styles.chatNowText}>Chat Now</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Right Column: Actions */}
+      {/* Actions */}
       <View style={styles.actionsContainer}>
         <View style={styles.callAction}>
-          <TouchableOpacity onPress={onCall} style={[styles.callBtn, item.isOnline && styles.callBtnOnline]}>
-            <Phone size={18} color={item.isOnline ? '#9CA3AF' : '#9CA3AF'} fill={item.isOnline ? '#9CA3AF' : '#9CA3AF'} />
+          <TouchableOpacity onPress={handleAudioCall} style={[styles.callBtn, item.isOnline && styles.callBtnOnline]}>
+            <Phone size={18} color={item.isOnline ? '#FF1493' : '#9CA3AF'} fill={item.isOnline ? '#FF1493' : '#9CA3AF'} />
           </TouchableOpacity>
           {item.isOnline ? (
             <View style={styles.rateContainer}>
@@ -79,8 +104,8 @@ const CallHistoryItem: React.FC<CallHistoryItemProps> = ({ item, onPress, onCall
         <View style={styles.verticalDivider} />
 
         <View style={styles.callAction}>
-          <TouchableOpacity onPress={onVideoCall} style={[styles.callBtn, item.isOnline && styles.videoBtnOnline]}>
-            <Video size={18} color={item.isOnline ? '#A822D1' : '#9CA3AF'} fill={item.isOnline ? '#A822D1' : '#9CA3AF'} />
+          <TouchableOpacity onPress={handleVideoCall} style={[styles.callBtn, item.isOnline && styles.callBtnOnline]}>
+            <Video size={18} color={item.isOnline ? '#FF1493' : '#9CA3AF'} fill={item.isOnline ? '#FF1493' : '#9CA3AF'} />
           </TouchableOpacity>
           {item.isOnline ? (
             <View style={styles.rateContainer}>
@@ -112,17 +137,13 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 3,
   },
-  leftContainer: {
-    alignItems: 'center',
-    marginRight: 16,
-  },
   avatarRing: {
     width: 62,
     height: 62,
     borderRadius: 31,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginRight: 16,
   },
   avatarInner: {
     width: 56,
@@ -138,37 +159,38 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 26,
   },
-  durationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  durationText: {
-    fontSize: 12,
-    color: '#FF1493',
-    fontWeight: '700',
-  },
   textContainer: {
     flex: 1,
     justifyContent: 'center',
     paddingRight: 10,
   },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
   name: {
     fontSize: 17,
     fontWeight: '700',
     color: TEXT_DARK,
-    marginBottom: 8,
+    flexShrink: 1,
   },
-  timePill: {
+  iconBtn: {
+    padding: 2,
+  },
+  chatNowBtn: {
     alignSelf: 'flex-start',
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 10,
+    paddingHorizontal: 14,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#FF1493',
+    backgroundColor: '#FFFFFF',
   },
-  timeText: {
-    fontSize: 11,
-    color: '#4B5563',
+  chatNowText: {
+    fontSize: 12,
+    color: '#FF1493',
     fontWeight: '600',
   },
   actionsContainer: {
@@ -206,9 +228,6 @@ const styles = StyleSheet.create({
   callBtnOnline: {
     borderColor: '#FCE7F3',
   },
-  videoBtnOnline: {
-    borderColor: '#F3E8FF',
-  },
   offlineText: {
     fontSize: 11,
     color: '#9CA3AF',
@@ -239,4 +258,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CallHistoryItem;
+export default FriendCard;

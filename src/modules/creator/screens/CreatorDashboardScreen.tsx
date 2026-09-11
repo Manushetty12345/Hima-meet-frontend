@@ -12,6 +12,7 @@ import {
   TextInput,
   FlatList,
   Animated,
+  Modal,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {
@@ -33,8 +34,29 @@ import {
   Coins,
   TrendingUp,
   AlertOctagon,
+  UserCircle2,
+  BellRing,
+  BadgeCheck,
+  AlertCircle,
+  Pencil,
 } from 'lucide-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+
+// ---- Palette pulled from the Himameet mark ----
+const PLUM_ROYAL = '#5B0E8B';
+const PLUM_DEEP = '#3D0A63';
+const GOLD = '#F5C542';
+const GOLD_DEEP = '#D4AF37';
+const IVORY = '#FBF6EC';
+const IVORY_LINE = '#EBDFC4';
+const TEXT_PLUM = '#2A1240';
+const TEXT_MUTED = '#8B7F98';
+
+// Light lavender header wash
+const LILAC_WHITE = '#FBF7FF';
+const LILAC_PALE = '#EFDFFB';
+
+const DANGER = '#D14343';
 
 import ChatRequestCard, { ChatRequest } from '../components/ChatRequestCard';
 import CreatorEarningRow, { EarningRecord } from '../components/CreatorEarningRow';
@@ -50,7 +72,7 @@ type RootStackParamList = {
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CreatorDashboard'>;
 
-type TabKey = 'home' | 'calls' | 'wallet' | 'settings';
+type TabKey = 'home' | 'calls' | 'wallet' | 'profile';
 type SubScreen =
   | null
   | 'session_earnings'
@@ -79,6 +101,73 @@ const WITHDRAWAL_HISTORY = [
   { id: 'w3', amount: 2100, date: 'Aug 05, 2026', status: 'Processing' },
 ];
 
+const SETTINGS_ITEMS = [
+  {
+    id: 'rates',
+    title: 'My Call Rates',
+    subtitle: 'View your voice & video rates',
+    icon: Phone,
+    iconColor: PLUM_ROYAL,
+    iconBg: 'rgba(91, 14, 139, 0.10)',
+  },
+  {
+    id: 'notifications',
+    title: 'Manage Notifications',
+    subtitle: 'Control alerts and preferences',
+    icon: BellRing,
+    iconColor: GOLD_DEEP,
+    iconBg: 'rgba(245, 197, 66, 0.16)',
+  },
+  {
+    id: 'warnings',
+    title: 'My Warnings',
+    subtitle: 'View warnings from admins',
+    icon: AlertCircle,
+    iconColor: PLUM_ROYAL,
+    iconBg: 'rgba(91, 14, 139, 0.10)',
+  },
+  {
+    id: 'help',
+    title: 'Help & Support',
+    subtitle: 'Get help and contact support',
+    icon: Headphones,
+    iconColor: GOLD_DEEP,
+    iconBg: 'rgba(245, 197, 66, 0.16)',
+  },
+  {
+    id: 'guidelines',
+    title: 'Community Guidelines',
+    subtitle: 'Policies and community standards',
+    icon: BadgeCheck,
+    iconColor: PLUM_ROYAL,
+    iconBg: 'rgba(91, 14, 139, 0.10)',
+  },
+  {
+    id: 'terms',
+    title: 'Terms & Conditions',
+    subtitle: 'Read our terms and conditions',
+    icon: FileText,
+    iconColor: GOLD_DEEP,
+    iconBg: 'rgba(245, 197, 66, 0.16)',
+  },
+  {
+    id: 'privacy',
+    title: 'Privacy Policy',
+    subtitle: 'Read our privacy policy',
+    icon: ShieldCheck,
+    iconColor: PLUM_ROYAL,
+    iconBg: 'rgba(91, 14, 139, 0.10)',
+  },
+  {
+    id: 'logout',
+    title: 'Logout',
+    subtitle: 'Sign out from your account',
+    icon: LogOut,
+    iconColor: DANGER,
+    iconBg: 'rgba(209, 67, 67, 0.10)',
+  },
+];
+
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 
 const CreatorDashboardScreen: React.FC<Props> = ({ navigation }) => {
@@ -90,6 +179,7 @@ const CreatorDashboardScreen: React.FC<Props> = ({ navigation }) => {
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [bio, setBio] = useState("Hi! I love talking about music, life, and astrology. Let's chat!");
   const [interests, setInterests] = useState('Love, Career, Music');
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const openSub = (s: SubScreen) => setSubScreen(s);
   const closeSub = () => setSubScreen(null);
@@ -402,64 +492,77 @@ const CreatorDashboardScreen: React.FC<Props> = ({ navigation }) => {
     </ScrollView>
   );
 
-  // ─── Tab: SETTINGS ───────────────────────────────────────────────────────────
+  // ─── Tab: PROFILE ────────────────────────────────────────────────────────────
 
-  const renderSettings = () => (
-    <ScrollView contentContainerStyle={styles.tabContent} showsVerticalScrollIndicator={false}>
-      <Text style={styles.pageTitle}>Settings & Support</Text>
-
-      {/* Profile Card */}
-      <TouchableOpacity style={[styles.card, styles.rowBetween]} activeOpacity={0.7} onPress={() => openSub('edit_profile')}>
-        <View style={styles.profileRow}>
-          <Image source={{ uri: 'https://i.pravatar.cc/150?img=5' }} style={styles.settingsAvatar} />
-          <View>
-            <Text style={styles.settingsName}>Yamuna Devi</Text>
-            <Text style={styles.settingsSubName}>Tap to edit avatar & bio</Text>
-          </View>
+  const renderProfile = () => (
+    <View style={styles.flex}>
+      <LinearGradient
+        colors={[LILAC_WHITE, LILAC_PALE]}
+        start={{ x: 0.15, y: 0 }}
+        end={{ x: 0.85, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.statusBarSpacer} />
+        <View style={styles.headerRow}>
+          <Text style={styles.title}>My Profile</Text>
+          <Text style={styles.subtitle}>Manage your account & preferences</Text>
         </View>
-        <ChevronRight size={18} color="#9CA3AF" />
-      </TouchableOpacity>
+      </LinearGradient>
 
-      {/* Call Rates */}
-      <View style={styles.card}>
-        <View style={styles.rowBetween}>
-          <Text style={styles.sectionTitle}>My Call Rates</Text>
-          <View style={styles.fixedBadge}>
-            <Text style={styles.fixedBadgeText}>Fixed by Admin</Text>
-          </View>
-        </View>
-        <View style={styles.ratesRow}>
-          <View style={styles.rateCard}>
-            <Phone size={20} color="#EC1372" />
-            <Text style={styles.rateValue}>10 Coins / min</Text>
-            <Text style={styles.rateLabel}>Voice Call</Text>
-          </View>
-          <View style={styles.rateCard}>
-            <Video size={20} color="#4F46E5" />
-            <Text style={styles.rateValue}>60 Coins / min</Text>
-            <Text style={styles.rateLabel}>Video Call</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Support & Legal */}
-      <View style={[styles.card, styles.noPad]}>
-        {[
-          { label: 'Help & Support Tickets', icon: <Headphones size={18} color="#EC1372" />, bg: '#FFEBF2' },
-          { label: 'Privacy Policy', icon: <ShieldCheck size={18} color="#4F46E5" />, bg: '#E0E7FF' },
-          { label: 'Terms & Conditions', icon: <FileText size={18} color="#4F46E5" />, bg: '#E0E7FF' },
-          { label: 'Logout', icon: <LogOut size={18} color="#EF4444" />, bg: '#FEE2E2' },
-        ].map((s, i) => (
-          <TouchableOpacity key={s.label} style={[styles.actionRow, i < 3 && styles.actionRowBorder]} activeOpacity={0.7}>
-            <View style={styles.actionRowLeft}>
-              <View style={[styles.actionIcon, { backgroundColor: s.bg }]}>{s.icon}</View>
-              <Text style={styles.actionLabel}>{s.label}</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Profile Card */}
+        <View style={styles.profileCard}>
+          <View style={styles.profileInfoRow}>
+            <View style={styles.avatarContainer}>
+              <View style={styles.avatarBorder}>
+                <Image source={{ uri: 'https://i.pravatar.cc/150?img=5' }} style={styles.avatar} />
+              </View>
+              <TouchableOpacity style={styles.editBadge} activeOpacity={0.8} onPress={() => openSub('edit_profile')}>
+                <Pencil size={10} color="#FFFFFF" />
+              </TouchableOpacity>
             </View>
-            <ChevronRight size={18} color="#9CA3AF" />
-          </TouchableOpacity>
-        ))}
-      </View>
-    </ScrollView>
+            <View style={styles.profileTextWrap}>
+              <Text style={styles.profileUsername}>Yamuna Devi</Text>
+              <Text style={styles.profileSubtitleText}>Creator Account</Text>
+            </View>
+          </View>
+        </View>
+
+        <Text style={styles.sectionTitle}>Settings & Support</Text>
+
+        {/* Settings List */}
+        <View style={styles.settingsCard}>
+          {SETTINGS_ITEMS.map((item, index) => {
+            const isLast = index === SETTINGS_ITEMS.length - 1;
+            const Icon = item.icon;
+
+            return (
+              <View key={item.id}>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  style={styles.settingsRow}
+                  onPress={() => {
+                    if (item.id === 'logout') {
+                      setShowLogoutModal(true);
+                    }
+                  }}
+                >
+                  <View style={[styles.settingsIconBox, { backgroundColor: item.iconBg }]}>
+                    <Icon size={18} color={item.iconColor} />
+                  </View>
+                  <View style={styles.settingsTextWrap}>
+                    <Text style={styles.settingsTitle}>{item.title}</Text>
+                    <Text style={styles.settingsSubtitle}>{item.subtitle}</Text>
+                  </View>
+                  <ChevronRight size={18} color={IVORY_LINE} />
+                </TouchableOpacity>
+                {!isLast && <View style={styles.settingsDivider} />}
+              </View>
+            );
+          })}
+        </View>
+      </ScrollView>
+    </View>
   );
 
   // ─── Bottom Nav ──────────────────────────────────────────────────────────────
@@ -468,29 +571,32 @@ const CreatorDashboardScreen: React.FC<Props> = ({ navigation }) => {
     { key: 'home' as TabKey, label: 'Home', icon: HomeIcon },
     { key: 'calls' as TabKey, label: 'Calls', icon: Phone },
     { key: 'wallet' as TabKey, label: 'Wallet', icon: Wallet },
-    { key: 'settings' as TabKey, label: 'Settings', icon: Settings },
+    { key: 'profile' as TabKey, label: 'Profile', icon: UserCircle2 },
   ];
 
   return (
     <View style={styles.flex}>
       <StatusBar barStyle="dark-content" />
-      <View style={styles.statusBarSpacer} />
-
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerBrand}>Hi Ma</Text>
-        <View style={styles.headerProfile}>
-          <Text style={styles.headerGreet}>Hi, Yamuna</Text>
-          <Image source={{ uri: 'https://i.pravatar.cc/150?img=5' }} style={styles.headerAvatar} />
-        </View>
-      </View>
+      {activeTab !== 'profile' && (
+        <>
+          <View style={styles.statusBarSpacer} />
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.headerBrand}>Hi Ma</Text>
+            <View style={styles.headerProfile}>
+              <Text style={styles.headerGreet}>Hi, Yamuna</Text>
+              <Image source={{ uri: 'https://i.pravatar.cc/150?img=5' }} style={styles.headerAvatar} />
+            </View>
+          </View>
+        </>
+      )}
 
       {/* Tab Content */}
       <View style={styles.flex}>
         {activeTab === 'home' && renderHome()}
         {activeTab === 'calls' && renderCalls()}
         {activeTab === 'wallet' && renderWallet()}
-        {activeTab === 'settings' && renderSettings()}
+        {activeTab === 'profile' && renderProfile()}
       </View>
 
       {/* Bottom Nav */}
@@ -509,6 +615,53 @@ const CreatorDashboardScreen: React.FC<Props> = ({ navigation }) => {
 
       {/* Sub-screens slide over everything */}
       {subScreen && renderSubScreen()}
+
+      {/* Logout Bottom Sheet */}
+      <Modal
+        visible={showLogoutModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowLogoutModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.bottomSheet}>
+            <View style={styles.sheetHandle} />
+
+            <View style={styles.alertIconWrap}>
+              <AlertOctagon size={48} color={DANGER} strokeWidth={1.5} />
+            </View>
+
+            <Text style={styles.modalTitle}>Are you sure you want to Log out?</Text>
+            <Text style={styles.modalSubtitle}>You will be logged out of your account</Text>
+
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => {
+                setShowLogoutModal(false);
+                navigation.replace('LoginScreen');
+              }}
+              style={styles.primaryButtonWrapper}
+            >
+              <LinearGradient
+                colors={[GOLD, GOLD_DEEP]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.primaryButton}
+              >
+                <Text style={styles.primaryButtonText}>Logout</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={styles.secondaryButton}
+              onPress={() => setShowLogoutModal(false)}
+            >
+              <Text style={styles.secondaryButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -709,6 +862,221 @@ const styles = StyleSheet.create({
     borderWidth: 2, borderColor: '#FFFFFF',
   },
   profileName: { fontSize: 18, fontWeight: '700', color: '#1F2937', marginTop: 10 },
+
+  // Profile screen styles
+  headerGradient: {
+    overflow: 'hidden',
+  },
+  headerRow: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: TEXT_PLUM,
+    marginBottom: 4,
+    fontFamily: 'PlayfairDisplay-Bold',
+  },
+  subtitle: {
+    fontSize: 13,
+    color: TEXT_MUTED,
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 40,
+  },
+  profileCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: GOLD_DEEP,
+    paddingTop: 20,
+    paddingBottom: 16,
+    marginBottom: 24,
+    shadowColor: PLUM_ROYAL,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  profileInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  avatarContainer: {
+    position: 'relative',
+    marginRight: 16,
+  },
+  avatarBorder: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: GOLD_DEEP,
+    padding: 2,
+    shadowColor: GOLD_DEEP,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  avatar: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 30,
+    backgroundColor: '#F3F4F6',
+  },
+  editBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: PLUM_ROYAL,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
+  profileTextWrap: {
+    flex: 1,
+  },
+  profileUsername: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: TEXT_PLUM,
+    marginBottom: 4,
+  },
+  profileSubtitleText: {
+    fontSize: 13,
+    color: TEXT_MUTED,
+    fontWeight: '500',
+  },
+  settingsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: IVORY_LINE,
+    shadowColor: PLUM_ROYAL,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  settingsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+  },
+  settingsIconBox: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  settingsTextWrap: {
+    flex: 1,
+  },
+  settingsTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: TEXT_PLUM,
+    marginBottom: 2,
+  },
+  settingsSubtitle: {
+    fontSize: 12,
+    color: TEXT_MUTED,
+  },
+  settingsDivider: {
+    height: 1,
+    backgroundColor: IVORY_LINE,
+    marginLeft: 74,
+    marginRight: 16,
+  },
+
+  // Modal styling
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(27, 14, 34, 0.6)',
+    justifyContent: 'flex-end',
+  },
+  bottomSheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    alignItems: 'center',
+  },
+  sheetHandle: {
+    width: 48,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#E7E1EC',
+    marginBottom: 32,
+  },
+  alertIconWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(209, 67, 67, 0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: TEXT_PLUM,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    fontSize: 15,
+    color: TEXT_MUTED,
+    textAlign: 'center',
+    marginBottom: 32,
+  },
+  primaryButtonWrapper: {
+    width: '100%',
+    shadowColor: GOLD_DEEP,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
+    marginBottom: 16,
+  },
+  primaryButton: {
+    paddingVertical: 18,
+    borderRadius: 16,
+    alignItems: 'center',
+  },
+  primaryButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: TEXT_PLUM,
+  },
+  secondaryButton: {
+    width: '100%',
+    paddingVertical: 18,
+    borderRadius: 16,
+    alignItems: 'center',
+    backgroundColor: '#F7F5FA',
+  },
+  secondaryButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: TEXT_PLUM,
+  },
 });
 
 export default CreatorDashboardScreen;

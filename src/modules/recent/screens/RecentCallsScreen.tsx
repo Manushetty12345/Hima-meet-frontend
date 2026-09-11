@@ -98,8 +98,11 @@ const RecentCallsScreen: React.FC<Props> = () => {
               type: isMissed ? 'missed' : 'incoming', // Default to incoming since backend doesn't specify direction yet
               media: item.call_type === 'video' ? 'video' : 'audio',
               time: timeString,
-              duration: item.duration_seconds ? `${Math.floor(item.duration_seconds / 60)} mins` : undefined,
+              duration: item.duration_seconds ? `${item.duration_seconds} sec` : '0 sec',
               rawDate: dateObj,
+              isOnline: item.is_online,
+              callRate: item.voice_rate,
+              videoRate: item.video_rate,
             };
           });
           setCalls(formatted);
@@ -183,12 +186,12 @@ const RecentCallsScreen: React.FC<Props> = () => {
               return (
                 <TouchableOpacity key={filter.key} activeOpacity={0.85} style={styles.filterChipActive}>
                   <LinearGradient
-                    colors={[GOLD, GOLD_DEEP]}
+                    colors={['#A822D1', '#FF1493']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={styles.filterGrad}
                   >
-                    <Icon size={15} color="#2A1240" style={styles.filterIcon} />
+                    <Icon size={15} color="#FFFFFF" style={styles.filterIcon} />
                     <Text style={styles.filterLabelActive}>{filter.label}</Text>
                   </LinearGradient>
                 </TouchableOpacity>
@@ -211,7 +214,6 @@ const RecentCallsScreen: React.FC<Props> = () => {
 
         {/* Search */}
         <View style={styles.searchContainer}>
-          <Search size={18} color={PLUM_ROYAL} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search by name"
@@ -219,6 +221,7 @@ const RecentCallsScreen: React.FC<Props> = () => {
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
+          <Search size={18} color="#4B5563" />
         </View>
       </LinearGradient>
 
@@ -269,6 +272,7 @@ const RecentCallsScreen: React.FC<Props> = () => {
                   style={styles.modalOption}
                   onPress={() => {
                     setTalkTimeRange(range);
+                    setActiveFilter('talk_time');
                     setShowTalkTimeModal(false);
                   }}
                 >

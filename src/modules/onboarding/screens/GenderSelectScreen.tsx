@@ -114,11 +114,18 @@ const GenderSelectScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleContinue = () => {
     if (!isContinueEnabled) return;
-    // Go to SelectLanguage passing both gender and avatar
-    navigation.navigate('SelectLanguage', {
-      gender: selectedGender,
-      avatar_id: parseInt(selectedAvatarId, 10)
-    });
+    
+    if (selectedGender === 'female') {
+      navigation.navigate('CreateProfileSetup', {
+        gender: selectedGender,
+        avatar_id: parseInt(selectedAvatarId, 10)
+      });
+    } else {
+      navigation.navigate('SelectLanguage', {
+        gender: selectedGender,
+        avatar_id: parseInt(selectedAvatarId, 10)
+      });
+    }
   };
 
   return (

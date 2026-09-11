@@ -10,6 +10,7 @@ import {
   ScrollView,
   FlatList,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {
@@ -29,6 +30,7 @@ import {
 import type { LucideIcon } from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import apiClient from '../../../api/apiClient';
+import { getSocket, initSocket } from '../../../api/socketClient';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import WelcomeOfferBottomSheet from '../components/WelcomeOfferBottomSheet';
 import CreatorProfileModal from '../components/CreatorProfileModal';
@@ -107,6 +109,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [filters, setFilters] = useState<FilterItem[]>(STATIC_FILTERS);
   const [creators, setCreators] = useState<CreatorItem[]>([]);
   const [loadingCreators, setLoadingCreators] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const activeFilterRef = React.useRef<string>('all');
 
   const fetchCreators = useCallback(async (filterKey: string) => {
@@ -135,9 +138,15 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
       console.log('HomeScreen fetch creators error:', e);
     } finally {
       setLoadingCreators(false);
+      setRefreshing(false);
     }
   }, []);
-    const [coinBalance, setCoinBalance] = useState(0);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchCreators(activeFilterRef.current);
+  }, [fetchCreators]);
+  const [coinBalance, setCoinBalance] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
@@ -172,25 +181,146 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
       fetchCreators(activeFilterRef.current);
     }, [fetchCreators])
   );
-  const [showWelcomeOffer, setShowWelcomeOffer] = useState(true);
+  const [showWelcomeOffer, setShowWelcomeOffer] = useState(false); // Disabled as per user request
   const [selectedCreator, setSelectedCreator] = useState<CreatorItem | null>(null);
   const [showRandomMatch, setShowRandomMatch] = useState(false);
   const [randomMatchType, setRandomMatchType] = useState<'audio' | 'video'>('audio');
   const [isFabExpanded, setIsFabExpanded] = useState(false);
 
+  const [randomMatchTarget, setRandomMatchTarget] = useState<CreatorItem | undefined>(undefined);
+
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const callTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  const clearCallTimeout = () => {
+    if (callTimeoutRef.current) {
+      clearTimeout(callTimeoutRef.current);
+      callTimeoutRef.current = null;
+    }
+  };
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  React.useEffect(() => {
+    let socket = getSocket();
+    
+    const setupListeners = async () => {
+      if (!socket) {
+        socket = await initSocket();
+      }
+      if (!socket) return;
+
+      const handleCallBusy = (data: { message: string }) => {
+        clearCallTimeout();
+        setShowRandomMatch(false);
+        showToast(data.message || 'The user is currently on another call. Please try again later.');
+      };
+
+      const handleCallDeclined = () => {
+        clearCallTimeout();
+        setShowRandomMatch(false);
+        showToast('User is not available right now.');
+      };
+
+      const handleCallAccepted = (data: { callId: number }) => {
+        clearCallTimeout();
+        setShowRandomMatch(false);
+        navigation.navigate(randomMatchType === 'audio' ? 'AudioCallScreen' : 'VideoCallScreen', {
+          callId: data.callId,
+          targetId: randomMatchTarget?.id,
+          calleeName: randomMatchTarget?.name,
+          calleeAvatar: randomMatchTarget?.avatarUri
+        } as any);
+      };
+
+      const handleUserOffline = (data: { userId: string | number }) => {
+        setCreators(prev => prev.map(c => 
+          c.id === String(data.userId) ? { ...c, isOnline: false } : c
+        ));
+      };
+
+      const handleCreatorAvailability = (data: { userId: string | number; voiceAvailable: boolean; videoAvailable: boolean }) => {
+        setCreators(prev => prev.map(c => 
+          c.id === String(data.userId) ? { 
+            ...c, 
+            callAvailable: data.voiceAvailable,
+            videoAvailable: data.videoAvailable
+          } : c
+        ));
+      };
+
+      socket.off('call_busy').on('call_busy', handleCallBusy);
+      socket.off('call_declined').on('call_declined', handleCallDeclined);
+      socket.off('call_accepted').on('call_accepted', handleCallAccepted);
+      socket.off('user_offline').on('user_offline', handleUserOffline);
+      socket.off('creator_availability_changed').on('creator_availability_changed', handleCreatorAvailability);
+    };
+
+    setupListeners();
+
+    return () => {
+      if (socket) {
+        socket.off('call_busy');
+        socket.off('call_declined');
+        socket.off('call_accepted');
+        socket.off('user_offline');
+        socket.off('creator_availability_changed');
+      }
+    };
+  }, [navigation, randomMatchType, randomMatchTarget]);
+
+  const initiateCallWithChecks = async (creator: CreatorItem, type: 'audio' | 'video') => {
+    const rate = type === 'audio' ? creator.callRate : creator.videoRate;
+    const requiredCoins = rate || (type === 'audio' ? 20 : 40);
+
+    if (coinBalance < requiredCoins) {
+      navigation.navigate('Wallet', { 
+        showWarning: 'insufficient_coins',
+        requiredCoins,
+        callType: type
+      } as any);
+      return;
+    }
+
+    setRandomMatchTarget(creator);
+    setRandomMatchType(type);
+    setShowRandomMatch(true);
+
+    let socket = getSocket();
+    if (!socket) {
+      socket = await initSocket();
+    }
+    
+    if (socket) {
+      socket.emit('initiate_call', {
+        targetId: creator.id,
+        type,
+        rate: requiredCoins
+      });
+
+      clearCallTimeout();
+      callTimeoutRef.current = setTimeout(() => {
+        setShowRandomMatch(false);
+        showToast('User is not available right now.');
+      }, 35000);
+    }
+  };
+
   const handleCall = (creator: CreatorItem) => {
     if (!creator.callAvailable) return;
-    // @ts-ignore
-    navigation.navigate('AudioCallScreen', { calleeName: creator.name });
+    initiateCallWithChecks(creator, 'audio');
   };
 
   const handleVideoCall = (creator: CreatorItem) => {
     if (!creator.videoAvailable) return;
-    // @ts-ignore
-    navigation.navigate('VideoCallScreen', { calleeName: creator.name });
+    initiateCallWithChecks(creator, 'video');
   };
 
   const handleRandom = () => {
+    setRandomMatchTarget(undefined);
     setRandomMatchType(Math.random() > 0.5 ? 'audio' : 'video');
     setShowRandomMatch(true);
   };
@@ -213,7 +343,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         )}
       </TouchableOpacity>
 
-            <View style={styles.creatorNameBlock}>
+      <View style={styles.creatorNameBlock}>
         <View style={styles.creatorNameRow}>
           <Text style={styles.creatorName}>{item.name}</Text>
           {item.isNew && (
@@ -304,7 +434,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.brandSubtitle}>Where Feelings Connect</Text>
         </View>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.balancePill}
           onPress={() => navigation.navigate('Wallet')}
           activeOpacity={0.8}
@@ -330,11 +460,11 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 key={filter.key}
                 activeOpacity={0.85}
                 onPress={() => {
-                    const label = filter.label;
-                    setActiveFilter(filter.key);
-                    activeFilterRef.current = filter.key === 'all' ? 'all' : label;
-                    fetchCreators(filter.key === 'all' ? 'all' : label);
-                  }}
+                  const label = filter.label;
+                  setActiveFilter(filter.key);
+                  activeFilterRef.current = filter.key === 'all' ? 'all' : label;
+                  fetchCreators(filter.key === 'all' ? 'all' : label);
+                }}
               >
                 {isActive ? (
                   <LinearGradient
@@ -362,6 +492,9 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         data={creators}
         keyExtractor={item => item.id}
         renderItem={renderCreator}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#9C27B0']} tintColor="#9C27B0" />
+        }
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
       />
@@ -405,14 +538,32 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
       <RandomMatchModal
         visible={showRandomMatch}
-        onClose={() => setShowRandomMatch(false)}
+        onClose={() => {
+          setShowRandomMatch(false);
+          const socket = getSocket();
+          if (socket) socket.emit('cancel_call', { targetId: randomMatchTarget?.id });
+        }}
         mode={randomMatchType}
+        targetUser={randomMatchTarget}
+        onMatchFound={(creator) => {
+          // Construct a partial CreatorItem for the checks
+          const mockCreator = {
+            id: creator.id,
+            name: creator.name,
+            avatarUri: creator.avatarUri,
+            callAvailable: true,
+            videoAvailable: true,
+            callRate: 20,
+            videoRate: 40,
+          } as any;
+          initiateCallWithChecks(mockCreator, randomMatchType);
+        }}
       />
 
       {/* Floating Random Button */}
       {isFabExpanded ? (
         <View style={styles.expandedFabContainer}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.fabActionCircle, { backgroundColor: '#FF1493' }]}
             activeOpacity={0.8}
             onPress={() => {
@@ -424,7 +575,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             <Phone size={24} color="#FFFFFF" fill="#FFFFFF" />
           </TouchableOpacity>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.fabActionCircle, { backgroundColor: '#9C27B0' }]}
             activeOpacity={0.8}
             onPress={() => {
@@ -436,7 +587,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             <Video size={24} color="#FFFFFF" fill="#FFFFFF" />
           </TouchableOpacity>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.fabActionCircle, { backgroundColor: '#E5DFEB' }]}
             activeOpacity={0.8}
             onPress={() => setIsFabExpanded(false)}

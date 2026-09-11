@@ -3,8 +3,11 @@ import { NavigationContainer, NavigationContainerRef } from '@react-navigation/n
 import { StatusBar, useColorScheme, Linking } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import messaging from '@react-native-firebase/messaging';
 import AuthNavigator from './src/navigation/AuthNavigator';
 import apiClient from './src/api/apiClient';
+import { CallOverlayProvider } from './src/context/CallOverlayContext';
+import GlobalCallOverlay from './src/components/GlobalCallOverlay';
 
 // Deep link config — himaapp://payment/* will open the app
 const linking = {
@@ -42,12 +45,98 @@ function App() {
     return () => subscription.remove();
   }, []);
 
+  // ── FCM: Register token + handle notification taps ──
+  useEffect(() => {
+    let unsubscribeTokenRefresh: (() => void) | null = null;
+    let unsubscribeBackground: (() => void) | null = null;
+
+    const setupFcm = async () => {
+      try {
+        const fcmInstance = messaging();
+        if (!fcmInstance) return;
+
+        // Request permission
+        const authStatus = await fcmInstance.requestPermission();
+        const enabled =
+          authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+          authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+
+        if (!enabled) return;
+
+        // Register FCM token
+        const token = await fcmInstance.getToken();
+        if (token) {
+          await apiClient.post('/api/user/fcm-token', { fcm_token: token });
+          console.log('[FCM] Token registered:', token);
+        }
+
+        // Refresh token if it changes
+        if (typeof fcmInstance.onTokenRefresh === 'function') {
+          unsubscribeTokenRefresh = fcmInstance.onTokenRefresh(async (newToken) => {
+            try {
+              await apiClient.post('/api/user/fcm-token', { fcm_token: newToken });
+            } catch (err) {
+              console.log('[FCM] Token refresh error:', err);
+            }
+          });
+        }
+
+        // When app was KILLED and user taps the notification
+        if (typeof fcmInstance.getInitialNotification === 'function') {
+          const remoteMessage = await fcmInstance.getInitialNotification();
+          if (remoteMessage?.data?.type === 'incoming_call') {
+            setTimeout(() => {
+              if (navigationRef.isReady()) {
+                navigationRef.navigate('CreatorHome' as never);
+              }
+            }, 1000);
+          }
+        }
+
+        // When app is in BACKGROUND and user taps the notification
+        if (typeof fcmInstance.onNotificationOpenedApp === 'function') {
+          unsubscribeBackground = fcmInstance.onNotificationOpenedApp((remoteMessage) => {
+            if (remoteMessage?.data?.type === 'incoming_call') {
+              if (navigationRef.isReady()) {
+                navigationRef.navigate('CreatorHome' as never);
+              }
+            }
+          });
+        }
+      } catch (err) {
+        console.log('[FCM] Setup error:', err);
+      }
+    };
+
+    setupFcm();
+
+    return () => {
+      if (unsubscribeTokenRefresh) unsubscribeTokenRefresh();
+      if (unsubscribeBackground) unsubscribeBackground();
+    };
+  }, []);
+
+  const handleNavigateToCall = (call: any) => {
+    if (navigationRef.isReady()) {
+      const screenName = call.call_type === 'video' ? 'VideoCallScreen' : 'AudioCallScreen';
+      navigationRef.navigate(screenName as never, {
+        callId: call.request_id,
+        targetId: call.caller_id,
+        calleeName: call.name,
+        calleeAvatar: call.avatar_url,
+      } as never);
+    }
+  };
+
   return (
     <SafeAreaProvider>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <NavigationContainer ref={navigationRef} linking={linking}>
-        <AuthNavigator />
-      </NavigationContainer>
+      <CallOverlayProvider onNavigateToCall={handleNavigateToCall}>
+        <NavigationContainer ref={navigationRef} linking={linking}>
+          <AuthNavigator />
+          <GlobalCallOverlay />
+        </NavigationContainer>
+      </CallOverlayProvider>
     </SafeAreaProvider>
   );
 }

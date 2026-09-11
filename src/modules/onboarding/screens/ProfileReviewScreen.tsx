@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   TouchableOpacity,
@@ -10,7 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { Phone, ShieldCheck, Clock, HelpCircle } from 'lucide-react-native';
+import { Phone, ShieldCheck, Clock, HelpCircle, LayoutDashboard } from 'lucide-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../../navigation/AuthNavigator';
 
@@ -18,6 +18,20 @@ const STATUSBAR_HEIGHT =
   Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 0;
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'ProfileReview'>;
+
+// ---- Palette pulled from the Himameet mark ----
+const PLUM_ROYAL = '#5B0E8B';
+const PLUM_DEEP = '#3D0A63';
+const GOLD = '#F5C542';
+const GOLD_DEEP = '#D4AF37';
+const IVORY = '#FBF6EC';
+const IVORY_LINE = '#EBDFC4';
+const TEXT_PLUM = '#2A1240';
+const TEXT_MUTED = '#8B7F98';
+
+// Light lavender header wash
+const LILAC_WHITE = '#FBF7FF';
+const LILAC_PALE = '#EFDFFB';
 
 type NextStepItem = {
   key: string;
@@ -115,23 +129,40 @@ const ProfileReviewScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <View style={styles.flex}>
       <StatusBar barStyle="dark-content" />
-      <View style={styles.statusBarSpacer} />
 
       <LinearGradient
-        colors={['#FDE9F1', '#FFFFFF']}
+        colors={[LILAC_WHITE, LILAC_PALE]}
         style={styles.topSection}
       >
-        <Animated.Text
-          style={[
-            styles.hourglassGlyph,
-            { transform: [{ rotate: rotateInterpolate }] },
-          ]}
-        >
-          â³
-        </Animated.Text>
+        <View style={styles.statusBarSpacer} />
+
+        {/* Dashboard Icon at Top Right */}
+        <View style={styles.topBar}>
+          <TouchableOpacity
+            style={styles.dashboardBtn}
+            onPress={() => navigation.replace('CreatorDashboard')}
+          >
+            <LayoutDashboard size={20} color={PLUM_ROYAL} />
+          </TouchableOpacity>
+        </View>
+
+        <Animated.View style={{ transform: [{ rotate: rotateInterpolate }], marginTop: 10 }}>
+          {/* We replace the text emoji with a styled container for an hourglass look */}
+          <LinearGradient
+            colors={[GOLD, GOLD_DEEP]}
+            style={styles.hourglassWrapper}
+          >
+            <Text style={styles.hourglassGlyph}>⏳</Text>
+          </LinearGradient>
+        </Animated.View>
 
         <Text style={styles.title}>Almost done...</Text>
-        <View style={styles.titleUnderline} />
+        <LinearGradient
+          colors={[GOLD, GOLD_DEEP]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.titleUnderline}
+        />
         <Text style={styles.subtitle}>Your profile is under review</Text>
       </LinearGradient>
 
@@ -172,9 +203,12 @@ const ProfileReviewScreen: React.FC<Props> = ({ navigation }) => {
                   index === NEXT_STEPS.length - 1 && styles.stepRowLast,
                 ]}
               >
-                <View style={styles.stepIconCircle}>
-                  <StepIcon size={16} color="#FFFFFF" />
-                </View>
+                <LinearGradient
+                  colors={[GOLD, GOLD_DEEP]}
+                  style={styles.stepIconCircle}
+                >
+                  <StepIcon size={16} color="#2A1240" />
+                </LinearGradient>
                 <Text style={styles.stepText}>{step.text}</Text>
               </View>
             );
@@ -182,19 +216,11 @@ const ProfileReviewScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         <View style={styles.footerRow}>
-          <HelpCircle size={14} color="#B4A6BE" />
+          <HelpCircle size={14} color={TEXT_MUTED} />
           <Text style={styles.footerText}>
             For any queries please contact support
           </Text>
         </View>
-
-        <TouchableOpacity
-          activeOpacity={0.85}
-          style={styles.ctaButton}
-          onPress={() => navigation.replace('CreatorDashboard')}
-        >
-          <Text style={styles.ctaText}>Go to Dashboard</Text>
-        </TouchableOpacity>
       </Animated.View>
     </View>
   );
@@ -203,103 +229,146 @@ const ProfileReviewScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   flex: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: IVORY,
   },
   statusBarSpacer: {
     height: STATUSBAR_HEIGHT,
-    backgroundColor: '#FDE9F1',
   },
   topSection: {
     alignItems: 'center',
-    paddingTop: 36,
     paddingBottom: 32,
-    paddingHorizontal: 24,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    shadowColor: PLUM_ROYAL,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 14,
+    elevation: 8,
+    zIndex: 10,
+  },
+  topBar: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 20,
+    marginTop: 10,
+  },
+  dashboardBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(91, 14, 139, 0.10)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(91, 14, 139, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hourglassWrapper: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    shadowColor: GOLD_DEEP,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 6,
   },
   hourglassGlyph: {
-    fontSize: 56,
-    marginBottom: 18,
+    fontSize: 40,
   },
   title: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: '800',
-    color: '#EC1372',
-    marginBottom: 10,
+    color: TEXT_PLUM,
+    marginBottom: 8,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   titleUnderline: {
-    width: 40,
-    height: 3,
+    width: 46,
+    height: 4,
     borderRadius: 2,
-    backgroundColor: '#EC1372',
-    marginBottom: 12,
+    marginBottom: 14,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#8A7A9C',
+    fontSize: 15,
+    color: TEXT_MUTED,
+    fontWeight: '500',
   },
   body: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 22,
+    paddingTop: 32,
   },
   processingRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: 22,
+    marginBottom: 26,
   },
   processingText: {
-    fontSize: 13.5,
+    fontSize: 14,
     fontWeight: '700',
-    color: '#EC1372',
+    color: PLUM_ROYAL,
   },
   processingDots: {
-    fontSize: 13.5,
+    fontSize: 14,
     fontWeight: '700',
-    color: '#EC1372',
+    color: PLUM_ROYAL,
   },
   card: {
-    backgroundColor: '#F7F5FA',
-    borderRadius: 20,
-    padding: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1.5,
+    borderColor: IVORY_LINE,
+    shadowColor: PLUM_ROYAL,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 4,
   },
   cardTitle: {
-    fontSize: 16.5,
+    fontSize: 18,
     fontWeight: '800',
-    color: '#1B0E22',
-    marginBottom: 10,
+    color: TEXT_PLUM,
+    marginBottom: 12,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   cardDescription: {
-    fontSize: 13.5,
-    color: '#6E6178',
-    lineHeight: 20,
-    marginBottom: 18,
+    fontSize: 14,
+    color: TEXT_MUTED,
+    lineHeight: 22,
+    marginBottom: 20,
   },
   stepsDivider: {
     height: 1,
-    backgroundColor: '#E7E1EC',
-    marginBottom: 18,
+    backgroundColor: IVORY_LINE,
+    marginBottom: 20,
   },
   stepRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 18,
+    marginBottom: 20,
   },
   stepRowLast: {
     marginBottom: 0,
   },
   stepIconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#1B0E22',
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 14,
   },
   stepText: {
     flex: 1,
-    fontSize: 13.5,
-    color: '#3A2E44',
-    lineHeight: 19,
+    fontSize: 14,
+    color: TEXT_PLUM,
+    lineHeight: 20,
+    fontWeight: '500',
     paddingTop: 6,
   },
   footerRow: {
@@ -307,14 +376,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 6,
-    marginTop: 20,
+    marginTop: 28,
   },
   footerText: {
-    fontSize: 12,
-    color: '#B4A6BE',
+    fontSize: 13,
+    color: TEXT_MUTED,
+    fontWeight: '500',
   },
 });
 
 export default ProfileReviewScreen;
-
-

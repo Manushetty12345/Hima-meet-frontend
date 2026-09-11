@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -246,14 +246,13 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
               // Temp token: user verified OTP but hasn't finished onboarding
               nextScreen = 'GenderSelect';
             } else if (data.user) {
-              // Full JWT: check if profile setup is done
               const setupComplete = data.profile_setup_complete !== false; // default true
               if (!setupComplete) {
                 nextScreen = 'GenderSelect';
-              } else if (data.user.role === 'female') {
+              } else if (data.user.role === 'creator') {
                 nextScreen = 'CreatorDashboard';
               } else {
-                // Male user with complete profile → go straight to Home 🏠
+                // User with complete profile → go straight to Home 🏠
                 nextScreen = 'MainTabs';
               }
             }
@@ -304,9 +303,7 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
         <View style={[styles.glow, styles.glowBottomLeft]} />
         <View style={[styles.glow, styles.glowCenterFaint]} />
 
-        {/* Faint damask-style corner flourishes, echoing the logo backdrop */}
-        <View style={styles.cornerFlourishTL} />
-        <View style={styles.cornerFlourishBR} />
+        {/* Removed corner flourishes */ }
 
         <View style={styles.content}>
           {/* Logo with rotating halo ring + orbiting sparkle cluster */}
