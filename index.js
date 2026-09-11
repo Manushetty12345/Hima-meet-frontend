@@ -26,67 +26,79 @@ const ensureChannelExists = async () => {
 };
 
 // ── Handle FCM messages when app is KILLED or BACKGROUND ──
-messaging().setBackgroundMessageHandler(async remoteMessage => {
-  console.log('[FCM] Background message received:', remoteMessage);
-  if (remoteMessage?.data?.type !== 'incoming_call') return;
+try {
+  messaging().setBackgroundMessageHandler(async remoteMessage => {
+    console.log('[FCM] Background message received:', remoteMessage);
+    if (remoteMessage?.data?.type !== 'incoming_call') return;
 
-  const { callId, callerName, callType } = remoteMessage.data || {};
-  const callTypeLabel = callType === 'video' ? '📹 Video' : '📞 Voice';
+    const { callId, callerName, callType } = remoteMessage.data || {};
+    const callTypeLabel = callType === 'video' ? '📹 Video' : '📞 Voice';
 
-  try {
-    await ensureChannelExists();
-    
-    // Show a notification with Accept & Decline action buttons
-    await notifee.displayNotification({
-      id: `call_${callId}`,
-      title: `${callTypeLabel} Call`,
-      body: `${callerName || 'Someone'} is calling you`,
-      android: {
-        channelId: 'incoming_calls',
-        importance: AndroidImportance.HIGH,
-        ongoing: true,
-        asForegroundService: false,
-        pressAction: { id: 'default' },
-        actions: [
-          {
-            title: '✅ Accept',
-            pressAction: { id: 'accept', launchActivity: 'default' },
+    try {
+      await ensureChannelExists();
+      
+      if (notifee && notifee.displayNotification) {
+        // Show a notification with Accept & Decline action buttons
+        await notifee.displayNotification({
+          id: `call_${callId}`,
+          title: `${callTypeLabel} Call`,
+          body: `${callerName || 'Someone'} is calling you`,
+          android: {
+            channelId: 'incoming_calls',
+            importance: AndroidImportance.HIGH,
+            ongoing: true,
+            asForegroundService: false,
+            pressAction: { id: 'default' },
+            actions: [
+              {
+                title: '✅ Accept',
+                pressAction: { id: 'accept', launchActivity: 'default' },
+              },
+              {
+                title: '❌ Decline',
+                pressAction: { id: 'decline' },
+              },
+            ],
           },
-          {
-            title: '❌ Decline',
-            pressAction: { id: 'decline' },
-          },
-        ],
-      },
-    });
-    console.log('[Notifee] Displayed background call notification');
-  } catch (e) {
-    console.error('Failed to display background notification', e);
-  }
-});
+        });
+        console.log('[Notifee] Displayed background call notification');
+      }
+    } catch (e) {
+      console.error('Failed to display background notification', e);
+    }
+  });
+} catch (err) {
+  console.log('Error setting up FCM background handler:', err);
+}
 
 // ── Handle notifee button presses in background/killed state ──
-notifee.onBackgroundEvent(async ({ type, detail }) => {
-  const { notification, pressAction } = detail;
-  if (!notification?.id) return;
+try {
+  if (notifee && notifee.onBackgroundEvent) {
+    notifee.onBackgroundEvent(async ({ type, detail }) => {
+      const { notification, pressAction } = detail;
+      if (!notification?.id) return;
 
-  const callId = notification.id.replace('call_', '');
-  console.log(`[Notifee] Background event: ${type}, action: ${pressAction?.id}`);
+      const callId = notification.id.replace('call_', '');
+      console.log(`[Notifee] Background event: ${type}, action: ${pressAction?.id}`);
 
-  if (type === EventType.ACTION_PRESS && pressAction?.id === 'decline') {
-    try {
-      await fetch(`${BACKEND_URL}/api/calls/${callId}/decline`, { method: 'POST' });
-    } catch (e) {}
-    await notifee.cancelNotification(notification.id);
+      if (type === EventType.ACTION_PRESS && pressAction?.id === 'decline') {
+        try {
+          await fetch(`${BACKEND_URL}/api/calls/${callId}/decline`, { method: 'POST' });
+        } catch (e) {}
+        await notifee.cancelNotification(notification.id);
+      }
+
+      if (type === EventType.ACTION_PRESS && pressAction?.id === 'accept') {
+        await notifee.cancelNotification(notification.id);
+      }
+
+      if (type === EventType.DISMISSED) {
+        await notifee.cancelNotification(notification.id);
+      }
+    });
   }
-
-  if (type === EventType.ACTION_PRESS && pressAction?.id === 'accept') {
-    await notifee.cancelNotification(notification.id);
-  }
-
-  if (type === EventType.DISMISSED) {
-    await notifee.cancelNotification(notification.id);
-  }
-});
+} catch (err) {
+  console.log('Error setting up Notifee background event:', err);
+}
 
 AppRegistry.registerComponent(appName, () => App);
