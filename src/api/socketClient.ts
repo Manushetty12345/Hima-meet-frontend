@@ -15,23 +15,24 @@ export const initSocket = async () => {
   const token = await getSavedToken();
   if (!token) return null;
 
-  let fcmToken = null;
-  try {
-    fcmToken = await messaging().getToken();
-  } catch (err) {
-    console.log('Socket FCM fetch error:', err);
-  }
-
   socket = io(SOCKET_URL, {
     auth: {
       token,
-      fcmToken,
     },
     transports: ['websocket'],
   });
 
-  socket.on('connect', () => {
+  socket.on('connect', async () => {
     console.log('✅ Socket connected:', socket?.id);
+    try {
+      const fcmToken = await messaging().getToken();
+      if (fcmToken && socket) {
+        // Send the FCM token to the backend without blocking the initial connection
+        socket.emit('update_fcm_token', fcmToken);
+      }
+    } catch (err) {
+      console.log('Socket FCM fetch error:', err);
+    }
   });
 
   socket.on('connect_error', (err) => {
