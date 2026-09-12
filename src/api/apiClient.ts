@@ -44,11 +44,16 @@ export const getSavedToken = async (): Promise<string | null> => {
 // Automatically attaches the saved JWT to every outgoing request.
 
 apiClient.interceptors.request.use(async config => {
-  const credentials = await Keychain.getGenericPassword({
-    service: KEYCHAIN_SERVICE,
-  });
-  if (credentials) {
-    config.headers.Authorization = `Bearer ${credentials.password}`;
+  try {
+    const credentials = await Keychain.getGenericPassword({
+      service: KEYCHAIN_SERVICE,
+    });
+    if (credentials) {
+      config.headers.Authorization = `Bearer ${credentials.password}`;
+    }
+  } catch (keychainErr) {
+    // Keychain not available (e.g. fresh install) — continue without token
+    console.warn('[API] Keychain read failed (non-blocking):', keychainErr);
   }
   return config;
 });
