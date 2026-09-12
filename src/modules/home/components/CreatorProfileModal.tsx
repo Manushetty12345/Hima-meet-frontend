@@ -96,40 +96,6 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
   // New features state
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
-  const handleCamera = async () => {
-    try {
-      const result = await launchCamera({ mediaType: 'photo', quality: 0.5, includeBase64: true });
-      if (result.assets && result.assets[0]) {
-        handleSendMedia(result.assets[0].base64);
-      }
-    } catch (err) {
-      console.error('Camera Error:', err);
-    }
-  };
-
-  const handleGallery = async () => {
-    try {
-      const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.5, includeBase64: true });
-      if (result.assets && result.assets[0]) {
-        handleSendMedia(result.assets[0].base64);
-      }
-    } catch (err) {
-      console.error('Gallery Error:', err);
-    }
-  };
-
-  const handleSendMedia = (base64Image: string | undefined) => {
-    if (!base64Image || !conversationId) return;
-    const socket = getSocket();
-    if (socket) {
-      socket.emit('send_message', {
-        conversationId,
-        messageText: base64Image,
-        messageType: 'image'
-      });
-    }
-  };
-
   // Fetch status
   useEffect(() => {
     if (visible && creator) {
@@ -608,14 +574,6 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
                   multiline
                   onFocus={() => setShowEmojiPicker(false)}
                 />
-                <View style={styles.chatInputActions}>
-                  <TouchableOpacity style={styles.iconBtnRight} onPress={handleGallery}>
-                    <ImageIcon size={28} color="#8B7F98" />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.iconBtnRight} onPress={handleCamera}>
-                    <Camera size={28} color="#8B7F98" />
-                  </TouchableOpacity>
-                </View>
               </View>
               
               <TouchableOpacity style={styles.sendBtnGradientWrap} activeOpacity={0.8} onPress={handleSendMessage}>
