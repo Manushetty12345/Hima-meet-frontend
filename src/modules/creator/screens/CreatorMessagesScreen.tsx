@@ -148,21 +148,38 @@ const CreatorMessagesScreen = () => {
               <Text style={styles.emptyText}>No missed calls.</Text>
             ) : (
               missedCalls.map(call => (
-                <View key={call.id} style={styles.missedCallRow}>
-                  <Image source={{ uri: call.caller.avatar_url }} style={styles.callerAvatar} />
-                  <View style={styles.missedCallInfo}>
-                    <Text style={styles.callerName}>{call.caller.name}</Text>
-                    <View style={styles.missedCallMeta}>
-                      <PhoneMissed size={12} color="#EF4444" />
-                      <Text style={styles.missedCallTime}>{formatDate(call.started_at)}</Text>
+                <View key={call.id} style={styles.cardRow}>
+                  {/* Left Column: Avatar */}
+                  <View style={styles.leftContainer}>
+                    <LinearGradient
+                      colors={['#C850C0', '#FF1493']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.avatarRing}
+                    >
+                      <View style={styles.avatarInner}>
+                        <Image source={{ uri: call.caller.avatar_url }} style={styles.avatar} />
+                      </View>
+                    </LinearGradient>
+                  </View>
+
+                  {/* Middle Column: Name + Time */}
+                  <View style={styles.textContainer}>
+                    <Text style={styles.name} numberOfLines={1}>{call.caller.name}</Text>
+                    <View style={styles.timePill}>
+                      <Text style={styles.timeText}>{formatDate(call.started_at)}</Text>
                     </View>
                   </View>
-                  <View style={styles.callTypeIcon}>
-                    {call.call_type === 'video' ? (
-                      <Video size={20} color="#9CA3AF" />
-                    ) : (
-                      <Phone size={20} color="#9CA3AF" />
-                    )}
+
+                  {/* Right Column: Icon */}
+                  <View style={styles.actionsContainer}>
+                    <View style={styles.callTypeIcon}>
+                      {call.call_type === 'video' ? (
+                        <Video size={20} color="#FF1493" fill="#FF1493" />
+                      ) : (
+                        <PhoneMissed size={20} color="#FF1493" />
+                      )}
+                    </View>
                   </View>
                 </View>
               ))
@@ -268,44 +285,86 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     fontSize: 15,
   },
-  missedCallRow: {
+  cardRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  callerAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    marginRight: 12,
-  },
-  missedCallInfo: {
-    flex: 1,
-  },
-  callerName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
-  missedCallMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  missedCallTime: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginLeft: 6,
-  },
-  callTypeIcon: {
-    width: 40,
-    height: 40,
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#4A0F6E',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  leftContainer: {
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  avatarRing: {
+    width: 62,
+    height: 62,
+    borderRadius: 31,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  avatarInner: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 2,
+  },
+  avatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+  },
+  textContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingRight: 10,
+  },
+  name: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#1A1A2E',
+    marginBottom: 8,
+  },
+  timePill: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  timeText: {
+    fontSize: 11,
+    color: '#4B5563',
+    fontWeight: '600',
+  },
+  actionsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  callTypeIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
 });
 
