@@ -30,6 +30,15 @@ try {
   const messagingInstance = getMessaging();
   messagingInstance.setBackgroundMessageHandler(async remoteMessage => {
     console.log('[FCM] Background message received:', remoteMessage);
+    if (remoteMessage?.data?.type === 'call_cancelled') {
+      const { callId } = remoteMessage.data || {};
+      if (callId) {
+        await notifee.cancelNotification(`call_${callId}`);
+        console.log(`[Notifee] Cancelled notification for call_${callId}`);
+      }
+      return;
+    }
+
     if (remoteMessage?.data?.type !== 'incoming_call') return;
 
     const { callId, callerName, callType } = remoteMessage.data || {};
