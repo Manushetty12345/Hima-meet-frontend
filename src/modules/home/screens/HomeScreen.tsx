@@ -189,6 +189,10 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   const [randomMatchTarget, setRandomMatchTarget] = useState<CreatorItem | undefined>(undefined);
 
+  // Refs to avoid stale closures in socket event handlers
+  const randomMatchTargetRef = React.useRef<CreatorItem | undefined>(undefined);
+  const randomMatchTypeRef = React.useRef<'audio' | 'video'>('audio');
+
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const callTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
@@ -228,11 +232,14 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
       const handleCallAccepted = (data: { callId: number }) => {
         clearCallTimeout();
         setShowRandomMatch(false);
-        navigation.navigate(randomMatchType === 'audio' ? 'AudioCallScreen' : 'VideoCallScreen', {
+        // Use refs (not state) to avoid stale closure bug
+        const callType = randomMatchTypeRef.current;
+        const callTarget = randomMatchTargetRef.current;
+        navigation.navigate(callType === 'audio' ? 'AudioCallScreen' : 'VideoCallScreen', {
           callId: data.callId,
-          targetId: randomMatchTarget?.id,
-          calleeName: randomMatchTarget?.name,
-          calleeAvatar: randomMatchTarget?.avatarUri
+          targetId: callTarget?.id,
+          calleeName: callTarget?.name,
+          calleeAvatar: callTarget?.avatarUri
         } as any);
       };
 
@@ -287,6 +294,9 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
     setRandomMatchTarget(creator);
     setRandomMatchType(type);
+    // Keep refs in sync so socket handlers never see stale closures
+    randomMatchTargetRef.current = creator;
+    randomMatchTypeRef.current = type;
     setShowRandomMatch(true);
 
     let socket = getSocket();
