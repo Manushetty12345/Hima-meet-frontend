@@ -14,7 +14,7 @@ const BACKEND_URL = 'https://himameet-backend.onrender.com';
 const ensureChannelExists = async () => {
   try {
     await notifee.createChannel({
-      id: 'incoming_calls_v2', // Changed ID to force Android to register new settings
+      id: 'incoming_calls_v3', // Changed ID to force Android to register new settings (ringtone)
       name: 'Incoming Calls',
       importance: AndroidImportance.HIGH,
       sound: 'ringtone', // Uses the custom ringtone.mp3 in res/raw
@@ -45,8 +45,10 @@ try {
           title: `${callTypeLabel} Call`,
           body: `${callerName || 'Someone'} is calling you`,
           android: {
-            channelId: 'incoming_calls_v2',
+            channelId: 'incoming_calls_v3',
             importance: AndroidImportance.HIGH,
+            largeIcon: remoteMessage.data?.avatar_url || 'https://hima-bucket.s3.amazonaws.com/default-avatar.png',
+            circularLargeIcon: true,
             category: AndroidCategory.CALL, // Tells Android this is a call to show as heads-up
             autoCancel: false,
             ongoing: true,
