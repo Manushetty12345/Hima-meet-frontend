@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Platform, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Platform, StatusBar, RefreshControl } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { MessageCircle, Phone, PhoneMissed, Video, Trash2, Users } from 'lucide-react-native';
 import CreatorEarningRow, { EarningRecord } from '../components/CreatorEarningRow';
 import FriendRequestCard, { FriendRequestItem } from '../../friends/components/FriendRequestCard';
 import apiClient from '../../../api/apiClient';
+import { getSocket } from '../../../api/socketClient';
 import { useNavigation } from '@react-navigation/native';
-import { useAuth } from '../../../context/AuthContext';
 
 const STATUSBAR_HEIGHT = Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 0;
 
@@ -48,12 +48,83 @@ const FILTERS = [
 const CreatorMessagesScreen = () => {
   const [activeTab, setActiveTab] = useState<FilterKey>('chats');
   const [missedCalls, setMissedCalls] = useState<MissedCall[]>([]);
-  const [friendRequests, setFriendRequests] = useState<FriendRequestItem[]>([]);
+  const [friendRequests, setFriendRequests] = useState<any[]>([]);
   const [friends, setFriends] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [typingUsers, setTypingUsers] = useState<Record<string, boolean>>({});
+  const [refreshing, setRefreshing] = useState(false);
   
   const navigation = useNavigation<any>();
-  const { user } = useAuth();
+
+  React.useEffect(() => {
+    let mounted = true;
+    const socket = getSocket();
+
+    if (socket) {
+      socket.on('user_typing', (data: any) => {
+        if (mounted && data.userId) {
+          setTypingUsers(prev => ({ ...prev, [data.userId.toString()]: true }));
+        }
+      });
+      socket.on('user_stopped_typing', (data: any) => {
+        if (mounted && data.userId) {
+          setTypingUsers(prev => ({ ...prev, [data.userId.toString()]: false }));
+        }
+      });
+      socket.on('user_online', (data: any) => {
+        if (mounted && data.userId) {
+          setFriends(prev => prev.map(f => f.user_id?.toString() === data.userId?.toString() ? { ...f, isOnline: true } : f));
+        }
+      });
+      socket.on('user_offline', (data: any) => {
+        if (mounted && data.userId) {
+          setFriends(prev => prev.map(f => f.user_id?.toString() === data.userId?.toString() ? { ...f, isOnline: false } : f));
+        }
+      });
+      socket.on('new_message_alert', (data: any) => {
+        if (mounted && data.conversation_id) {
+          setFriends(prev => {
+            const updated = prev.map(f => {
+              if (f.conversationId?.toString() === data.conversation_id?.toString()) {
+                return {
+                  ...f,
+                  unreadCount: (Number(f.unreadCount) || 0) + 1,
+                  lastMessage: data.content,
+                  lastMessageTime: data.timestamp,
+                  lastMessageStatus: data.status,
+                  lastMessageSenderId: data.sender_id
+                };
+              }
+              return f;
+            });
+            // Move updated friend to top of the list
+            const index = updated.findIndex(f => f.conversationId?.toString() === data.conversation_id?.toString());
+            if (index > 0) {
+              const item = updated.splice(index, 1)[0];
+              updated.unshift(item);
+            }
+            return updated;
+          });
+        }
+      });
+    }
+
+    return () => {
+      mounted = false;
+      if (socket) {
+        socket.off('user_typing');
+        socket.off('user_stopped_typing');
+        socket.off('user_online');
+        socket.off('user_offline');
+        socket.off('new_message_alert');
+      }
+    };
+  }, []);
+
+  React.useEffect(() => {
+    fetchMe();
+  }, []);
 
   React.useEffect(() => {
     if (activeTab === 'missed') {
@@ -64,6 +135,17 @@ const CreatorMessagesScreen = () => {
       fetchFriends();
     }
   }, [activeTab]);
+
+  const fetchMe = async () => {
+    try {
+      const res = await apiClient.get('/api/user/me');
+      if (res.data?.status === 'success') {
+        setCurrentUserId(res.data.data.id);
+      }
+    } catch (err) {
+      console.error('Failed to fetch me:', err);
+    }
+  };
 
   const fetchMissedCalls = async () => {
     try {
@@ -95,18 +177,31 @@ const CreatorMessagesScreen = () => {
     }
   };
 
-  const fetchFriends = async () => {
+  const fetchFriends = async (isRefresh = false) => {
     try {
-      setLoading(true);
+      if (!isRefresh) setLoading(true);
       const res = await apiClient.get('/api/friends/list');
       if (res.data?.status === 'success') {
+        console.log('FRONTEND FRIENDS:', res.data.data.map((f: any) => ({ name: f.name, unread: f.unreadCount, cId: f.conversationId })));
         setFriends(res.data.data);
       }
     } catch (err) {
       console.error('Failed to fetch friends:', err);
     } finally {
-      setLoading(false);
+      if (!isRefresh) setLoading(false);
     }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    if (activeTab === 'missed') {
+      await fetchMissedCalls();
+    } else if (activeTab === 'friends') {
+      await fetchFriendRequests();
+    } else if (activeTab === 'chats') {
+      await fetchFriends(true);
+    }
+    setRefreshing(false);
   };
 
   const handleDelete = async (callId: string) => {
@@ -147,44 +242,41 @@ const CreatorMessagesScreen = () => {
           <Text style={styles.subtitle}>Your chats and calls history</Text>
         </View>
 
-        {/* Filters */}
-        <View style={styles.filterRow}>
+        {/* Tabs */}
+        <View style={styles.tabRow}>
           {FILTERS.map((filter) => {
             const isActive = activeTab === filter.key;
-            const Icon = filter.icon;
-
-            if (isActive) {
-              return (
-                <TouchableOpacity key={filter.key} activeOpacity={0.85} style={styles.filterChipActive}>
-                  <LinearGradient
-                    colors={['#A822D1', '#FF1493']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.filterGrad}
-                  >
-                    <Icon size={15} color="#FFFFFF" style={styles.filterIcon} />
-                    <Text style={styles.filterLabelActive}>{filter.label}</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              );
-            }
-
             return (
               <TouchableOpacity
                 key={filter.key}
-                activeOpacity={0.8}
-                style={styles.filterChip}
+                style={styles.tabItem}
+                activeOpacity={0.7}
                 onPress={() => setActiveTab(filter.key as FilterKey)}
               >
-                <Icon size={15} color={PLUM_ROYAL} style={styles.filterIcon} />
-                <Text style={styles.filterLabel}>{filter.label}</Text>
+                <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
+                  {filter.label}
+                </Text>
+                {isActive && (
+                  <LinearGradient
+                    colors={['#FF1493', '#C850C0']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.tabUnderline}
+                  />
+                )}
               </TouchableOpacity>
             );
           })}
         </View>
       </LinearGradient>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        contentContainerStyle={styles.content} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#5B0E8B']} tintColor={'#5B0E8B'} />
+        }
+      >
         {activeTab === 'chats' && (
           <View>
             {loading ? (
@@ -204,11 +296,16 @@ const CreatorMessagesScreen = () => {
                     name: friend.name,
                     avatarUri: friend.avatar_url,
                     type: 'friend',
-                    lastMessage: friend.lastMessage,
+                    lastMessage: friend.lastMessage || 'Tap to chat',
                     lastMessageStatus: friend.lastMessageStatus,
-                    lastMessageSenderId: friend.lastMessageSenderId
+                    lastMessageSenderId: friend.lastMessageSenderId,
+                    lastMessageTime: friend.lastMessageTime,
+                    unreadCount: Number(friend.unreadCount) || 0,
+                    isOnline: friend.isOnline,
+                    conversationId: friend.conversationId,
                   } as any}
-                  currentUserId={user?.id}
+                  currentUserId={currentUserId || undefined}
+                  isTyping={typingUsers[friend.user_id?.toString()]}
                   onPress={() => navigation.navigate('ChatScreen', {
                     targetId: friend.user_id,
                     targetName: friend.name,
@@ -340,45 +437,33 @@ const styles = StyleSheet.create({
     fontSize: 13.5,
     color: TEXT_MUTED,
   },
-  filterRow: {
+  tabRow: {
     flexDirection: 'row',
     paddingHorizontal: 24,
-    gap: 9,
+    paddingTop: 4,
   },
-  filterChip: {
+  tabItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 22,
-    borderWidth: 1.5,
-    borderColor: IVORY_LINE,
-    backgroundColor: '#FFFFFF',
+    marginRight: 28,
+    paddingBottom: 18,
   },
-  filterChipActive: {
-    borderRadius: 22,
-    overflow: 'hidden',
-    borderWidth: 1.5,
-    borderColor: 'transparent',
-  },
-  filterGrad: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-  },
-  filterIcon: {
-    marginRight: 6,
-  },
-  filterLabel: {
-    fontSize: 13,
+  tabLabel: {
+    fontSize: 14,
     fontWeight: '700',
-    color: PLUM_ROYAL,
+    color: TEXT_MUTED,
+    letterSpacing: 0.3,
   },
-  filterLabelActive: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#FFFFFF',
+  tabLabelActive: {
+    color: '#FF1493',
+  },
+  tabUnderline: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 14,
+    height: 4,
+    borderRadius: 2,
   },
   content: {
     paddingHorizontal: 20,

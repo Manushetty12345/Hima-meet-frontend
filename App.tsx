@@ -3,6 +3,7 @@ import { NavigationContainer, NavigationContainerRef } from '@react-navigation/n
 import { StatusBar, useColorScheme, Linking, DeviceEventEmitter } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+// @ts-ignore - react-native-firebase typings sometimes miss default export in newer TS versions
 import messaging from '@react-native-firebase/messaging';
 import AuthNavigator from './src/navigation/AuthNavigator';
 import apiClient from './src/api/apiClient';
@@ -72,7 +73,7 @@ function App() {
 
         // Refresh token if it changes
         if (typeof fcmInstance.onTokenRefresh === 'function') {
-          unsubscribeTokenRefresh = fcmInstance.onTokenRefresh(async (newToken) => {
+          unsubscribeTokenRefresh = fcmInstance.onTokenRefresh(async (newToken: string) => {
             try {
               await apiClient.post('/api/user/fcm-token', { fcm_token: newToken });
             } catch (err) {
@@ -81,13 +82,12 @@ function App() {
           });
         }
 
-        // When app was KILLED and user taps the notification
         if (typeof fcmInstance.getInitialNotification === 'function') {
           const remoteMessage = await fcmInstance.getInitialNotification();
           if (remoteMessage?.data?.type === 'incoming_call') {
             setTimeout(() => {
-              if (navigationRef.isReady()) {
-                navigationRef.navigate('CreatorHome' as never);
+              if (navigationRef.current?.isReady()) {
+                navigationRef.current.navigate('CreatorHome' as never);
                 DeviceEventEmitter.emit('fcm_incoming_call', remoteMessage.data);
               }
             }, 1000);
@@ -96,10 +96,10 @@ function App() {
 
         // When app is in BACKGROUND and user taps the notification
         if (typeof fcmInstance.onNotificationOpenedApp === 'function') {
-          unsubscribeBackground = fcmInstance.onNotificationOpenedApp((remoteMessage) => {
+          unsubscribeBackground = fcmInstance.onNotificationOpenedApp((remoteMessage: any) => {
             if (remoteMessage?.data?.type === 'incoming_call') {
-              if (navigationRef.isReady()) {
-                navigationRef.navigate('CreatorHome' as never);
+              if (navigationRef.current?.isReady()) {
+                navigationRef.current.navigate('CreatorHome' as never);
                 DeviceEventEmitter.emit('fcm_incoming_call', remoteMessage.data);
               }
             }
@@ -119,14 +119,16 @@ function App() {
   }, []);
 
   const handleNavigateToCall = (call: any) => {
-    if (navigationRef.isReady()) {
-      const screenName = call.call_type === 'video' ? 'VideoCallScreen' : 'AudioCallScreen';
-      navigationRef.navigate(screenName as never, {
-        callId: call.request_id,
-        targetId: call.caller_id,
-        calleeName: call.name,
-        calleeAvatar: call.avatar_url,
-      } as never);
+    if (navigationRef.current?.isReady()) {
+      const screenName = call.call_type === 'video' ? 'CreatorVideoCallScreen' : 'CreatorAudioCallScreen';
+      (navigationRef.current.navigate as any)(screenName, {
+        callId: call.callId || call.call_id || call.request_id,
+        targetId: call.caller_id || call.callerId,
+        callerName: call.name, // The person who initiated the call is the male
+        callerAvatar: call.avatar_url,
+        rate: call.rate || 0, // Coins per minute if passed
+        agoraToken: call.agoraToken || '',
+      });
     }
   };
 

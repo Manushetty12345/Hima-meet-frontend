@@ -13,6 +13,7 @@ interface IncomingCall {
   avatar_url: string;
   call_type: 'audio' | 'video';
   caller_id: number;
+  rate?: number;
 }
 
 interface CallOverlayContextProps {
@@ -62,6 +63,7 @@ export const CallOverlayProvider: React.FC<{ children: React.ReactNode; onNaviga
 
   useEffect(() => {
     let socket = getSocket();
+    let handledCallIds = new Set<number>();
 
     const setupSocket = async () => {
       if (!socket) {
@@ -70,12 +72,18 @@ export const CallOverlayProvider: React.FC<{ children: React.ReactNode; onNaviga
       if (!socket) return;
 
       const handleIncomingCall = (data: any) => {
+        if (handledCallIds.has(Number(data.callId))) {
+          return; // Ignore duplicate events (e.g., from FCM push arriving late)
+        }
+        handledCallIds.add(Number(data.callId));
+        
         const newCall: IncomingCall = {
           request_id: data.callId,
           name: data.name || 'User',
           avatar_url: data.avatar_url,
           call_type: data.call_type || data.type,
           caller_id: data.callerId,
+          rate: data.rate,
         };
         updateCurrentCall(newCall);
         setTimeLeft(35);
@@ -131,7 +139,9 @@ export const CallOverlayProvider: React.FC<{ children: React.ReactNode; onNaviga
     if (!currentCall) return;
     const socket = getSocket();
     if (socket) {
-      socket.emit('accept_call', { callId: currentCall.request_id, callerId: currentCall.caller_id });
+      const actualCallId = currentCall.callId || currentCall.call_id || currentCall.request_id;
+      const actualCallerId = currentCall.callerId || currentCall.caller_id;
+      socket.emit('accept_call', { callId: actualCallId, callerId: actualCallerId });
     }
     const callData = currentCall;
     clearCall();
@@ -142,7 +152,9 @@ export const CallOverlayProvider: React.FC<{ children: React.ReactNode; onNaviga
     if (!currentCall) return;
     const socket = getSocket();
     if (socket) {
-      socket.emit('decline_call', { callId: currentCall.request_id, callerId: currentCall.caller_id });
+      const actualCallId = currentCall.callId || currentCall.call_id || currentCall.request_id;
+      const actualCallerId = currentCall.callerId || currentCall.caller_id;
+      socket.emit('decline_call', { callId: actualCallId, callerId: actualCallerId });
     }
     clearCall();
   };

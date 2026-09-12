@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
-  ScrollView,
   StatusBar,
   Animated,
   Dimensions,
@@ -19,13 +18,10 @@ import {
   PhoneOff,
   VideoOff,
   Video as VideoIcon,
-  Gift,
 } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { AuthStackParamList } from '../../../navigation/AuthNavigator';
 import EndCallModal from '../components/EndCallModal';
-import LowBalanceWarning from '../components/LowBalanceWarning';
-import apiClient from '../../../api/apiClient';
 import createAgoraRtcEngine, {
   ChannelProfileType,
   ClientRoleType,
@@ -37,94 +33,54 @@ import { request, PERMISSIONS } from 'react-native-permissions';
 import FaceDetector from '@react-native-ml-kit/face-detection';
 import { getSocket } from '../../../api/socketClient';
 
-type Props = NativeStackScreenProps<AuthStackParamList, 'VideoCallScreen'>;
+type Props = NativeStackScreenProps<AuthStackParamList, 'CreatorVideoCallScreen'>;
 
 const { width, height } = Dimensions.get('window');
 const AGORA_APP_ID = '0d5ce553174a45f0a1b25684e02f8164';
 
-const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
+const CreatorVideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
   const {
-    callerName = 'You',
-    calleeName = 'User',
-    callerAvatar = 'https://ui-avatars.com/api/?name=You&background=random',
-    calleeAvatar = 'https://ui-avatars.com/api/?name=User&background=random',
+    callerName = 'User',
+    callerAvatar = 'https://ui-avatars.com/api/?name=User&background=random',
     callId,
-    targetId,
+    rate = 0,
     agoraToken = '',
   } = route.params || {};
 
-  // Coin & Timer
-  const [coins, setCoins] = useState<number>(0);
-  const [timeLeft, setTimeLeft] = useState<number | null>(null);
-  const [showLowBalance, setShowLowBalance] = useState(false);
-  const [callCostPerMinute, setCallCostPerMinute] = useState<number>(0);
+  // Coin & Timer State
+  const [coinsEarned, setCoinsEarned] = useState<number>(0);
+  const [elapsedTime, setElapsedTime] = useState<number>(0);
 
-  // Gifts
-  const [gifts, setGifts] = useState<
-    { id: string; name: string; price: number; icon: string; color: string }[]
-  >([]);
-
-  // Fetched caller info
-  const [fetchedCallerName, setFetchedCallerName] = useState<string | null>(null);
-  const [fetchedCallerAvatar, setFetchedCallerAvatar] = useState<string | null>(null);
-
-  // Call controls
+  // Call Control State
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [showEndCallModal, setShowEndCallModal] = useState(false);
   const [isJoined, setIsJoined] = useState(false);
   const [isPreviewReady, setIsPreviewReady] = useState(false);
   const [remoteUid, setRemoteUid] = useState<number | null>(null);
-  // Ref version of remoteUid so the snapshot interval (closure) always reads the latest value
+  
   const remoteUidRef = useRef<number | null>(null);
 
   // Face detection
-  // How many consecutive 3-second checks have had NO face
   const localNoFaceCount = useRef(0);
   const remoteNoFaceCount = useRef(0);
-  // Warning overlay state
   const [faceWarning, setFaceWarning] = useState<'local' | 'remote' | null>(null);
   const [faceWarningCountdown, setFaceWarningCountdown] = useState(5);
   const faceWarningTimer = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Snapshot pending tracking to avoid overlapping calls
   const snapshotInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const engine = useRef<IRtcEngine>(null);
   const channelName = callId ? `call_${callId}` : 'test-video-channel';
 
-  // Toast
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const toastAnim = useRef(new Animated.Value(0)).current;
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    Animated.sequence([
-      Animated.timing(toastAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
-      Animated.delay(2000),
-      Animated.timing(toastAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
-    ]).start(() => setToastMessage(null));
-  };
-
   useEffect(() => {
-    fetchInitialData();
     setupAgoraEngine();
-    
-    const socket = getSocket();
-    if (socket) {
-      socket.emit('join_call', { callId });
-      socket.on('call_ended', () => {
-        handleEndCall();
-      });
-      socket.on('insufficient_coins', () => {
-        handleEndCall();
-      });
-    }
-
+    setupSocketListeners();
     return () => {
       engine.current?.leaveChannel();
       engine.current?.release();
       if (snapshotInterval.current) clearInterval(snapshotInterval.current);
       if (faceWarningTimer.current) clearInterval(faceWarningTimer.current);
+      const socket = getSocket();
       if (socket) {
         socket.off('call_ended');
         socket.off('insufficient_coins');
@@ -132,37 +88,20 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
     };
   }, []);
 
-  const fetchInitialData = async () => {
-    try {
-      const [giftsRes, configRes, userRes, walletRes] = await Promise.all([
-        apiClient.get('/api/gifts').catch(() => null),
-        apiClient.get('/api/config/call-rates').catch(() => null),
-        apiClient.get('/api/user/me').catch(() => null),
-        apiClient.get('/api/wallet/balance').catch(() => null),
-      ]);
+  const setupSocketListeners = () => {
+    const socket = getSocket();
+    if (!socket) return;
+    
+    // Join socket room
+    socket.emit('join_call', { callId });
 
-      if (giftsRes?.data?.data) setGifts(giftsRes.data.data);
+    socket.on('call_ended', () => {
+      handleCallCleanup();
+    });
 
-      const cost =
-        configRes?.data?.data?.videoCallCost ??
-        configRes?.data?.data?.audioCallCost ??
-        10;
-      setCallCostPerMinute(cost);
-
-      const user = userRes?.data?.data;
-      if (user) {
-        setFetchedCallerName(user.name);
-        if (user.avatar_url) setFetchedCallerAvatar(user.avatar_url);
-      }
-
-      const fetchedCoins = walletRes?.data?.data?.coin_balance ?? 0;
-      setCoins(fetchedCoins);
-      setTimeLeft(Math.floor((fetchedCoins / cost) * 60));
-    } catch (err) {
-      console.log('Error fetching initial data:', err);
-      setCoins(0);
-      setTimeLeft(0);
-    }
+    socket.on('insufficient_coins', () => {
+      handleCallCleanup();
+    });
   };
 
   const setupAgoraEngine = async () => {
@@ -181,43 +120,25 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
       engine.current.enableAudio();
       engine.current.setChannelProfile(ChannelProfileType.ChannelProfileCommunication);
       engine.current.setDefaultAudioRouteToSpeakerphone(true);
-
-      // We explicitly start preview so the user can see themselves before/during join
       engine.current.startPreview();
       setIsPreviewReady(true);
 
       engine.current.registerEventHandler({
         onJoinChannelSuccess: (connection, elapsed) => {
-          console.log('Joined Agora video channel');
           setIsJoined(true);
-          // Start taking snapshots for face detection once in channel
           startFaceDetectionLoop();
         },
         onUserJoined: (connection, uid, elapsed) => {
-          console.log('Remote video user joined:', uid);
-          setRemoteUid(uid);
           remoteUidRef.current = uid;
-          // Reset face warning logic for remote when a new user joins
-          setFaceWarning(prev => (prev === 'remote' ? null : prev));
-          remoteNoFaceCount.current = 0;
+          setRemoteUid(uid);
         },
         onUserOffline: (connection, uid, reason) => {
-          console.log('Remote video user left:', uid);
-          setRemoteUid(null);
           remoteUidRef.current = null;
-          handleEndCall(); // End if the other user leaves
-        }
-      });
-
-      // Handle snapshot result — run ML Kit face detection on the saved image
-      engine.current.addListener(
-        'onSnapshotTaken',
-        async (connection, uid, filePath, width, height, errCode) => {
-          console.log('onSnapshotTaken fired:', { uid, filePath, errCode });
-
-          // If snapshot fails (e.g., errCode -2: camera covered / no frames), treat as no face
+          setRemoteUid(null);
+          handleCallCleanup();
+        },
+        onSnapshotTaken: async (connection, uid, filePath, width, height, errCode) => {
           if (errCode !== 0 || !filePath) {
-            console.log(`Snapshot failed for uid ${uid}. Treating as no face.`);
             if (uid === 0) {
               localNoFaceCount.current += 1;
               if (localNoFaceCount.current >= 3) triggerFaceWarning('local');
@@ -232,40 +153,31 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
             const imageUri = `file://${filePath}`;
             const faces = await FaceDetector.detect(imageUri);
             const hasFace = faces.length > 0;
-            console.log(`Face detection result for uid ${uid}:`, { hasFace, facesCount: faces.length });
 
             if (uid === 0) {
-              // Local user (male)
               if (hasFace) {
                 localNoFaceCount.current = 0;
-                // If local warning was active, dismiss it
                 setFaceWarning(prev => (prev === 'local' ? null : prev));
               } else {
                 localNoFaceCount.current += 1;
-                // Each check = 3 seconds. 10s = ~3 checks before warning
-                if (localNoFaceCount.current >= 3) {
-                  triggerFaceWarning('local');
-                }
+                if (localNoFaceCount.current >= 3) triggerFaceWarning('local');
               }
             } else {
-              // Remote user (female)
               if (hasFace) {
                 remoteNoFaceCount.current = 0;
                 setFaceWarning(prev => (prev === 'remote' ? null : prev));
               } else {
                 remoteNoFaceCount.current += 1;
-                if (remoteNoFaceCount.current >= 3) {
-                  triggerFaceWarning('remote');
-                }
+                if (remoteNoFaceCount.current >= 3) triggerFaceWarning('remote');
               }
             }
-          } catch (e) {
-            console.log('Face detection error:', e);
+          } catch (err) {
+            console.log('ML Kit detection error:', err);
           }
         }
-      );
+      });
 
-      // IMPORTANT: Always join the channel AFTER registering all event listeners
+
       engine.current.joinChannel(agoraToken, channelName, 0, {
         clientRoleType: ClientRoleType.ClientRoleBroadcaster,
       });
@@ -275,46 +187,34 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
-  // Take snapshots every 3 seconds for face detection
   const startFaceDetectionLoop = () => {
-    console.log('Starting face detection loop...');
     if (snapshotInterval.current) clearInterval(snapshotInterval.current);
     snapshotInterval.current = setInterval(() => {
       try {
         const cacheDir = '/data/data/com.himameet.app/cache';
         const ts = Date.now();
         
-        console.log('Taking local snapshot...');
         const localRes = engine.current?.takeSnapshot(0, `${cacheDir}/face_local_${ts}.jpg`);
-        console.log('Local snapshot trigger result:', localRes);
-        
-        // If it fails synchronously (e.g. camera off/covered), treat as no face
         if (localRes !== undefined && localRes < 0) {
           localNoFaceCount.current += 1;
           if (localNoFaceCount.current >= 3) triggerFaceWarning('local');
         }
 
         if (remoteUidRef.current !== null) {
-          console.log('Taking remote snapshot for uid:', remoteUidRef.current);
           const remoteRes = engine.current?.takeSnapshot(
             remoteUidRef.current,
             `${cacheDir}/face_remote_${ts}.jpg`
           );
-          console.log('Remote snapshot trigger result:', remoteRes);
-          
           if (remoteRes !== undefined && remoteRes < 0) {
             remoteNoFaceCount.current += 1;
             if (remoteNoFaceCount.current >= 3) triggerFaceWarning('remote');
           }
         }
-      } catch (e) {
-        console.log('Snapshot interval error:', e);
-      }
+      } catch (e) {}
     }, 3000);
   };
 
   const triggerFaceWarning = (who: 'local' | 'remote') => {
-    // Don't re-trigger if already showing a warning
     if (faceWarningTimer.current) return;
     setFaceWarning(who);
     setFaceWarningCountdown(5);
@@ -325,12 +225,11 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
       if (count <= 0) {
         clearInterval(faceWarningTimer.current!);
         faceWarningTimer.current = null;
-        handleEndCall();
+        emitLeaveCall();
       }
     }, 1000);
   };
 
-  // When warning is dismissed (face came back), clear the countdown timer
   useEffect(() => {
     if (faceWarning === null && faceWarningTimer.current) {
       clearInterval(faceWarningTimer.current);
@@ -338,38 +237,23 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   }, [faceWarning]);
 
-  // Countdown timer
+  // Up-counter timer
   useEffect(() => {
     let timer: ReturnType<typeof setInterval>;
-    if (timeLeft !== null) {
-      if (timeLeft <= 0) {
-        handleEndCall();
-        return;
-      }
-      if (timeLeft === 60) setShowLowBalance(true);
+    if (isJoined) {
       timer = setInterval(() => {
-        setTimeLeft(prev => (prev !== null ? prev - 1 : null));
+        setElapsedTime((prev) => prev + 1);
       }, 1000);
     }
     return () => clearInterval(timer);
-  }, [timeLeft]);
+  }, [isJoined]);
 
-  // Heartbeat
+  // Coin earning calculation
   useEffect(() => {
-    if (timeLeft === null || timeLeft <= 0) return;
-    const heartbeatTimer = setInterval(() => {
-      setCoins(prevCoins => {
-        const newCoins = prevCoins - callCostPerMinute;
-        return newCoins > 0 ? newCoins : 0;
-      });
-      if (callId) {
-        apiClient
-          .post('/api/call/heartbeat', { callId })
-          .catch(e => console.log('Heartbeat failed:', e));
-      }
-    }, 60000);
-    return () => clearInterval(heartbeatTimer);
-  }, [callCostPerMinute, callId, timeLeft === null || timeLeft <= 0]);
+    if (elapsedTime > 0 && elapsedTime % 60 === 0) {
+      setCoinsEarned(prev => prev + Number(rate));
+    }
+  }, [elapsedTime, rate]);
 
   const handleMute = () => {
     const next = !isMuted;
@@ -383,55 +267,28 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
     setIsVideoOff(next);
   };
 
-  const handleEndCall = () => {
+  const handleCallCleanup = () => {
     setShowEndCallModal(false);
     engine.current?.leaveChannel();
-    const socket = getSocket();
-    if (socket && callId) {
-      socket.emit('leave_call', { callId });
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.replace('MainTabs');
     }
-    navigation.replace('CallFeedbackScreen', {
-      creatorName: calleeName,
-      creatorId: targetId,
-      callId: callId,
-    });
   };
 
-  const handleSendGift = async (gift: {
-    id: string;
-    name: string;
-    price: number;
-    icon: string;
-    color: string;
-  }) => {
-    if (coins < gift.price) {
-      showToast('Not enough coins to send this gift.');
-      return;
+  const emitLeaveCall = () => {
+    const socket = getSocket();
+    if (socket) {
+      socket.emit('leave_call', { callId });
     }
-    try {
-      const newCoins = coins - gift.price;
-      setCoins(newCoins);
-      const newMaxSeconds = Math.floor((newCoins / callCostPerMinute) * 60);
-      if (timeLeft && newMaxSeconds < timeLeft) setTimeLeft(newMaxSeconds);
-      if (newMaxSeconds <= 60 && newMaxSeconds > 0) setShowLowBalance(true);
-      else if (newMaxSeconds <= 0) handleEndCall();
-      await apiClient.post('/api/call/gift', { giftId: gift.id });
-      showToast(`Sent ${gift.name} ${gift.icon}`);
-    } catch (err) {
-      console.log('Error sending gift', err);
-      setCoins(coins);
-      showToast('Failed to send gift');
-    }
+    handleCallCleanup();
   };
 
   const formatTime = (totalSeconds: number) => {
-    if (totalSeconds < 0) return '00:00';
-    const hrs = Math.floor(totalSeconds / 3600);
     const mins = Math.floor((totalSeconds % 3600) / 60);
     const secs = totalSeconds % 60;
-    return `${hrs > 0 ? hrs.toString().padStart(2, '0') + ':' : ''}${mins
-      .toString()
-      .padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   const statusBarHeight = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 0;
@@ -449,7 +306,7 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
         />
       ) : (
         <Image
-          source={{ uri: calleeAvatar }}
+          source={{ uri: callerAvatar }}
           style={[StyleSheet.absoluteFill, { opacity: 0.55 }]}
           blurRadius={30}
         />
@@ -468,30 +325,22 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
       {/* Header: timer + coins */}
       <View style={[styles.header, { top: statusBarHeight + 14 }]}>
         <View style={styles.timerGlassPill}>
-          <Clock
-            size={16}
-            color={timeLeft !== null && timeLeft <= 60 ? '#FF4D4D' : '#00DFD8'}
-          />
-          <Text
-            style={[
-              styles.timerText,
-              timeLeft !== null && timeLeft <= 60 && { color: '#FF4D4D' },
-            ]}
-          >
-            {timeLeft !== null ? formatTime(timeLeft) : 'Connecting...'}
+          <Clock size={16} color="#00DFD8" />
+          <Text style={styles.timerText}>
+            {isJoined ? formatTime(elapsedTime) : 'Connecting...'}
           </Text>
         </View>
         <View style={styles.coinPill}>
-          <Text style={styles.coinText}>{coins} Coins</Text>
+          <Text style={styles.coinText}>+{coinsEarned} Coins Earned</Text>
         </View>
       </View>
 
-      {/* Callee name badge */}
+      {/* Caller name badge */}
       <View style={[styles.calleeBadge, { top: statusBarHeight + 82 }]}>
         <View style={styles.liveDotWrapper}>
           <View style={styles.liveDot} />
         </View>
-        <Text style={styles.calleeName}>{calleeName}</Text>
+        <Text style={styles.calleeName}>{callerName}</Text>
       </View>
 
       {/* Local PiP (self-view) */}
@@ -503,57 +352,16 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
           />
         ) : (
           <View style={styles.pipVideoOff}>
-            {isVideoOff ? (
-              <VideoOff size={28} color="#FFF" />
-            ) : (
-              <Image
-                source={{ uri: fetchedCallerAvatar || callerAvatar }}
-                style={styles.pipVideo}
-              />
-            )}
+            <VideoOff size={28} color="#FFF" />
           </View>
         )}
         <View style={styles.pipNameBadge}>
-          <Text style={styles.pipName}>{fetchedCallerName || callerName}</Text>
+          <Text style={styles.pipName}>You</Text>
         </View>
       </View>
 
-      {/* Bottom: gifts + controls */}
+      {/* Bottom: controls */}
       <View style={styles.bottomSection}>
-
-        {/* Gift Dock */}
-        <View style={styles.giftDockWrapper}>
-          <View style={styles.giftsHeader}>
-            <Gift size={15} color="#FFD700" />
-            <Text style={styles.giftsTitle}>Send a Gift</Text>
-          </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.giftsScroll}
-          >
-            {gifts.map(gift => (
-              <TouchableOpacity
-                key={gift.id}
-                activeOpacity={0.8}
-                onPress={() => handleSendGift(gift)}
-              >
-                <LinearGradient
-                  colors={['rgba(255,255,255,0.12)', 'rgba(255,255,255,0.04)']}
-                  style={styles.giftCard}
-                >
-                  <Text style={styles.giftIconText}>{gift.icon}</Text>
-                  <View style={styles.giftPriceRow}>
-                    <View style={styles.coinDot} />
-                    <Text style={styles.giftPriceText}>{gift.price}</Text>
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* Controls Pill */}
         <View style={styles.controlsDock}>
           <LinearGradient
             colors={['rgba(40, 30, 60, 0.65)', 'rgba(20, 15, 30, 0.85)']}
@@ -563,11 +371,7 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
               style={[styles.controlBtn, isMuted && styles.controlBtnActive]}
               onPress={handleMute}
             >
-              {isMuted ? (
-                <MicOff size={24} color="#FFFFFF" />
-              ) : (
-                <Mic size={24} color="#B9AFC4" />
-              )}
+              {isMuted ? <MicOff size={24} color="#FFFFFF" /> : <Mic size={24} color="#B9AFC4" />}
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -584,11 +388,7 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
               style={[styles.controlBtn, isVideoOff && styles.controlBtnActive]}
               onPress={handleVideoToggle}
             >
-              {isVideoOff ? (
-                <VideoOff size={24} color="#FFFFFF" />
-              ) : (
-                <VideoIcon size={24} color="#B9AFC4" />
-              )}
+              {isVideoOff ? <VideoOff size={24} color="#FFFFFF" /> : <VideoIcon size={24} color="#B9AFC4" />}
             </TouchableOpacity>
           </LinearGradient>
         </View>
@@ -597,40 +397,8 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
       <EndCallModal
         visible={showEndCallModal}
         onCancel={() => setShowEndCallModal(false)}
-        onEndCall={handleEndCall}
+        onEndCall={emitLeaveCall}
       />
-      <LowBalanceWarning
-        visible={showLowBalance}
-        onClose={() => setShowLowBalance(false)}
-        onRecharge={() => {
-          setShowLowBalance(false);
-          navigation.navigate('Wallet');
-        }}
-      />
-
-      {toastMessage && (
-        <Animated.View
-          style={[
-            styles.toastContainer,
-            {
-              opacity: toastAnim,
-              transform: [
-                {
-                  translateY: toastAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [20, 0],
-                  }),
-                },
-              ],
-            },
-          ]}
-          pointerEvents="none"
-        >
-          <View style={styles.toastContent}>
-            <Text style={styles.toastText}>{toastMessage}</Text>
-          </View>
-        </Animated.View>
-      )}
 
       {/* Face Detection Warning Overlay */}
       {faceWarning !== null && (
@@ -641,7 +409,7 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
           >
             <Text style={styles.faceWarningEmoji}>⚠️</Text>
             <Text style={styles.faceWarningTitle}>
-              {faceWarning === 'local' ? 'Show your face!' : `${calleeName} not showing face`}
+              {faceWarning === 'local' ? 'Show your face!' : `${callerName} not showing face`}
             </Text>
             <Text style={styles.faceWarningSubtitle}>
               {faceWarning === 'local'
@@ -661,12 +429,8 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
-  topGradient: {
-    position: 'absolute', top: 0, width: '100%', zIndex: 1,
-  },
-  bottomGradient: {
-    position: 'absolute', bottom: 0, width: '100%', height: 320, zIndex: 1,
-  },
+  topGradient: { position: 'absolute', top: 0, width: '100%', zIndex: 1 },
+  bottomGradient: { position: 'absolute', bottom: 0, width: '100%', height: 320, zIndex: 1 },
   header: {
     position: 'absolute', left: 0, right: 0,
     flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
@@ -681,12 +445,12 @@ const styles = StyleSheet.create({
   },
   timerText: { color: '#FFF', fontSize: 15, fontWeight: '700', letterSpacing: 1 },
   coinPill: {
-    backgroundColor: 'rgba(255,215,0,0.18)',
+    backgroundColor: 'rgba(0, 223, 216, 0.15)',
     paddingHorizontal: 16, paddingVertical: 9,
     borderRadius: 30, borderWidth: 1,
-    borderColor: 'rgba(255,215,0,0.35)',
+    borderColor: 'rgba(0, 223, 216, 0.3)',
   },
-  coinText: { color: '#FFD700', fontSize: 14, fontWeight: '700' },
+  coinText: { color: '#00DFD8', fontSize: 14, fontWeight: '700' },
   calleeBadge: {
     position: 'absolute', left: 18,
     flexDirection: 'row', alignItems: 'center', gap: 8, zIndex: 10,
@@ -720,33 +484,6 @@ const styles = StyleSheet.create({
   },
   pipName: { color: '#FFF', fontSize: 11, fontWeight: '700' },
   bottomSection: { position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10 },
-  giftDockWrapper: { marginBottom: 16, paddingHorizontal: 20 },
-  giftsHeader: {
-    flexDirection: 'row', alignItems: 'center',
-    gap: 8, marginBottom: 12, paddingHorizontal: 4,
-  },
-  giftsTitle: { color: '#FFF', fontSize: 15, fontWeight: '700', letterSpacing: 0.5 },
-  giftsScroll: { gap: 14, paddingRight: 20 },
-  giftCard: {
-    width: 80, height: 92, borderRadius: 18,
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', overflow: 'hidden',
-  },
-  giftIconText: {
-    fontSize: 30, marginBottom: 8,
-    textShadowColor: 'rgba(0,0,0,0.3)',
-    textShadowOffset: { width: 0, height: 3 }, textShadowRadius: 5,
-  },
-  giftPriceRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    paddingHorizontal: 7, paddingVertical: 3, borderRadius: 10,
-  },
-  coinDot: {
-    width: 10, height: 10, borderRadius: 5,
-    backgroundColor: '#FFD700', borderWidth: 1, borderColor: '#FFF',
-  },
-  giftPriceText: { color: '#FFF', fontSize: 11, fontWeight: '800' },
   controlsDock: {
     paddingHorizontal: 24,
     paddingBottom: Platform.OS === 'ios' ? 42 : 28,
@@ -774,25 +511,13 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)',
   },
-  toastContainer: {
-    position: 'absolute', bottom: 130, left: 0, right: 0,
-    alignItems: 'center', zIndex: 9999,
-  },
-  toastContent: {
-    backgroundColor: 'rgba(0,0,0,0.85)',
-    paddingHorizontal: 24, paddingVertical: 12,
-    borderRadius: 30, borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-  },
-  toastText: { color: '#FFF', fontSize: 14, fontWeight: '600', textAlign: 'center' },
-  // Face warning overlay
   faceWarningOverlay: {
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 99999,
-    elevation: 9999, // IMPORTANT: Needed on Android to render over RtcSurfaceView
+    elevation: 9999,
     backgroundColor: 'rgba(0,0,0,0.45)',
   },
   faceWarningCard: {
@@ -804,47 +529,25 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: 'rgba(255,80,80,0.5)',
   },
-  faceWarningEmoji: {
-    fontSize: 48,
-    marginBottom: 12,
-  },
+  faceWarningEmoji: { fontSize: 48, marginBottom: 12 },
   faceWarningTitle: {
-    color: '#FFF',
-    fontSize: 22,
-    fontWeight: '800',
-    textAlign: 'center',
-    letterSpacing: 0.3,
-    marginBottom: 8,
+    color: '#FFF', fontSize: 22, fontWeight: '800', textAlign: 'center',
+    letterSpacing: 0.3, marginBottom: 8,
   },
   faceWarningSubtitle: {
-    color: 'rgba(255,255,255,0.75)',
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 28,
-    lineHeight: 20,
+    color: 'rgba(255,255,255,0.75)', fontSize: 14, textAlign: 'center',
+    marginBottom: 28, lineHeight: 20,
   },
   faceWarningCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.4)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
+    width: 80, height: 80, borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.4)', alignItems: 'center',
+    justifyContent: 'center', marginBottom: 16,
   },
-  faceWarningCountdownNum: {
-    color: '#FFF',
-    fontSize: 38,
-    fontWeight: '900',
-  },
+  faceWarningCountdownNum: { color: '#FFF', fontSize: 38, fontWeight: '900' },
   faceWarningEndText: {
-    color: 'rgba(255,220,220,0.9)',
-    fontSize: 14,
-    fontWeight: '600',
-    letterSpacing: 0.5,
+    color: 'rgba(255,220,220,0.9)', fontSize: 14, fontWeight: '600', letterSpacing: 0.5,
   },
 });
 
-export default VideoCallScreen;
+export default CreatorVideoCallScreen;

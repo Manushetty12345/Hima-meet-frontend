@@ -82,9 +82,13 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
   const [menuVisible, setMenuVisible] = useState(false);
   const [friendStatus, setFriendStatus] = useState<'none' | 'pending' | 'friends' | 'blocked'>('none');
   const [isLoadingStatus, setIsLoadingStatus] = useState(true);
-  const [message, setMessage] = useState('');
   
-  // Chat state
+  // Real-time online status state
+  const [isOnline, setIsOnline] = useState(creator?.isOnline || false);
+  const [lastSeen, setLastSeen] = useState<string | null>((creator as any)?.lastSeen || null);
+
+  const [message, setMessage] = useState('');
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [messagesList, setMessagesList] = useState<any[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const scrollViewRef = useRef<React.ElementRef<typeof ScrollView>>(null);
@@ -134,6 +138,12 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
           // 1. Get conversation ID
           const convRes = await apiClient.get(`/api/chat/conversation/${creator.id}`);
           const convId = convRes.data?.data?.conversation_id;
+          
+          if (convRes.data?.data?.targetUserStatus) {
+            setIsOnline(convRes.data.data.targetUserStatus.isOnline);
+            setLastSeen(convRes.data.data.targetUserStatus.lastSeen);
+          }
+
           if (!active || !convId) return;
           setConversationId(convId);
 
@@ -149,15 +159,32 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
             localSocket.emit('join_chat', { conversationId: convId });
 
             localSocket.on('receive_message', (data: any) => {
-              setMessagesList(prev => [...prev, data]);
-              localSocket.emit('message_delivered', { conversationId: convId, messageId: data.message_id });
-              localSocket.emit('message_read', { conversationId: convId, messageId: data.message_id });
+              setMessagesList(prev => {
+                if (prev.find(m => m.message_id === data.message_id)) return prev;
+                return [...prev, data];
+              });
+              
+              if (data.sender_id === creator.id) {
+                localSocket.emit('message_delivered', { conversationId: convId, messageId: data.message_id });
+                localSocket.emit('message_read', { conversationId: convId, messageId: data.message_id });
+              }
             });
 
             localSocket.on('message_status_update', (data: any) => {
               setMessagesList(prev => prev.map(msg => 
                 msg.message_id === data.message_id ? { ...msg, status: data.status } : msg
               ));
+            });
+            
+            localSocket.on('user_online', (data: any) => {
+              if (data.userId?.toString() === creator.id?.toString()) setIsOnline(true);
+            });
+            
+            localSocket.on('user_offline', (data: any) => {
+              if (data.userId?.toString() === creator.id?.toString()) {
+                setIsOnline(false);
+                setLastSeen(new Date().toISOString());
+              }
             });
           }
         } catch (e: any) {
@@ -176,8 +203,12 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
 
     return () => {
       active = false;
-      if (localSocket && conversationId) {
-        localSocket.emit('leave_chat', { conversationId });
+      if (localSocket) {
+        if (conversationId) localSocket.emit('leave_chat', { conversationId });
+        localSocket.off('receive_message');
+        localSocket.off('message_status_update');
+        localSocket.off('user_online');
+        localSocket.off('user_offline');
       }
       disconnectSocket();
     };
@@ -225,6 +256,18 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
     }
   };
 
+  const handleTextChange = (text: string) => {
+    setMessage(text);
+    const socket = getSocket();
+    if (socket) {
+      socket.emit('typing_started', { targetId: creator.id });
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(() => {
+        socket.emit('typing_stopped', { targetId: creator.id });
+      }, 1500);
+    }
+  };
+
   const handleSendMessage = () => {
     if (!message.trim()) return;
     if (!conversationId) {
@@ -234,6 +277,8 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
 
     const socket = getSocket();
     if (socket) {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      socket.emit('typing_stopped', { targetId: creator.id });
       socket.emit('send_message', {
         conversationId,
         messageText: message,
@@ -291,6 +336,25 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
     }
   };
 
+  const formatLastSeen = (dateString: string | null) => {
+    if (!dateString) return 'last seen recently';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    
+    if (diff < 86400000 && now.getDate() === date.getDate()) {
+      return `last seen today at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    }
+    
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    if (yesterday.getDate() === date.getDate() && diff < 172800000) {
+      return `last seen yesterday at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    }
+    
+    return `last seen ${date.toLocaleDateString([], { month: 'short', day: 'numeric' })}`;
+  };
+
   return (
     <Modal
       visible={visible}
@@ -311,47 +375,54 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
             <View style={styles.avatarWrap}>
               <Image source={{ uri: creator.avatarUri }} style={styles.avatar} />
             </View>
-            <Text style={styles.headerName}>{creator.name}</Text>
+            <View style={{ alignItems: 'center' }}>
+              <Text style={styles.headerName}>{creator.name}</Text>
+              {friendStatus === 'friends' && (
+                <Text style={[styles.headerStatusText, !isOnline && { color: '#8B7F98' }]}>
+                  {isOnline ? 'Online' : formatLastSeen(lastSeen)}
+                </Text>
+              )}
+            </View>
           </TouchableOpacity>
 
           <View style={styles.headerActions}>
             {/* Phone Button */}
             <View style={styles.actionBtn}>
               <TouchableOpacity
-                style={[styles.actionCircle, creator.isOnline ? styles.actionCircleActive : styles.actionCircleDisabled]}
+                style={[styles.actionCircle, (isOnline && creator.callAvailable) ? styles.actionCircleActive : styles.actionCircleDisabled]}
                 activeOpacity={0.8}
-                disabled={!creator.isOnline}
+                disabled={!isOnline || !creator.callAvailable}
                 onPress={() => onCall?.(creator)}
               >
-                <Phone size={20} color={creator.isOnline ? PINK : '#B9AFC4'} fill={creator.isOnline ? PINK : 'transparent'} />
+                <Phone size={20} color={(isOnline && creator.callAvailable) ? PINK : '#B9AFC4'} fill={(isOnline && creator.callAvailable) ? PINK : 'transparent'} />
               </TouchableOpacity>
-              {creator.isOnline ? (
+              {(isOnline && creator.callAvailable) ? (
                 <View style={styles.rateRow}>
                   <Coins size={10} color={GOLD_DEEP} />
                   <Text style={styles.rateText}>{creator.callRate || 0}/min</Text>
                 </View>
               ) : (
-                <Text style={styles.offlineText}>Offline</Text>
+                <Text style={styles.offlineText}>{isOnline ? 'Busy' : 'Offline'}</Text>
               )}
             </View>
 
             {/* Video Button */}
             <View style={styles.actionBtn}>
               <TouchableOpacity
-                style={[styles.actionCircle, creator.isOnline ? styles.actionCircleActive : styles.actionCircleDisabled]}
+                style={[styles.actionCircle, (isOnline && creator.videoAvailable) ? styles.actionCircleActive : styles.actionCircleDisabled]}
                 activeOpacity={0.8}
-                disabled={!creator.isOnline}
+                disabled={!isOnline || !creator.videoAvailable}
                 onPress={() => onVideoCall?.(creator)}
               >
-                <Video size={20} color={creator.isOnline ? PLUM_ROYAL : '#B9AFC4'} fill={creator.isOnline ? PLUM_ROYAL : '#B9AFC4'} />
+                <Video size={20} color={(isOnline && creator.videoAvailable) ? PLUM_ROYAL : '#B9AFC4'} fill={(isOnline && creator.videoAvailable) ? PLUM_ROYAL : '#B9AFC4'} />
               </TouchableOpacity>
-              {creator.isOnline ? (
+              {(isOnline && creator.videoAvailable) ? (
                 <View style={styles.rateRow}>
                   <Coins size={10} color={GOLD_DEEP} />
                   <Text style={styles.rateText}>{creator.videoRate || 0}/min</Text>
                 </View>
               ) : (
-                <Text style={styles.offlineText}>Offline</Text>
+                <Text style={styles.offlineText}>{isOnline ? 'Busy' : 'Offline'}</Text>
               )}
             </View>
 
@@ -570,7 +641,7 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
                   placeholder="Type a message..."
                   placeholderTextColor="#A499B0"
                   value={message}
-                  onChangeText={setMessage}
+                  onChangeText={handleTextChange}
                   multiline
                   onFocus={() => setShowEmojiPicker(false)}
                 />
@@ -683,7 +754,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: TEXT_PLUM,
-    marginBottom: 4,
+    letterSpacing: -0.2,
+  },
+  headerStatusText: {
+    fontSize: 12,
+    color: '#34B7F1',
+    marginTop: 2,
   },
   headerActions: {
     flexDirection: 'row',

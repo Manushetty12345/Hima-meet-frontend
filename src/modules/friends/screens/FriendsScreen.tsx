@@ -221,6 +221,21 @@ const FriendsScreen: React.FC<Props> = () => {
     sent: [],
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    const fetchMe = async () => {
+      try {
+        const res = await apiClient.get('/api/user/me');
+        if (res.data?.status === 'success') {
+          setCurrentUserId(res.data.data.id);
+        }
+      } catch (err) {
+        console.error('Failed to fetch me in friends screen:', err);
+      }
+    };
+    fetchMe();
+  }, []);
 
   React.useEffect(() => {
     const fetchData = async () => {
@@ -252,10 +267,16 @@ const FriendsScreen: React.FC<Props> = () => {
             id: item.user_id?.toString() || item.id?.toString(),
             name: item.name || item.full_name,
             avatarUri: item.avatar_url || 'https://hima-bucket.s3.amazonaws.com/default-avatar.png',
-            isOnline: Boolean(item.is_online),
+            isOnline: Boolean(item.isOnline !== undefined ? item.isOnline : item.is_online),
+            callAvailable: Boolean(item.isVoiceOnline),
             callRate: item.voice?.rate_per_min,
+            videoAvailable: Boolean(item.isVideoOnline),
             videoRate: item.video?.rate_per_min,
             lastMessage: item.lastMessage,
+            lastMessageStatus: item.lastMessageStatus,
+            lastMessageSenderId: item.lastMessageSenderId,
+            lastMessageTime: item.lastMessageTime,
+            lastSeen: item.lastSeen,
             // For requests tab, use the status from API (can be 'received' or 'accepted_by_receiver')
             type: activeTab === 'requests' ? (item.status || type) : type,
           }));
@@ -371,7 +392,11 @@ const FriendsScreen: React.FC<Props> = () => {
                   return (
                     <FriendCard
                       item={{...item, lastMessage: ''}}
-                      onPress={() => setSelectedCreator({ ...item, callAvailable: (item as any).isOnline, videoAvailable: (item as any).isOnline })}
+                      onPress={() => setSelectedCreator({ 
+                        ...item, 
+                        callAvailable: item.callAvailable, 
+                        videoAvailable: item.videoAvailable 
+                      })}
                       onCall={() => initiateCallWithChecks(item, 'audio')}
                       onVideoCall={() => initiateCallWithChecks(item, 'video')}
                       onShowToast={showToast}
@@ -381,6 +406,7 @@ const FriendsScreen: React.FC<Props> = () => {
                 return (
                   <FriendRequestCard
                     item={item}
+                    currentUserId={currentUserId || undefined}
                     onRemove={(id) =>
                       setData(prev => ({
                         ...prev,

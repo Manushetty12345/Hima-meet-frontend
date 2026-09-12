@@ -28,7 +28,7 @@ const DEFAULT_AVATAR = 'https://hima-bucket.s3.amazonaws.com/default-avatar.png'
 
 const CreatorHomeScreen = () => {
   const navigation = useNavigation<any>();
-  const { currentCall, timeLeft, declineCall: overlayDeclineCall } = useCallOverlay();
+  const { currentCall, timeLeft, acceptCall: overlayAcceptCall, declineCall: overlayDeclineCall } = useCallOverlay();
   // ── Profile ──────────────────────────────────────────────
   const [username, setUsername] = useState('Creator');
   const [avatarUrl, setAvatarUrl] = useState(DEFAULT_AVATAR);
@@ -187,17 +187,24 @@ const CreatorHomeScreen = () => {
   const isLive = voiceEnabled || videoEnabled;
 
   const handleAcceptPending = (req: any) => {
+    if (currentCall && currentCall.request_id === req.request_id) {
+      overlayAcceptCall();
+      setPendingRequests((prev) => prev.filter(r => r.request_id !== req.request_id));
+      return;
+    }
+
     const socket = getSocket();
     if (socket) {
       socket.emit('accept_call', { callId: req.request_id, callerId: req.user_id });
     }
     setPendingRequests((prev) => prev.filter(r => r.request_id !== req.request_id));
-    const screenName = req.call_type === 'video' ? 'VideoCallScreen' : 'AudioCallScreen';
+    const screenName = req.call_type === 'video' ? 'CreatorVideoCallScreen' : 'CreatorAudioCallScreen';
     navigation.navigate(screenName, {
       callId: req.request_id,
       targetId: req.user_id,
-      calleeName: req.name,
-      calleeAvatar: req.avatar_url,
+      callerName: req.name,
+      callerAvatar: req.avatar_url,
+      rate: req.rate || 0,
     });
   };
 

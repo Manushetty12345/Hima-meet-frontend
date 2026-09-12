@@ -21,6 +21,7 @@ import LowBalanceWarning from '../components/LowBalanceWarning';
 import apiClient from '../../../api/apiClient';
 import createAgoraRtcEngine, { ChannelProfileType, ClientRoleType, IRtcEngine } from 'react-native-agora';
 import { request, PERMISSIONS } from 'react-native-permissions';
+import { getSocket } from '../../../api/socketClient';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'AudioCallScreen'>;
 
@@ -34,7 +35,8 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
     callerAvatar = 'https://ui-avatars.com/api/?name=You&background=random',
     calleeAvatar = 'https://ui-avatars.com/api/?name=User&background=random',
     callId,
-    targetId
+    targetId,
+    agoraToken = ''
   } = route.params || {};
 
   // Coin & Timer State
@@ -58,7 +60,7 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const engine = useRef<IRtcEngine>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  const channelName = 'test-audio-channel'; // We can make this dynamic if needed
+  const channelName = callId ? `call_${callId}` : 'test-audio-channel';
 
   // Toast State
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -95,11 +97,26 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
     
     // Setup Agora
     setupAgoraEngine();
+    
+    const socket = getSocket();
+    if (socket) {
+      socket.emit('join_call', { callId });
+      socket.on('call_ended', () => {
+        handleEndCall();
+      });
+      socket.on('insufficient_coins', () => {
+        handleEndCall();
+      });
+    }
 
     return () => {
       // Cleanup
       engine.current?.leaveChannel();
       engine.current?.release();
+      if (socket) {
+        socket.off('call_ended');
+        socket.off('insufficient_coins');
+      }
     };
   }, []);
 
@@ -148,25 +165,26 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
       engine.current.initialize({ appId: AGORA_APP_ID });
       engine.current.enableAudio();
       engine.current.setChannelProfile(ChannelProfileType.ChannelProfileCommunication);
+      engine.current.setDefaultAudioRouteToSpeakerphone(true);
+
+      engine.current.registerEventHandler({
+        onJoinChannelSuccess: (connection, elapsed) => {
+          console.log('Joined Agora channel successfully', connection);
+          setIsJoined(true);
+        },
+        onUserJoined: (connection, uid, elapsed) => {
+          console.log('Remote user joined', uid);
+        },
+        onUserOffline: (connection, uid, reason) => {
+          console.log('Remote user left', uid);
+          handleEndCall(); // End call if other user leaves
+        }
+      });
 
       // Join channel immediately
       // In production, you would fetch a token here. For testing with App ID, pass '' as token.
-      engine.current.joinChannel('', channelName, 0, {
+      engine.current.joinChannel(agoraToken, channelName, 0, {
         clientRoleType: ClientRoleType.ClientRoleBroadcaster,
-      });
-
-      engine.current.addListener('onJoinChannelSuccess', () => {
-        console.log('Joined Agora channel successfully');
-        setIsJoined(true);
-      });
-
-      engine.current.addListener('onUserJoined', (uid) => {
-        console.log('Remote user joined', uid);
-      });
-
-      engine.current.addListener('onUserOffline', (uid) => {
-        console.log('Remote user left', uid);
-        handleEndCall(); // End call if other user leaves
       });
 
     } catch (e) {
@@ -225,6 +243,10 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
   const handleEndCall = () => {
     setShowEndCallModal(false);
     engine.current?.leaveChannel();
+    const socket = getSocket();
+    if (socket && callId) {
+      socket.emit('leave_call', { callId });
+    }
     navigation.replace('CallFeedbackScreen', { creatorName: calleeName, creatorId: targetId, callId: callId });
   };
 

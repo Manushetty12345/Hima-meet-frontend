@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { Check, X } from 'lucide-react-native';
+import { Check, CheckCheck, X } from 'lucide-react-native';
 import apiClient from '../../../api/apiClient';
 
 const TEXT_DARK = '#1A1A2E';
@@ -15,6 +15,10 @@ export type FriendRequestItem = {
   lastMessage?: string;
   lastMessageStatus?: 'sent' | 'delivered' | 'read';
   lastMessageSenderId?: string | number;
+  lastMessageTime?: string | Date;
+  unreadCount?: number;
+  conversationId?: string | number;
+  isOnline?: boolean;
 };
 
 interface FriendRequestCardProps {
@@ -23,6 +27,7 @@ interface FriendRequestCardProps {
   onAccepted?: () => void; // called after accept to switch tab
   onPress?: () => void;
   currentUserId?: string | number; // To know if we should show ticks
+  isTyping?: boolean; // New prop for typing indicator
 }
 
 const STATUS_SUBTITLE: Record<FriendRequestItem['type'], string> = {
@@ -33,7 +38,31 @@ const STATUS_SUBTITLE: Record<FriendRequestItem['type'], string> = {
   accepted_by_receiver: 'Accepted your request! Confirm now ✓',
 };
 
-const FriendRequestCard: React.FC<FriendRequestCardProps> = ({ item, onRemove, onAccepted, onPress, currentUserId }) => {
+const formatMessageDate = (dateVal?: string | Date) => {
+  if (!dateVal) return '';
+  const date = new Date(dateVal);
+  const now = new Date();
+  const diffTime = Math.abs(now.getTime() - date.getTime());
+  const diffDays = diffTime / (1000 * 60 * 60 * 24);
+
+  if (now.toDateString() === date.toDateString()) {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+  
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (yesterday.toDateString() === date.toDateString()) {
+    return 'Yesterday';
+  }
+
+  if (diffDays < 7) {
+    return date.toLocaleDateString(undefined, { weekday: 'long' }); // e.g., Monday
+  }
+  
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); // e.g., Oct 12
+};
+
+const FriendRequestCard: React.FC<FriendRequestCardProps> = ({ item, onRemove, onAccepted, onPress, currentUserId, isTyping }) => {
   const subtitle = STATUS_SUBTITLE[item.type];
   const [accepting, setAccepting] = useState(false);
   const [rejecting, setRejecting] = useState(false);
@@ -85,28 +114,39 @@ const FriendRequestCard: React.FC<FriendRequestCardProps> = ({ item, onRemove, o
       >
         <View style={styles.avatarInner}>
           <Image source={{ uri: item.avatarUri }} style={styles.avatar} />
+          {item.isOnline && <View style={styles.onlineDot} />}
         </View>
       </LinearGradient>
 
       {/* Name + Status/Message */}
       <View style={styles.textContainer}>
-        <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
+        <View style={styles.nameRow}>
+          <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
+          <View style={styles.rightStatsContainer}>
+            {item.type === 'friend' && item.lastMessageTime && (
+              <Text style={[styles.timeText, item.unreadCount ? { color: '#FF1493', fontWeight: '700' } : {}]}>
+                {formatMessageDate(item.lastMessageTime)}
+              </Text>
+            )}
+          </View>
+        </View>
         {item.type === 'friend' ? (
           <View style={styles.lastMessageRow}>
-            {item.lastMessageSenderId && currentUserId && item.lastMessageSenderId.toString() === currentUserId.toString() && (
-              <View style={styles.tickContainer}>
-                {item.lastMessageStatus === 'read' ? (
-                  <CheckCheck size={14} color="#34B7F1" />
-                ) : item.lastMessageStatus === 'delivered' ? (
-                  <CheckCheck size={14} color="#9CA3AF" />
-                ) : (
-                  <Check size={14} color="#9CA3AF" />
-                )}
+            {isTyping ? (
+              <Text style={styles.typingText} numberOfLines={1}>Typing...</Text>
+            ) : (
+              <>
+                <Text style={[styles.subtitle, item.unreadCount ? { color: TEXT_DARK, fontWeight: '600' } : {}]} numberOfLines={1}>
+                  {item.lastMessage || subtitle}
+                </Text>
+              </>
+            )}
+            <View style={styles.flexSpacer} />
+            {!!item.unreadCount && item.unreadCount > 0 && (
+              <View style={styles.unreadBadge}>
+                <Text style={styles.unreadBadgeText}>{item.unreadCount}</Text>
               </View>
             )}
-            <Text style={styles.subtitle} numberOfLines={1}>
-              {item.lastMessage || subtitle}
-            </Text>
           </View>
         ) : (
           <Text style={styles.subtitle}>{subtitle}</Text>
@@ -198,41 +238,88 @@ const styles = StyleSheet.create({
   tickContainer: {
     marginRight: 2,
   },
+  nameRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   name: {
     fontSize: 17,
     fontWeight: '700',
     color: TEXT_DARK,
-    marginBottom: 4,
+    flex: 1,
+    marginRight: 8,
+  },
+  timeText: {
+    fontSize: 12,
+    color: TEXT_MUTED,
+    fontWeight: '500',
   },
   subtitle: {
     fontSize: 13,
     color: TEXT_MUTED,
-    fontWeight: '500',
   },
   actionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginLeft: 10,
+    gap: 8,
+    marginLeft: 8,
   },
   rejectBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: '#FFF0EF',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFE5E5',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: '#FFCDD2',
   },
   acceptBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: '#2ECC71',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#00D15C',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  onlineDot: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#4CD964', // bright green
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    zIndex: 10,
+  },
+  rightStatsContainer: {
+    alignItems: 'flex-end',
+  },
+  typingText: {
+    fontSize: 13,
+    color: '#FF1493', // pink
+    fontWeight: '500',
+    fontStyle: 'italic',
+  },
+  flexSpacer: {
+    flex: 1,
+  },
+  unreadBadge: {
+    backgroundColor: '#FF1493',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    minWidth: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  unreadBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+  }
 });
 
 export default FriendRequestCard;

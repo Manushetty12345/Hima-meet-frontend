@@ -127,6 +127,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         name: c.name,
         avatarUri: c.avatar_url,
         isOnline: c.is_online,
+        lastSeen: c.last_seen_at,
         isNew: c.is_new,
         callAvailable: c.voice?.status === 'available',
         callRate: c.voice?.rate_per_min,
@@ -194,7 +195,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const randomMatchTypeRef = React.useRef<'audio' | 'video'>('audio');
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const callTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const callTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearCallTimeout = () => {
     if (callTimeoutRef.current) {
@@ -229,7 +230,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         showToast('User is not available right now.');
       };
 
-      const handleCallAccepted = (data: { callId: number }) => {
+      const handleCallAccepted = (data: { callId: number, agoraToken?: string }) => {
         clearCallTimeout();
         setShowRandomMatch(false);
         // Use refs (not state) to avoid stale closure bug
@@ -239,7 +240,8 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
           callId: data.callId,
           targetId: callTarget?.id,
           calleeName: callTarget?.name,
-          calleeAvatar: callTarget?.avatarUri
+          calleeAvatar: callTarget?.avatarUri,
+          agoraToken: data.agoraToken || '',
         } as any);
       };
 
