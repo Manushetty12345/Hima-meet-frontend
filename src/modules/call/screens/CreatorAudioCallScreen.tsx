@@ -31,6 +31,7 @@ const CreatorAudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
     callerAvatar = 'https://ui-avatars.com/api/?name=User&background=random',
     callId,
     rate = 0,
+    agoraToken = ''
   } = route.params || {};
 
   // Coin & Timer State
