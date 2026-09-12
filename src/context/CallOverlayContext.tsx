@@ -14,6 +14,7 @@ interface IncomingCall {
   call_type: 'audio' | 'video';
   caller_id: number;
   rate?: number;
+  agoraToken?: string;
 }
 
 interface CallOverlayContextProps {
@@ -84,6 +85,7 @@ export const CallOverlayProvider: React.FC<{ children: React.ReactNode; onNaviga
           call_type: data.call_type || data.type,
           caller_id: data.callerId,
           rate: data.rate,
+          agoraToken: data.agoraToken || '',
         };
         updateCurrentCall(newCall);
         setTimeLeft(35);
