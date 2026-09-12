@@ -122,7 +122,7 @@ const CreatorAudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
 
       engine.current.registerEventHandler({
         onJoinChannelSuccess: (connection, elapsed) => {
-          setDebugError('onJoinChannelSuccess FIRED');
+          setDebugError(''); // Clear any previous errors
           console.log('Joined Agora channel successfully', connection);
           setIsJoined(true);
         },
@@ -139,7 +139,6 @@ const CreatorAudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
         }
       });
 
-      setDebugError('Calling joinChannel...');
       engine.current.joinChannel(agoraToken, channelName, 0, {
         clientRoleType: ClientRoleType.ClientRoleBroadcaster,
       });
