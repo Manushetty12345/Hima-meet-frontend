@@ -104,6 +104,7 @@ const CreatorHomeScreen = () => {
             name: data.name || 'User',
             avatar_url: data.avatar_url || 'https://hima-bucket.s3.amazonaws.com/default-avatar.png',
             call_type: data.call_type || data.type || 'video',
+            agoraToken: data.agoraToken || '',
             sent_at: new Date().toISOString()
           },
           ...prev
@@ -205,6 +206,7 @@ const CreatorHomeScreen = () => {
       callerName: req.name,
       callerAvatar: req.avatar_url,
       rate: req.rate || 0,
+      agoraToken: req.agoraToken || '',
     });
   };
 
