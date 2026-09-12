@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { Vibration } from 'react-native';
+import { Vibration, DeviceEventEmitter } from 'react-native';
 import { getSocket, initSocket } from '../api/socketClient';
 import Sound from 'react-native-sound';
 import InCallManager from 'react-native-incall-manager';
@@ -69,7 +69,7 @@ export const CallOverlayProvider: React.FC<{ children: React.ReactNode; onNaviga
       }
       if (!socket) return;
 
-      socket.on('incoming_call', (data: any) => {
+      const handleIncomingCall = (data: any) => {
         const newCall: IncomingCall = {
           request_id: data.callId,
           name: data.name || 'User',
@@ -85,7 +85,6 @@ export const CallOverlayProvider: React.FC<{ children: React.ReactNode; onNaviga
         timerRef.current = setInterval(() => {
           setTimeLeft((prev) => {
             if (prev <= 1) {
-              // Timer expired without user action — tell backend to mark call as missed
               const expiredCall = currentCallRef.current;
               if (expiredCall) {
                 const s = getSocket();
@@ -102,7 +101,10 @@ export const CallOverlayProvider: React.FC<{ children: React.ReactNode; onNaviga
             return prev - 1;
           });
         }, 1000);
-      });
+      };
+
+      socket.on('incoming_call', handleIncomingCall);
+      DeviceEventEmitter.addListener('fcm_incoming_call', handleIncomingCall);
     };
 
     setupSocket();
@@ -111,6 +113,7 @@ export const CallOverlayProvider: React.FC<{ children: React.ReactNode; onNaviga
       if (socket) {
         socket.off('incoming_call');
       }
+      DeviceEventEmitter.removeAllListeners('fcm_incoming_call');
       clearCall();
     };
   }, [clearCall]);

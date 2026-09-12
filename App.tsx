@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
-import { StatusBar, useColorScheme, Linking } from 'react-native';
+import { StatusBar, useColorScheme, Linking, DeviceEventEmitter } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import messaging from '@react-native-firebase/messaging';
@@ -88,6 +88,7 @@ function App() {
             setTimeout(() => {
               if (navigationRef.isReady()) {
                 navigationRef.navigate('CreatorHome' as never);
+                DeviceEventEmitter.emit('fcm_incoming_call', remoteMessage.data);
               }
             }, 1000);
           }
@@ -99,6 +100,7 @@ function App() {
             if (remoteMessage?.data?.type === 'incoming_call') {
               if (navigationRef.isReady()) {
                 navigationRef.navigate('CreatorHome' as never);
+                DeviceEventEmitter.emit('fcm_incoming_call', remoteMessage.data);
               }
             }
           });
