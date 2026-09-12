@@ -5,7 +5,7 @@
 import { AppRegistry } from 'react-native';
 import App from './App';
 import { name as appName } from './app.json';
-import messaging from '@react-native-firebase/messaging';
+import { getMessaging } from '@react-native-firebase/messaging';
 import notifee, { AndroidImportance, EventType, AndroidCategory } from '@notifee/react-native';
 
 const BACKEND_URL = 'https://himameet-backend.onrender.com';
@@ -27,7 +27,8 @@ const ensureChannelExists = async () => {
 
 // ── Handle FCM messages when app is KILLED or BACKGROUND ──
 try {
-  messaging().setBackgroundMessageHandler(async remoteMessage => {
+  const messagingInstance = getMessaging();
+  messagingInstance.setBackgroundMessageHandler(async remoteMessage => {
     console.log('[FCM] Background message received:', remoteMessage);
     if (remoteMessage?.data?.type !== 'incoming_call') return;
 
