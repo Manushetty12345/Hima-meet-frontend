@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Platform, StatusBar } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { MessageCircle, Phone, PhoneMissed, Video, Trash2 } from 'lucide-react-native';
+import { MessageCircle, Phone, PhoneMissed, Video, Trash2, Users } from 'lucide-react-native';
 import CreatorEarningRow, { EarningRecord } from '../components/CreatorEarningRow';
+import FriendRequestCard, { FriendRequestItem } from '../../friends/components/FriendRequestCard';
 import apiClient from '../../../api/apiClient';
 
 const STATUSBAR_HEIGHT = Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 0;
@@ -33,22 +34,29 @@ interface MissedCall {
   end_reason: string;
 }
 
-type FilterKey = 'chats' | 'calls' | 'missed';
+type FilterKey = 'chats' | 'calls' | 'missed' | 'friends';
 
 const FILTERS = [
   { key: 'chats', label: 'Chats', icon: MessageCircle },
   { key: 'calls', label: 'Calls', icon: Phone },
   { key: 'missed', label: 'Missed', icon: PhoneMissed },
+  { key: 'friends', label: 'Friends', icon: Users },
 ];
 
 const CreatorMessagesScreen = () => {
   const [activeTab, setActiveTab] = useState<FilterKey>('chats');
   const [missedCalls, setMissedCalls] = useState<MissedCall[]>([]);
+  const [friendRequests, setFriendRequests] = useState<FriendRequestItem[]>([]);
+  const [friends, setFriends] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   React.useEffect(() => {
     if (activeTab === 'missed') {
       fetchMissedCalls();
+    } else if (activeTab === 'friends') {
+      fetchFriendRequests();
+    } else if (activeTab === 'chats') {
+      fetchFriends();
     }
   }, [activeTab]);
 
@@ -61,6 +69,36 @@ const CreatorMessagesScreen = () => {
       }
     } catch (err) {
       console.error('Failed to fetch missed calls:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchFriendRequests = async () => {
+    try {
+      setLoading(true);
+      const res = await apiClient.get('/api/friends/requests/received');
+      if (res.data?.status === 'success') {
+        // We only want 'pending' for female (received)
+        const pending = res.data.data.filter((r: any) => r.status === 'received');
+        setFriendRequests(pending);
+      }
+    } catch (err) {
+      console.error('Failed to fetch friend requests:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchFriends = async () => {
+    try {
+      setLoading(true);
+      const res = await apiClient.get('/api/friends/list');
+      if (res.data?.status === 'success') {
+        setFriends(res.data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch friends:', err);
     } finally {
       setLoading(false);
     }
@@ -143,8 +181,28 @@ const CreatorMessagesScreen = () => {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {activeTab === 'chats' && (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No active chats yet.</Text>
+          <View>
+            {loading ? (
+              <View style={styles.emptyState}>
+                <ActivityIndicator size="large" color="#5B0E8B" />
+              </View>
+            ) : friends.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>No active chats yet.</Text>
+              </View>
+            ) : (
+              friends.map((friend: any) => (
+                <FriendRequestCard
+                  key={friend.user_id}
+                  item={{
+                    id: friend.user_id,
+                    name: friend.name,
+                    avatarUri: friend.avatar_url,
+                    type: 'friend',
+                  } as any}
+                />
+              ))
+            )}
           </View>
         )}
         
@@ -203,6 +261,33 @@ const CreatorMessagesScreen = () => {
                     </View>
                   </View>
                 </View>
+              ))
+            )}
+          </View>
+        )}
+
+        {activeTab === 'friends' && (
+          <View>
+            {loading ? (
+              <View style={styles.emptyState}>
+                <ActivityIndicator size="large" color="#5B0E8B" />
+              </View>
+            ) : friendRequests.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>No friend requests yet.</Text>
+              </View>
+            ) : (
+              friendRequests.map((request: any) => (
+                <FriendRequestCard
+                  key={request.user_id}
+                  item={{
+                    id: request.user_id,
+                    name: request.name,
+                    avatarUri: request.avatar_url,
+                    type: 'received',
+                  } as any}
+                  onRemove={(id) => setFriendRequests(prev => prev.filter(r => r.user_id !== id))}
+                />
               ))
             )}
           </View>
