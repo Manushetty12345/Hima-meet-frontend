@@ -103,7 +103,15 @@ export const CallOverlayProvider: React.FC<{ children: React.ReactNode; onNaviga
         }, 1000);
       };
 
+      const handleCallCancelled = (data: any) => {
+        // If the cancelled call matches the one currently ringing, clear it
+        if (currentCallRef.current && currentCallRef.current.request_id === data.callId) {
+          clearCall();
+        }
+      };
+
       socket.on('incoming_call', handleIncomingCall);
+      socket.on('call_cancelled', handleCallCancelled);
       DeviceEventEmitter.addListener('fcm_incoming_call', handleIncomingCall);
     };
 
@@ -112,6 +120,7 @@ export const CallOverlayProvider: React.FC<{ children: React.ReactNode; onNaviga
     return () => {
       if (socket) {
         socket.off('incoming_call');
+        socket.off('call_cancelled');
       }
       DeviceEventEmitter.removeAllListeners('fcm_incoming_call');
       clearCall();
