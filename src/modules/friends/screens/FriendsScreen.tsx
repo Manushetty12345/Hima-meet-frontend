@@ -255,6 +255,7 @@ const FriendsScreen: React.FC<Props> = () => {
             isOnline: Boolean(item.is_online),
             callRate: item.voice?.rate_per_min,
             videoRate: item.video?.rate_per_min,
+            lastMessage: item.lastMessage,
             // For requests tab, use the status from API (can be 'received' or 'accepted_by_receiver')
             type: activeTab === 'requests' ? (item.status || type) : type,
           }));

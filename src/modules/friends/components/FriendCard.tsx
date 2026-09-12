@@ -78,9 +78,9 @@ const FriendCard: React.FC<FriendCardProps> = ({ item, onPress, onCall, onVideoC
             )}
           </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.chatNowBtn} activeOpacity={0.7} onPress={onPress}>
-          <Text style={styles.chatNowText}>Chat Now</Text>
-        </TouchableOpacity>
+        <Text style={styles.lastMessageText} numberOfLines={1}>
+          {item.lastMessage || 'No messages yet'}
+        </Text>
       </View>
 
       {/* Actions */}
@@ -171,27 +171,18 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   name: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
     color: TEXT_DARK,
-    flexShrink: 1,
+    flex: 1,
   },
   iconBtn: {
     padding: 2,
   },
-  chatNowBtn: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 14,
-    paddingVertical: 4,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#FF1493',
-    backgroundColor: '#FFFFFF',
-  },
-  chatNowText: {
-    fontSize: 12,
-    color: '#FF1493',
-    fontWeight: '600',
+  lastMessageText: {
+    fontSize: 13,
+    color: TEXT_MUTED,
+    marginTop: 4,
   },
   actionsContainer: {
     flexDirection: 'row',
