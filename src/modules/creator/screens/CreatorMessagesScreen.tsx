@@ -157,9 +157,11 @@ const CreatorMessagesScreen = () => {
         )}
 
         {activeTab === 'missed' && (
-          <View style={styles.card}>
+          <View>
             {loading ? (
-              <ActivityIndicator size="small" color="#5B0E8B" style={{ margin: 20 }} />
+              <View style={styles.emptyState}>
+                <ActivityIndicator size="large" color="#5B0E8B" />
+              </View>
             ) : missedCalls.length === 0 ? (
               <Text style={styles.emptyText}>No missed calls.</Text>
             ) : (
@@ -308,39 +310,41 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#4A0F6E',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 3,
+    borderRadius: 26,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1.5,
+    borderColor: IVORY_LINE,
+    shadowColor: '#3A0F63',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 6,
   },
   leftContainer: {
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 18,
   },
   avatarRing: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarInner: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 66,
+    height: 66,
+    borderRadius: 33,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 2,
   },
   avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 62,
+    height: 62,
+    borderRadius: 31,
   },
   textContainer: {
     flex: 1,
@@ -348,22 +352,22 @@ const styles = StyleSheet.create({
     paddingRight: 10,
   },
   name: {
-    fontSize: 17,
-    fontWeight: '700',
+    fontSize: 18.5,
+    fontWeight: '800',
     color: '#1A1A2E',
     marginBottom: 8,
   },
   timePill: {
     alignSelf: 'flex-start',
     backgroundColor: '#F3F4F6',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 14,
   },
   timeText: {
-    fontSize: 11,
+    fontSize: 11.5,
     color: '#4B5563',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   actionsContainer: {
     flexDirection: 'row',
