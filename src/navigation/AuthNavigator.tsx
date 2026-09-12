@@ -80,11 +80,11 @@ export type AuthStackParamList = {
   Refer: undefined;
   PhonePeWebView: { paymentUrl: string; transactionId: string; coins: number };
   CreatorFullProfile: { creator: any };
-  AudioCallScreen: { callerName?: string; calleeName?: string; callerAvatar?: string; calleeAvatar?: string; channelId?: string; callId?: string | number; targetId?: string | number };
-  CreatorAudioCallScreen: { callerName?: string; callerAvatar?: string; callId?: string | number; rate?: string | number };
+  AudioCallScreen: { callerName?: string; calleeName?: string; callerAvatar?: string; calleeAvatar?: string; channelId?: string; callId?: string | number; targetId?: string | number; agoraToken?: string; };
+  CreatorAudioCallScreen: { callerName?: string; callerAvatar?: string; callId?: string | number; rate?: string | number; agoraToken?: string; };
   CallFeedbackScreen: { creatorName?: string; creatorId?: string | number; callId?: string | number };
-  VideoCallScreen: { callerName?: string; calleeName?: string; callerAvatar?: string; calleeAvatar?: string; channelId?: string; callId?: string; targetId?: string };
-  CreatorVideoCallScreen: { callerName?: string; callerAvatar?: string; callId?: string | number; rate?: string | number };
+  VideoCallScreen: { callerName?: string; calleeName?: string; callerAvatar?: string; calleeAvatar?: string; channelId?: string; callId?: string; targetId?: string; agoraToken?: string; };
+  CreatorVideoCallScreen: { callerName?: string; callerAvatar?: string; callId?: string | number; rate?: string | number; agoraToken?: string; };
   ChatScreen: { targetId: string | number; targetName: string; targetAvatar: string };
 };
 
