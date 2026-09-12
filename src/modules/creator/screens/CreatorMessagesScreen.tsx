@@ -1,8 +1,20 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Platform, StatusBar } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import { MessageCircle, Phone, PhoneMissed, Video } from 'lucide-react-native';
 import CreatorEarningRow, { EarningRecord } from '../components/CreatorEarningRow';
-import { PhoneMissed, Video, Phone } from 'lucide-react-native';
 import apiClient from '../../../api/apiClient';
+
+const STATUSBAR_HEIGHT = Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 0;
+
+// ---- Palette pulled from the Himameet mark ----
+const PLUM_ROYAL = '#5B0E8B';
+const IVORY = '#FBF6EC';
+const IVORY_LINE = '#EBDFC4';
+const TEXT_PLUM = '#2A1240';
+const TEXT_MUTED = '#8B7F98';
+const LILAC_WHITE = '#FBF7FF';
+const LILAC_PALE = '#EFDFFB';
 
 const DUMMY_EARNINGS: EarningRecord[] = [
   { id: 'e1', name: 'Rahul Verma', type: 'voice', duration: '15 mins', coins: 150, earned: 75, time: 'Today, 10:30 AM' },
@@ -21,8 +33,16 @@ interface MissedCall {
   end_reason: string;
 }
 
+type FilterKey = 'chats' | 'calls' | 'missed';
+
+const FILTERS = [
+  { key: 'chats', label: 'Chats', icon: MessageCircle },
+  { key: 'calls', label: 'Calls', icon: Phone },
+  { key: 'missed', label: 'Missed', icon: PhoneMissed },
+];
+
 const CreatorMessagesScreen = () => {
-  const [activeTab, setActiveTab] = useState<'chats' | 'calls' | 'missed'>('chats');
+  const [activeTab, setActiveTab] = useState<FilterKey>('chats');
   const [missedCalls, setMissedCalls] = useState<MissedCall[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -52,34 +72,62 @@ const CreatorMessagesScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.pageTitle}>Messages</Text>
+    <View style={styles.flex}>
+      <StatusBar barStyle="dark-content" />
 
-      {/* Top Tabs */}
-      <View style={styles.tabRow}>
-        <TouchableOpacity 
-          style={[styles.tabBtn, activeTab === 'chats' && styles.activeTab]}
-          onPress={() => setActiveTab('chats')}
-        >
-          <Text style={[styles.tabText, activeTab === 'chats' && styles.activeTabText]}>Chats</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.tabBtn, activeTab === 'calls' && styles.activeTab]}
-          onPress={() => setActiveTab('calls')}
-        >
-          <Text style={[styles.tabText, activeTab === 'calls' && styles.activeTabText]}>Calls</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.tabBtn, activeTab === 'missed' && styles.activeTab]}
-          onPress={() => setActiveTab('missed')}
-        >
-          <Text style={[styles.tabText, activeTab === 'missed' && styles.activeTabText]}>Missed</Text>
-        </TouchableOpacity>
-      </View>
+      <LinearGradient
+        colors={[LILAC_WHITE, LILAC_PALE]}
+        start={{ x: 0.15, y: 0 }}
+        end={{ x: 0.85, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.statusBarSpacer} />
+
+        <View style={styles.headerRow}>
+          <Text style={styles.title}>Messages</Text>
+          <Text style={styles.subtitle}>Your chats and calls history</Text>
+        </View>
+
+        {/* Filters */}
+        <View style={styles.filterRow}>
+          {FILTERS.map((filter) => {
+            const isActive = activeTab === filter.key;
+            const Icon = filter.icon;
+
+            if (isActive) {
+              return (
+                <TouchableOpacity key={filter.key} activeOpacity={0.85} style={styles.filterChipActive}>
+                  <LinearGradient
+                    colors={['#A822D1', '#FF1493']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.filterGrad}
+                  >
+                    <Icon size={15} color="#FFFFFF" style={styles.filterIcon} />
+                    <Text style={styles.filterLabelActive}>{filter.label}</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              );
+            }
+
+            return (
+              <TouchableOpacity
+                key={filter.key}
+                activeOpacity={0.8}
+                style={styles.filterChip}
+                onPress={() => setActiveTab(filter.key as FilterKey)}
+              >
+                <Icon size={15} color={PLUM_ROYAL} style={styles.filterIcon} />
+                <Text style={styles.filterLabel}>{filter.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </LinearGradient>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {activeTab === 'chats' && (
-          <View style={styles.card}>
+          <View style={styles.emptyState}>
             <Text style={styles.emptyText}>No active chats yet.</Text>
           </View>
         )}
@@ -127,59 +175,98 @@ const CreatorMessagesScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
+  flex: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
-    paddingTop: 60,
+    backgroundColor: IVORY,
   },
-  pageTitle: {
-    fontSize: 24,
+  headerGradient: {
+    overflow: 'hidden',
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: IVORY_LINE,
+  },
+  statusBarSpacer: {
+    height: STATUSBAR_HEIGHT,
+  },
+  headerRow: {
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 18,
+  },
+  title: {
+    fontSize: 26,
     fontWeight: '800',
-    color: '#2A1240',
-    paddingHorizontal: 20,
-    marginBottom: 16,
+    color: TEXT_PLUM,
+    marginBottom: 4,
   },
-  tabRow: {
+  subtitle: {
+    fontSize: 13.5,
+    color: TEXT_MUTED,
+  },
+  filterRow: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    marginBottom: 20,
+    paddingHorizontal: 24,
+    gap: 9,
   },
-  tabBtn: {
-    flex: 1,
-    paddingVertical: 12,
+  filterChip: {
+    flexDirection: 'row',
     alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: '#E5E7EB',
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: IVORY_LINE,
+    backgroundColor: '#FFFFFF',
   },
-  activeTab: {
-    borderBottomColor: '#5B0E8B',
+  filterChipActive: {
+    borderRadius: 22,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: 'transparent',
   },
-  tabText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#9CA3AF',
+  filterGrad: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 9,
   },
-  activeTabText: {
-    color: '#5B0E8B',
+  filterIcon: {
+    marginRight: 6,
+  },
+  filterLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: PLUM_ROYAL,
+  },
+  filterLabelActive: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   content: {
     paddingHorizontal: 20,
+    paddingTop: 20,
     paddingBottom: 20,
   },
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
     padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
+    shadowColor: '#3A0F63',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
     elevation: 2,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
   },
   emptyText: {
     textAlign: 'center',
     color: '#9CA3AF',
-    padding: 20,
+    fontSize: 15,
   },
   missedCallRow: {
     flexDirection: 'row',
