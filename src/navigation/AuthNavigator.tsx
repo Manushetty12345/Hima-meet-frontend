@@ -36,6 +36,7 @@ import CreatorFullProfileScreen from '../modules/home/screens/CreatorFullProfile
 import AudioCallScreen from '../modules/call/screens/AudioCallScreen';
 import CallFeedbackScreen from '../modules/call/screens/CallFeedbackScreen';
 import VideoCallScreen from '../modules/call/screens/VideoCallScreen';
+import ChatScreen from '../modules/chat/screens/ChatScreen';
 
 import HelpSupportScreen from '../modules/support/screens/HelpSupportScreen';
 import MyTicketsScreen from '../modules/support/screens/MyTicketsScreen';
@@ -80,6 +81,7 @@ export type AuthStackParamList = {
   AudioCallScreen: { callerName?: string; calleeName?: string; callerAvatar?: string; calleeAvatar?: string; channelId?: string; callId?: string | number; targetId?: string | number };
   CallFeedbackScreen: { creatorName?: string; creatorId?: string | number; callId?: string | number };
   VideoCallScreen: { callerName?: string; calleeName?: string; callerAvatar?: string; calleeAvatar?: string; channelId?: string; callId?: string; targetId?: string };
+  ChatScreen: { targetId: string | number; targetName: string; targetAvatar: string };
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -128,6 +130,7 @@ const AuthNavigator = () => {
       <Stack.Screen name="AudioCallScreen" component={AudioCallScreen} />
       <Stack.Screen name="CallFeedbackScreen" component={CallFeedbackScreen} />
       <Stack.Screen name="VideoCallScreen" component={VideoCallScreen} />
+      <Stack.Screen name="ChatScreen" component={ChatScreen} />
     </Stack.Navigator>
   );
 };

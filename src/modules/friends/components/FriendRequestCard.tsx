@@ -12,12 +12,17 @@ export type FriendRequestItem = {
   name: string;
   avatarUri: string;
   type: 'sent' | 'received' | 'favourite' | 'friend' | 'accepted_by_receiver';
+  lastMessage?: string;
+  lastMessageStatus?: 'sent' | 'delivered' | 'read';
+  lastMessageSenderId?: string | number;
 };
 
 interface FriendRequestCardProps {
   item: FriendRequestItem;
   onRemove?: (id: string) => void;
   onAccepted?: () => void; // called after accept to switch tab
+  onPress?: () => void;
+  currentUserId?: string | number; // To know if we should show ticks
 }
 
 const STATUS_SUBTITLE: Record<FriendRequestItem['type'], string> = {
@@ -28,7 +33,7 @@ const STATUS_SUBTITLE: Record<FriendRequestItem['type'], string> = {
   accepted_by_receiver: 'Accepted your request! Confirm now ✓',
 };
 
-const FriendRequestCard: React.FC<FriendRequestCardProps> = ({ item, onRemove, onAccepted }) => {
+const FriendRequestCard: React.FC<FriendRequestCardProps> = ({ item, onRemove, onAccepted, onPress, currentUserId }) => {
   const subtitle = STATUS_SUBTITLE[item.type];
   const [accepting, setAccepting] = useState(false);
   const [rejecting, setRejecting] = useState(false);
@@ -65,7 +70,12 @@ const FriendRequestCard: React.FC<FriendRequestCardProps> = ({ item, onRemove, o
   };
 
   return (
-    <View style={styles.card}>
+    <TouchableOpacity 
+      style={styles.card} 
+      activeOpacity={onPress ? 0.8 : 1}
+      onPress={onPress}
+      disabled={!onPress}
+    >
       {/* Avatar with purple/pink gradient ring */}
       <LinearGradient
         colors={['#C850C0', '#FF1493']}
@@ -78,10 +88,29 @@ const FriendRequestCard: React.FC<FriendRequestCardProps> = ({ item, onRemove, o
         </View>
       </LinearGradient>
 
-      {/* Name + Status */}
+      {/* Name + Status/Message */}
       <View style={styles.textContainer}>
         <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
-        <Text style={styles.subtitle}>{subtitle}</Text>
+        {item.type === 'friend' ? (
+          <View style={styles.lastMessageRow}>
+            {item.lastMessageSenderId && currentUserId && item.lastMessageSenderId.toString() === currentUserId.toString() && (
+              <View style={styles.tickContainer}>
+                {item.lastMessageStatus === 'read' ? (
+                  <CheckCheck size={14} color="#34B7F1" />
+                ) : item.lastMessageStatus === 'delivered' ? (
+                  <CheckCheck size={14} color="#9CA3AF" />
+                ) : (
+                  <Check size={14} color="#9CA3AF" />
+                )}
+              </View>
+            )}
+            <Text style={styles.subtitle} numberOfLines={1}>
+              {item.lastMessage || subtitle}
+            </Text>
+          </View>
+        ) : (
+          <Text style={styles.subtitle}>{subtitle}</Text>
+        )}
       </View>
 
       {/* Accept / Reject buttons — for received OR accepted_by_receiver */}
@@ -116,7 +145,7 @@ const FriendRequestCard: React.FC<FriendRequestCardProps> = ({ item, onRemove, o
           </TouchableOpacity>
         </View>
       )}
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -158,6 +187,16 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     flex: 1,
+    justifyContent: 'center',
+    gap: 4,
+  },
+  lastMessageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  tickContainer: {
+    marginRight: 2,
   },
   name: {
     fontSize: 17,

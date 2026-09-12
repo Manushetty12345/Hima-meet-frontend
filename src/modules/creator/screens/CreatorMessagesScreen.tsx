@@ -5,6 +5,8 @@ import { MessageCircle, Phone, PhoneMissed, Video, Trash2, Users } from 'lucide-
 import CreatorEarningRow, { EarningRecord } from '../components/CreatorEarningRow';
 import FriendRequestCard, { FriendRequestItem } from '../../friends/components/FriendRequestCard';
 import apiClient from '../../../api/apiClient';
+import { useNavigation } from '@react-navigation/native';
+import { useAuth } from '../../../context/AuthContext';
 
 const STATUSBAR_HEIGHT = Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 0;
 
@@ -49,6 +51,9 @@ const CreatorMessagesScreen = () => {
   const [friendRequests, setFriendRequests] = useState<FriendRequestItem[]>([]);
   const [friends, setFriends] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  
+  const navigation = useNavigation<any>();
+  const { user } = useAuth();
 
   React.useEffect(() => {
     if (activeTab === 'missed') {
@@ -199,7 +204,16 @@ const CreatorMessagesScreen = () => {
                     name: friend.name,
                     avatarUri: friend.avatar_url,
                     type: 'friend',
+                    lastMessage: friend.lastMessage,
+                    lastMessageStatus: friend.lastMessageStatus,
+                    lastMessageSenderId: friend.lastMessageSenderId
                   } as any}
+                  currentUserId={user?.id}
+                  onPress={() => navigation.navigate('ChatScreen', {
+                    targetId: friend.user_id,
+                    targetName: friend.name,
+                    targetAvatar: friend.avatar_url
+                  })}
                 />
               ))
             )}
