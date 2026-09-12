@@ -22,7 +22,7 @@ interface FriendRequestCardProps {
 
 const STATUS_SUBTITLE: Record<FriendRequestItem['type'], string> = {
   sent: 'Request sent',
-  received: 'Wants to connect',
+  received: 'Wants to be friends',
   favourite: 'Favourite',
   friend: 'Friend',
   accepted_by_receiver: 'Accepted your request! Confirm now ✓',
