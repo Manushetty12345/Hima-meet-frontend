@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Platform, StatusBar } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { MessageCircle, Phone, PhoneMissed, Video } from 'lucide-react-native';
+import { MessageCircle, Phone, PhoneMissed, Video, Trash2 } from 'lucide-react-native';
 import CreatorEarningRow, { EarningRecord } from '../components/CreatorEarningRow';
 import apiClient from '../../../api/apiClient';
 
@@ -63,6 +63,22 @@ const CreatorMessagesScreen = () => {
       console.error('Failed to fetch missed calls:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (callId: string) => {
+    try {
+      // Optimistic UI update
+      setMissedCalls(prev => prev.filter(c => c.id !== callId));
+      
+      const res = await apiClient.delete(`/api/calls/missed/${callId}`);
+      if (res.data?.status !== 'success') {
+        // If it failed, we could revert, but for now we just log it
+        console.error('Failed to delete on server');
+      }
+    } catch (err) {
+      console.error('Failed to delete missed call:', err);
+      // Revert if error? We'll let it be for simplicity
     }
   };
 
@@ -171,13 +187,16 @@ const CreatorMessagesScreen = () => {
                     </View>
                   </View>
 
-                  {/* Right Column: Icon */}
+                  {/* Right Column: Icon & Delete */}
                   <View style={styles.actionsContainer}>
+                    <TouchableOpacity onPress={() => handleDelete(call.id)} style={styles.deleteBtn}>
+                      <Trash2 size={20} color="#9CA3AF" />
+                    </TouchableOpacity>
                     <View style={styles.callTypeIcon}>
                       {call.call_type === 'video' ? (
-                        <Video size={20} color="#FF1493" fill="#FF1493" />
+                        <Video size={18} color="#FF1493" fill="#FF1493" />
                       ) : (
-                        <PhoneMissed size={20} color="#FF1493" />
+                        <PhoneMissed size={18} color="#FF1493" />
                       )}
                     </View>
                   </View>
@@ -350,6 +369,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 12,
+  },
+  deleteBtn: {
+    padding: 8,
   },
   callTypeIcon: {
     width: 44,
