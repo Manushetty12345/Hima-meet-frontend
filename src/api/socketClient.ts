@@ -1,7 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 import Config from 'react-native-config';
 import { getSavedToken } from './apiClient';
-import messaging from '@react-native-firebase/messaging';
+import { getMessaging, getToken } from '@react-native-firebase/messaging';
 
 const SOCKET_URL = Config.API_BASE_URL || 'https://himameet-backend.onrender.com';
 
@@ -25,7 +25,8 @@ export const initSocket = async () => {
   socket.on('connect', async () => {
     console.log('✅ Socket connected:', socket?.id);
     try {
-      const fcmToken = await messaging().getToken();
+      const messagingInstance = getMessaging();
+      const fcmToken = await getToken(messagingInstance);
       if (fcmToken && socket) {
         // Send the FCM token to the backend without blocking the initial connection
         socket.emit('update_fcm_token', fcmToken);

@@ -19,7 +19,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useCallOverlay } from '../../../context/CallOverlayContext';
 import apiClient from '../../../api/apiClient';
 import { getSocket, initSocket } from '../../../api/socketClient';
-import messaging from '@react-native-firebase/messaging';
+import { getMessaging, getToken } from '@react-native-firebase/messaging';
 
 const STATUSBAR_HEIGHT =
   Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 0;
@@ -49,10 +49,11 @@ const CreatorHomeScreen = () => {
       // Force sync FCM token when Creator Home loads to guarantee backend has it
       let token = null;
       try {
-        token = await messaging().getToken();
+        const messagingInstance = getMessaging();
+        token = await getToken(messagingInstance);
       } catch (fcmErr: any) {
         console.log('FCM Sync error on creator home:', fcmErr);
-        Alert.alert("Firebase Native Error", "messaging().getToken() failed: " + (fcmErr?.message || String(fcmErr)));
+        Alert.alert("Firebase Native Error", "getToken() failed: " + (fcmErr?.message || String(fcmErr)));
       }
 
       if (token) {
