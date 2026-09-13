@@ -353,7 +353,7 @@ const CreatorMessagesScreen = () => {
         )}
         
         {activeTab === 'calls' && (
-          <View style={styles.card}>
+          <View style={{ gap: 12 }}>
             {loading ? (
               <View style={styles.emptyState}>
                 <ActivityIndicator size="large" color="#5B0E8B" />
