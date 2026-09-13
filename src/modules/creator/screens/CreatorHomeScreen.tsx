@@ -38,6 +38,9 @@ const CreatorHomeScreen = () => {
   const [videoEnabled, setVideoEnabled] = useState(false);
   const [todayEarningsInr, setTodayEarningsInr] = useState(0);
   const [todayEarningsCoins, setTodayEarningsCoins] = useState(0);
+  const [yesterdayEarningsCoins, setYesterdayEarningsCoins] = useState(0);
+  const [weekEarningsInr, setWeekEarningsInr] = useState(0);
+  const [totalTimeSeconds, setTotalTimeSeconds] = useState(0);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -81,6 +84,9 @@ const CreatorHomeScreen = () => {
         setVideoEnabled(!!d.status?.is_video_online);
         setTodayEarningsInr(d.todays_earnings_inr ?? 0);
         setTodayEarningsCoins(d.todays_earnings_coins ?? 0);
+        setYesterdayEarningsCoins(d.yesterday_earnings_coins ?? 0);
+        setWeekEarningsInr(d.week_earnings_inr ?? 0);
+        setTotalTimeSeconds(d.total_time_seconds ?? 0);
         setPendingRequests(d.pending_requests || []);
       }
     } catch (error) {
@@ -381,47 +387,61 @@ const CreatorHomeScreen = () => {
           </View>
 
           {/* ── 4. Premium Earnings Dashboard ── */}
-          <LinearGradient colors={['#1E132D', '#120B1C']} style={[styles.card, styles.premiumEarningsCard]}>
-            <View style={styles.earningsHeaderRow}>
-              <View style={styles.earningsIconBg}>
-                <Wallet size={16} color="#D4AF37" />
-              </View>
-              <Text style={styles.premiumEarningsLabel}>Today's Earnings</Text>
-              <View style={{ flex: 1 }} />
-              <TouchableOpacity style={styles.earningsActionBtn} onPress={() => navigation.navigate('Wallet')}>
-                <Text style={styles.earningsActionText}>Withdraw</Text>
-                <ChevronRight size={14} color="#D4AF37" />
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.earningsMainContent}>
-              <Text style={styles.premiumEarningsAmount}>₹{todayEarningsInr.toFixed(2)}</Text>
-              <View style={styles.earningsStatPill}>
-                <TrendingUp size={12} color="#10B981" />
-                <Text style={styles.earningsStatText}>+12% vs yesterday</Text>
-              </View>
-            </View>
+          {(() => {
+            const percentChange = yesterdayEarningsCoins > 0 
+              ? (((todayEarningsCoins - yesterdayEarningsCoins) / yesterdayEarningsCoins) * 100).toFixed(0)
+              : todayEarningsCoins > 0 ? 100 : 0;
+            const isPositiveChange = Number(percentChange) >= 0;
+            const hours = Math.floor(totalTimeSeconds / 3600);
+            const minutes = Math.floor((totalTimeSeconds % 3600) / 60);
+            const formattedTime = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 
-            <View style={styles.earningsDivider} />
-            
-            <View style={styles.earningsFooterRow}>
-              <View style={styles.earningsFooterItem}>
-                <Text style={styles.earningsFooterLabel}>Coins Earned</Text>
-                <View style={styles.earningsCoinRow}>
-                  <Coins size={12} color="#F59E0B" />
-                  <Text style={styles.earningsFooterValue}> {todayEarningsCoins}</Text>
+            return (
+              <LinearGradient colors={['#1E132D', '#120B1C']} style={[styles.card, styles.premiumEarningsCard]}>
+                <View style={styles.earningsHeaderRow}>
+                  <View style={styles.earningsIconBg}>
+                    <Wallet size={16} color="#D4AF37" />
+                  </View>
+                  <Text style={styles.premiumEarningsLabel}>Today's Earnings</Text>
+                  <View style={{ flex: 1 }} />
+                  <TouchableOpacity style={styles.earningsActionBtn} onPress={() => navigation.navigate('Wallet')}>
+                    <Text style={styles.earningsActionText}>Withdraw</Text>
+                    <ChevronRight size={14} color="#D4AF37" />
+                  </TouchableOpacity>
                 </View>
-              </View>
-              <View style={styles.earningsFooterItem}>
-                <Text style={styles.earningsFooterLabel}>This Week</Text>
-                <Text style={styles.earningsFooterValue}>₹{(todayEarningsInr * 4.2).toFixed(2)}</Text>
-              </View>
-              <View style={styles.earningsFooterItem}>
-                <Text style={styles.earningsFooterLabel}>Total Time</Text>
-                <Text style={styles.earningsFooterValue}>4h 12m</Text>
-              </View>
-            </View>
-          </LinearGradient>
+                
+                <View style={styles.earningsMainContent}>
+                  <Text style={styles.premiumEarningsAmount}>₹{todayEarningsInr.toFixed(2)}</Text>
+                  <View style={[styles.earningsStatPill, !isPositiveChange && { backgroundColor: 'rgba(239, 68, 68, 0.15)' }]}>
+                    <TrendingUp size={12} color={isPositiveChange ? "#10B981" : "#EF4444"} style={!isPositiveChange && { transform: [{ rotate: '180deg' }] }} />
+                    <Text style={[styles.earningsStatText, !isPositiveChange && { color: '#EF4444' }]}>
+                      {isPositiveChange ? '+' : ''}{percentChange}% vs yesterday
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.earningsDivider} />
+                
+                <View style={styles.earningsFooterRow}>
+                  <View style={styles.earningsFooterItem}>
+                    <Text style={styles.earningsFooterLabel}>Coins Earned</Text>
+                    <View style={styles.earningsCoinRow}>
+                      <Coins size={12} color="#F59E0B" />
+                      <Text style={styles.earningsFooterValue}> {todayEarningsCoins}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.earningsFooterItem}>
+                    <Text style={styles.earningsFooterLabel}>This Week</Text>
+                    <Text style={styles.earningsFooterValue}>₹{weekEarningsInr.toFixed(2)}</Text>
+                  </View>
+                  <View style={styles.earningsFooterItem}>
+                    <Text style={styles.earningsFooterLabel}>Total Time</Text>
+                    <Text style={styles.earningsFooterValue}>{formattedTime}</Text>
+                  </View>
+                </View>
+              </LinearGradient>
+            );
+          })()}
 
         </ScrollView>
       )}
