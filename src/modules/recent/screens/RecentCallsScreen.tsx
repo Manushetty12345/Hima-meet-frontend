@@ -90,17 +90,19 @@ const RecentCallsScreen: React.FC<Props> = () => {
             const timeString = dateObj.toLocaleDateString(undefined, {
               month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
             });
+
             return {
               id: item.call_id?.toString() || Math.random().toString(),
               name: item.user?.name || 'Unknown',
               avatarUri: item.user?.avatar_url || 'https://hima-bucket.s3.amazonaws.com/default-female.png',
-              type: isMissed ? 'missed' : 'incoming',
+              type: isMissed ? 'missed' : 'incoming', // Default to incoming since backend doesn't specify direction yet
               media: item.call_type === 'video' ? 'video' : 'audio',
               time: timeString,
-              duration: item.duration_seconds ? `${Math.floor(item.duration_seconds / 60)}m ${item.duration_seconds % 60}s` : '0s',
+              duration: item.duration_seconds ? `${item.duration_seconds} sec` : '0 sec',
               rawDate: dateObj,
               isOnline: item.is_online,
-              coinsEarned: item.coins_charged || 0,
+              callRate: item.voice_rate,
+              videoRate: item.video_rate,
             };
           });
           setCalls(formatted);
