@@ -48,6 +48,7 @@ const FILTERS = [
 const CreatorMessagesScreen = () => {
   const [activeTab, setActiveTab] = useState<FilterKey>('chats');
   const [missedCalls, setMissedCalls] = useState<MissedCall[]>([]);
+  const [callHistory, setCallHistory] = useState<EarningRecord[]>([]);
   const [friendRequests, setFriendRequests] = useState<any[]>([]);
   const [friends, setFriends] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -133,6 +134,8 @@ const CreatorMessagesScreen = () => {
       fetchFriendRequests();
     } else if (activeTab === 'chats') {
       fetchFriends();
+    } else if (activeTab === 'calls') {
+      fetchCallHistory();
     }
   }, [activeTab]);
 
@@ -144,6 +147,38 @@ const CreatorMessagesScreen = () => {
       }
     } catch (err) {
       console.error('Failed to fetch me:', err);
+    }
+  };
+
+  const fetchCallHistory = async () => {
+    try {
+      setLoading(true);
+      const res = await apiClient.get('/api/creator/dashboard/calls/history');
+      if (res.data?.status === 'success') {
+        const formatted = res.data.data.map((item: any) => {
+          const dateObj = new Date(item.created_at);
+          const timeString = dateObj.toLocaleDateString(undefined, {
+            month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+          });
+          const mins = Math.floor((item.duration_seconds || 0) / 60);
+          const secs = (item.duration_seconds || 0) % 60;
+          return {
+            id: item.call_id?.toString() || Math.random().toString(),
+            name: item.caller_name || 'User',
+            avatar_url: item.avatar_url,
+            type: item.call_type === 'video' ? 'video' : 'audio',
+            duration: `${mins}m ${secs}s`,
+            coins: item.earnings_coins || 0,
+            earned: (item.earnings_coins || 0) * 0.10, // Assuming 0.10 conversion rate
+            time: timeString
+          };
+        });
+        setCallHistory(formatted);
+      }
+    } catch (err) {
+      console.error('Failed to fetch creator call history:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -319,9 +354,17 @@ const CreatorMessagesScreen = () => {
         
         {activeTab === 'calls' && (
           <View style={styles.card}>
-            {DUMMY_EARNINGS.map(item => (
-              <CreatorEarningRow key={item.id} item={item} />
-            ))}
+            {loading ? (
+              <View style={styles.emptyState}>
+                <ActivityIndicator size="large" color="#5B0E8B" />
+              </View>
+            ) : callHistory.length === 0 ? (
+              <Text style={styles.emptyText}>No call history yet.</Text>
+            ) : (
+              callHistory.map(item => (
+                <CreatorEarningRow key={item.id} item={item} />
+              ))
+            )}
           </View>
         )}
 
