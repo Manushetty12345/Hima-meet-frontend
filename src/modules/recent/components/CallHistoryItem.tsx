@@ -18,8 +18,7 @@ export interface CallHistoryRecord {
   time: string;
   duration?: string;
   isOnline?: boolean;
-  callRate?: number;
-  videoRate?: number;
+  coinsEarned?: number;
 }
 
 interface CallHistoryItemProps {
@@ -31,211 +30,141 @@ interface CallHistoryItemProps {
 
 const CallHistoryItem: React.FC<CallHistoryItemProps> = ({ item, onPress, onCall, onVideoCall }) => {
   return (
-    <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={onPress}>
-      {/* Left Column: Avatar + Duration */}
-      <View style={styles.leftContainer}>
-        <LinearGradient
-          colors={['#C850C0', '#FF1493']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.avatarRing}
-        >
-          <View style={styles.avatarInner}>
-            <Image source={{ uri: item.avatarUri }} style={styles.avatar} />
+    <View style={styles.cardWrapper}>
+      <LinearGradient colors={['#1E132D', '#120B1C']} style={styles.card}>
+        {/* Left Column: Avatar */}
+        <View style={styles.leftContainer}>
+          <LinearGradient
+            colors={item.type === 'missed' ? ['#EF4444', '#B91C1C'] : ['#D4AF37', '#FFDF00']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.avatarRing}
+          >
+            <View style={styles.avatarInner}>
+              <Image source={{ uri: item.avatarUri }} style={styles.avatar} />
+            </View>
+          </LinearGradient>
+        </View>
+
+        {/* Middle Column: Name + Time + Type */}
+        <View style={styles.textContainer}>
+          <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
+          <View style={styles.detailsRow}>
+            {item.media === 'video' ? (
+              <Video size={12} color="#9CA3AF" />
+            ) : (
+              <Phone size={12} color="#9CA3AF" />
+            )}
+            <Text style={styles.timeText}>{item.time}</Text>
           </View>
-        </LinearGradient>
-        <View style={styles.durationRow}>
-          <Clock size={12} color="#FF1493" strokeWidth={2.5} />
-          <Text style={styles.durationText}>{item.duration}</Text>
-        </View>
-      </View>
-
-      {/* Middle Column: Name + Time */}
-      <View style={styles.textContainer}>
-        <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
-        <View style={styles.timePill}>
-          <Text style={styles.timeText}>{item.time}</Text>
-        </View>
-      </View>
-
-      {/* Right Column: Actions */}
-      <View style={styles.actionsContainer}>
-        <View style={styles.callAction}>
-          <TouchableOpacity onPress={onCall} style={[styles.callBtn, item.isOnline && styles.callBtnOnline]}>
-            <Phone size={18} color={item.isOnline ? '#9CA3AF' : '#9CA3AF'} fill={item.isOnline ? '#9CA3AF' : '#9CA3AF'} />
-          </TouchableOpacity>
-          {item.isOnline ? (
-            <View style={styles.rateContainer}>
-              <View style={styles.coinBadge}>
-                <Text style={styles.coinBadgeText}>H</Text>
-              </View>
-              <Text style={styles.rateText}>{item.callRate || 20}/min</Text>
-            </View>
-          ) : (
-            <Text style={styles.offlineText}>Offline</Text>
-          )}
+          <View style={styles.durationRow}>
+            <Clock size={12} color={item.type === 'missed' ? '#EF4444' : '#10B981'} />
+            <Text style={[styles.durationText, item.type === 'missed' && { color: '#EF4444' }]}>
+              {item.type === 'missed' ? 'Missed Call' : item.duration}
+            </Text>
+          </View>
         </View>
 
-        <View style={styles.verticalDivider} />
-
-        <View style={styles.callAction}>
-          <TouchableOpacity onPress={onVideoCall} style={[styles.callBtn, item.isOnline && styles.videoBtnOnline]}>
-            <Video size={18} color={item.isOnline ? '#A822D1' : '#9CA3AF'} fill={item.isOnline ? '#A822D1' : '#9CA3AF'} />
-          </TouchableOpacity>
-          {item.isOnline ? (
-            <View style={styles.rateContainer}>
-              <View style={styles.coinBadge}>
-                <Text style={styles.coinBadgeText}>H</Text>
-              </View>
-              <Text style={styles.rateText}>{item.videoRate || 40}/min</Text>
-            </View>
-          ) : (
-            <Text style={styles.offlineText}>Offline</Text>
-          )}
+        {/* Right Column: Earnings */}
+        <View style={styles.earningsContainer}>
+          <Text style={styles.earningsLabel}>Earned</Text>
+          <View style={styles.coinsRow}>
+            <Image source={require('../../../assets/icons/coin.png')} style={{ width: 14, height: 14, marginRight: 4 }} />
+            <Text style={styles.coinsAmount}>+{item.coinsEarned}</Text>
+          </View>
         </View>
-      </View>
-    </TouchableOpacity>
+      </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  cardWrapper: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+  },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
     padding: 16,
-    marginBottom: 12,
-    shadowColor: '#4A0F6E',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 3,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   leftContainer: {
-    alignItems: 'center',
     marginRight: 16,
   },
   avatarRing: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  avatarInner: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     padding: 2,
   },
+  avatarInner: {
+    flex: 1,
+    backgroundColor: '#1E132D',
+    borderRadius: 25,
+    overflow: 'hidden',
+  },
   avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-  },
-  durationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  durationText: {
-    fontSize: 12,
-    color: '#FF1493',
-    fontWeight: '700',
+    width: '100%',
+    height: '100%',
   },
   textContainer: {
     flex: 1,
     justifyContent: 'center',
-    paddingRight: 10,
   },
   name: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
-    color: TEXT_DARK,
-    marginBottom: 8,
+    color: '#FFF',
+    marginBottom: 4,
   },
-  timePill: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+  detailsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
   },
   timeText: {
-    fontSize: 11,
-    color: '#4B5563',
-    fontWeight: '600',
-  },
-  actionsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  callAction: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 50,
-  },
-  verticalDivider: {
-    width: 1,
-    height: 36,
-    backgroundColor: '#E5E7EB',
-    marginHorizontal: 8,
-  },
-  callBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  callBtnOnline: {
-    borderColor: '#FCE7F3',
-  },
-  videoBtnOnline: {
-    borderColor: '#F3E8FF',
-  },
-  offlineText: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#9CA3AF',
-    fontWeight: '500',
+    marginLeft: 4,
   },
-  rateContainer: {
+  durationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
   },
-  coinBadge: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#FBC02D',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  coinBadgeText: {
-    fontSize: 8,
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-  },
-  rateText: {
-    fontSize: 11,
-    color: TEXT_DARK,
+  durationText: {
+    fontSize: 12,
+    color: '#10B981',
     fontWeight: '600',
+    marginLeft: 4,
+  },
+  earningsContainer: {
+    alignItems: 'flex-end',
+    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.3)',
+  },
+  earningsLabel: {
+    fontSize: 10,
+    color: '#D4AF37',
+    textTransform: 'uppercase',
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  coinsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  coinsAmount: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#FFF',
   },
 });
 
