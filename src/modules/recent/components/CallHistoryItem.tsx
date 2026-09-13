@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { Phone, Video, Clock } from 'lucide-react-native';
+import { Phone, Video, Clock, Coins } from 'lucide-react-native';
 
 const TEXT_DARK = '#1A1A2E';
 const TEXT_MUTED = '#9B9BAD';
@@ -69,7 +69,7 @@ const CallHistoryItem: React.FC<CallHistoryItemProps> = ({ item, onPress, onCall
         <View style={styles.earningsContainer}>
           <Text style={styles.earningsLabel}>Earned</Text>
           <View style={styles.coinsRow}>
-            <Image source={require('../../../assets/icons/coin.png')} style={{ width: 14, height: 14, marginRight: 4 }} />
+            <Coins size={14} color="#D4AF37" style={{ marginRight: 4 }} />
             <Text style={styles.coinsAmount}>+{item.coinsEarned}</Text>
           </View>
         </View>
