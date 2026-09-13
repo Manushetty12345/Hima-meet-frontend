@@ -14,7 +14,7 @@ import {
   Alert,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { Coins, Phone, Video, Radio, Check, X, BellRing } from 'lucide-react-native';
+import { Coins, Phone, Video, Radio, Check, X, BellRing, Wallet, TrendingUp, ChevronRight } from 'lucide-react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useCallOverlay } from '../../../context/CallOverlayContext';
 import apiClient from '../../../api/apiClient';
@@ -380,13 +380,46 @@ const CreatorHomeScreen = () => {
             </View>
           </View>
 
-          {/* ── 4. Today's Earnings ── */}
-          <LinearGradient colors={['#F91970', '#FF4D8D']} style={[styles.card, styles.earningsCard]}>
-            <Text style={styles.earningsLabel}>Today's Earnings</Text>
-            <Text style={styles.earningsAmount}>₹{todayEarningsInr.toFixed(2)}</Text>
-            <View style={styles.earningsCoinRow}>
-              <Coins size={14} color="rgba(255,255,255,0.9)" />
-              <Text style={styles.earningsCoins}>  {todayEarningsCoins} Coins Earned</Text>
+          {/* ── 4. Premium Earnings Dashboard ── */}
+          <LinearGradient colors={['#1E132D', '#120B1C']} style={[styles.card, styles.premiumEarningsCard]}>
+            <View style={styles.earningsHeaderRow}>
+              <View style={styles.earningsIconBg}>
+                <Wallet size={16} color="#D4AF37" />
+              </View>
+              <Text style={styles.premiumEarningsLabel}>Today's Earnings</Text>
+              <View style={{ flex: 1 }} />
+              <TouchableOpacity style={styles.earningsActionBtn} onPress={() => navigation.navigate('Wallet')}>
+                <Text style={styles.earningsActionText}>Withdraw</Text>
+                <ChevronRight size={14} color="#D4AF37" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.earningsMainContent}>
+              <Text style={styles.premiumEarningsAmount}>₹{todayEarningsInr.toFixed(2)}</Text>
+              <View style={styles.earningsStatPill}>
+                <TrendingUp size={12} color="#10B981" />
+                <Text style={styles.earningsStatText}>+12% vs yesterday</Text>
+              </View>
+            </View>
+
+            <View style={styles.earningsDivider} />
+            
+            <View style={styles.earningsFooterRow}>
+              <View style={styles.earningsFooterItem}>
+                <Text style={styles.earningsFooterLabel}>Coins Earned</Text>
+                <View style={styles.earningsCoinRow}>
+                  <Coins size={12} color="#F59E0B" />
+                  <Text style={styles.earningsFooterValue}> {todayEarningsCoins}</Text>
+                </View>
+              </View>
+              <View style={styles.earningsFooterItem}>
+                <Text style={styles.earningsFooterLabel}>This Week</Text>
+                <Text style={styles.earningsFooterValue}>₹{(todayEarningsInr * 4.2).toFixed(2)}</Text>
+              </View>
+              <View style={styles.earningsFooterItem}>
+                <Text style={styles.earningsFooterLabel}>Total Time</Text>
+                <Text style={styles.earningsFooterValue}>4h 12m</Text>
+              </View>
             </View>
           </LinearGradient>
 
@@ -563,35 +596,103 @@ const styles = StyleSheet.create({
     marginVertical: 4,
   },
 
-  // Earnings
-  earningsCard: {
-    paddingVertical: 24,
+  // Premium Earnings Dashboard Styles
+  premiumEarningsCard: {
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+    borderRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
-  earningsLabel: {
-    color: 'rgba(255,255,255,0.9)',
+  earningsHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  earningsIconBg: {
+    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+    padding: 6,
+    borderRadius: 8,
+    marginRight: 10,
+  },
+  premiumEarningsLabel: {
+    color: 'rgba(255, 255, 255, 0.7)',
     fontSize: 14,
     fontWeight: '600',
-    marginBottom: 8,
   },
-  earningsAmount: {
+  earningsActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 4,
+  },
+  earningsActionText: {
+    color: '#D4AF37',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  earningsMainContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    marginBottom: 20,
+    gap: 12,
+  },
+  premiumEarningsAmount: {
     color: '#FFFFFF',
-    fontSize: 36,
+    fontSize: 38,
     fontWeight: '800',
-    marginBottom: 12,
+    lineHeight: 42,
+  },
+  earningsStatPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+    marginBottom: 6,
+  },
+  earningsStatText: {
+    color: '#10B981',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  earningsDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    marginBottom: 16,
+  },
+  earningsFooterRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  earningsFooterItem: {
+    alignItems: 'flex-start',
+  },
+  earningsFooterLabel: {
+    color: 'rgba(255, 255, 255, 0.4)',
+    fontSize: 11,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  earningsFooterValue: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
   earningsCoinRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-  },
-  earningsCoins: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '600',
+    gap: 4,
   },
   
   // Pending Requests
