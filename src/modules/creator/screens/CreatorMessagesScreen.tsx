@@ -153,7 +153,7 @@ const CreatorMessagesScreen = () => {
   const fetchCallHistory = async () => {
     try {
       setLoading(true);
-      const res = await apiClient.get('/api/creator/dashboard/calls/history');
+      const res = await apiClient.get('/api/creator/calls/history');
       if (res.data?.status === 'success') {
         const formatted = res.data.data.map((item: any) => {
           const dateObj = new Date(item.created_at);
