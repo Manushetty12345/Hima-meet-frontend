@@ -404,10 +404,6 @@ const CreatorHomeScreen = () => {
                   </View>
                   <Text style={styles.premiumEarningsLabel}>Today's Earnings</Text>
                   <View style={{ flex: 1 }} />
-                  <TouchableOpacity style={styles.earningsActionBtn} onPress={() => navigation.navigate('Wallet')}>
-                    <Text style={styles.earningsActionText}>Withdraw</Text>
-                    <ChevronRight size={14} color="#D4AF37" />
-                  </TouchableOpacity>
                 </View>
                 
                 <View style={styles.earningsMainContent}>
