@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Alert, ScrollView } from 'react-native';
 import { Info, Check } from 'lucide-react-native';
 
 interface Props {
@@ -33,7 +33,8 @@ const ReportUserModal: React.FC<Props> = ({ visible, onClose, onSubmit }) => {
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.overlay}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.overlay}>
+        <ScrollView contentContainerStyle={{flexGrow: 1, justifyContent: 'flex-end'}} keyboardShouldPersistTaps="handled">
         <View style={styles.modalContainer}>
           <View style={styles.handleBar} />
           
@@ -87,6 +88,7 @@ const ReportUserModal: React.FC<Props> = ({ visible, onClose, onSubmit }) => {
             </TouchableOpacity>
           </View>
         </View>
+      </ScrollView>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -116,7 +118,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#FF1493',
+    backgroundColor: '#5B0E8B',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -149,7 +151,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   chipSelected: {
-    backgroundColor: '#FF1493',
+    backgroundColor: '#5B0E8B',
   },
   chipText: {
     color: '#8B7F98',
@@ -163,10 +165,10 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: 24,
     borderWidth: 1.5,
-    borderColor: '#FF1493',
+    borderColor: '#5B0E8B',
     borderRadius: 16,
     padding: 12,
-    backgroundColor: '#FDF2F6',
+    backgroundColor: '#FBF7FF',
     position: 'relative',
   },
   textAreaLabel: {
@@ -176,7 +178,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 4,
     fontSize: 12,
-    color: '#FF1493',
+    color: '#5B0E8B',
     fontWeight: '600',
     zIndex: 1,
   },
@@ -213,7 +215,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 16,
     borderRadius: 16,
-    backgroundColor: '#FF1493',
+    backgroundColor: '#5B0E8B',
     alignItems: 'center',
   },
   submitBtnText: {
