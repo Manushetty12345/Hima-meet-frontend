@@ -131,14 +131,30 @@ const CreatorFullProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
-  const handleAddFriend = () => {
-    setFriendStatus('sent');
-    showToast('Friend request sent successfully');
+  const handleAddFriend = async () => {
+    if (!creatorId) return;
+    setFriendStatus('pending'); // optimistic update
+    try {
+      await apiClient.post('/api/friends/request', { target_user_id: creatorId });
+      showToast('Friend request sent successfully');
+    } catch (error) {
+      console.error('Failed to send request', error);
+      setFriendStatus('none'); // revert
+      showToast('Failed to send friend request');
+    }
   };
 
-  const handleCancelFriend = () => {
-    setFriendStatus('none');
-    showToast('Friend request cancelled successfully');
+  const handleCancelFriend = async () => {
+    if (!creatorId) return;
+    setFriendStatus('none'); // optimistic update
+    try {
+      await apiClient.post('/api/friends/cancel', { target_user_id: creatorId });
+      showToast('Friend request cancelled successfully');
+    } catch (error) {
+      console.error('Failed to cancel request', error);
+      setFriendStatus('pending'); // revert
+      showToast('Failed to cancel friend request');
+    }
   };
 
   const handleReportSubmit = async (reason: string, details: string) => {
@@ -316,7 +332,7 @@ const CreatorFullProfileScreen: React.FC<Props> = ({ navigation, route }) => {
                   <Text style={styles.addFriendText}>Add Friend</Text>
                 </LinearGradient>
               </TouchableOpacity>
-            ) : (
+            ) : (friendStatus === 'pending' || friendStatus === 'sent') ? (
               <View style={{ marginBottom: 24, gap: 12 }}>
                 <View style={[styles.addFriendBtn, { backgroundColor: '#DF7B93', opacity: 0.9, borderRadius: 24 }]}>
                   <UserCheck size={20} color="#FFFFFF" strokeWidth={2.5} />
@@ -325,6 +341,13 @@ const CreatorFullProfileScreen: React.FC<Props> = ({ navigation, route }) => {
                 <TouchableOpacity activeOpacity={0.8} onPress={handleCancelFriend} style={[styles.addFriendBtn, { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: '#FF1493', borderRadius: 24 }]}>
                   <Text style={[styles.addFriendText, { color: '#FF1493' }]}>Cancel Request</Text>
                 </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={{ marginBottom: 24 }}>
+                <View style={[styles.addFriendBtn, { backgroundColor: '#4A0F6E', borderRadius: 24 }]}>
+                  <UserCheck size={20} color="#FFFFFF" strokeWidth={2.5} />
+                  <Text style={styles.addFriendText}>Friends</Text>
+                </View>
               </View>
             )}
 

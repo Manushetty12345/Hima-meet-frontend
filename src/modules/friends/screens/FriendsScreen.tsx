@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View,
+  View, ScrollView,
   Text,
   StyleSheet,
   StatusBar,
@@ -289,6 +289,18 @@ const FriendsScreen: React.FC<Props> = () => {
       }
     };
     fetchData();
+    
+    // WebSocket auto-refresh
+    const socket = getSocket();
+    if (socket) {
+      socket.off('friend_update').on('friend_update', fetchData);
+    }
+
+    return () => {
+      if (socket) {
+        socket.off('friend_update', fetchData);
+      }
+    };
   }, [activeTab]);
   const renderEmptyState = (tab: TabKey) => (
     <View style={styles.emptyState}>
@@ -338,30 +350,51 @@ const FriendsScreen: React.FC<Props> = () => {
           </View>
         </View>
 
-        <View style={styles.tabRow}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          contentContainerStyle={styles.tabRow}
+        >
           {TABS.map(({ key, label }) => {
             const isActive = activeTab === key;
+            
+            if (isActive) {
+              return (
+                <TouchableOpacity key={key} activeOpacity={0.85} style={styles.filterChipActive}>
+                  <LinearGradient
+                    colors={['#D4AF37', '#F5C542']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.filterGrad}
+                  >
+                    <Text style={styles.filterLabelActive}>{getTabLabel(key, label).toUpperCase()}</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              );
+            }
+
             return (
               <TouchableOpacity
                 key={key}
-                style={styles.tabItem}
+                style={styles.filterChip}
                 activeOpacity={0.7}
                 onPress={() => setActiveTab(key)}
               >
-                <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
-                  {getTabLabel(key, label)}
-                </Text>
-                {isActive && (
-                  <LinearGradient
-                    colors={['#FF1493', '#C850C0']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.tabUnderline}
-                  />
-                )}
+                <Text style={styles.filterLabel}>{getTabLabel(key, label).toUpperCase()}</Text>
               </TouchableOpacity>
             );
           })}
+        </ScrollView>
+
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by name"
+            placeholderTextColor="#8B7F98"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          <Search size={18} color="#4B5563" />
         </View>
       </LinearGradient>
 
@@ -371,18 +404,6 @@ const FriendsScreen: React.FC<Props> = () => {
         </View>
       ) : (
         <View style={styles.listFlex}>
-          {(activeTab === 'friends' || activeTab === 'favourite') && (
-            <View style={styles.searchContainer}>
-              <Search size={18} color="#9CA3AF" style={styles.searchIcon} />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search by name"
-                placeholderTextColor="#9CA3AF"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
-            </View>
-          )}
           {data[activeTab].length > 0 ? (
             <FlatList
               data={data[activeTab].filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))}
@@ -486,7 +507,7 @@ const styles = StyleSheet.create({
   },
   headerGradient: {
     overflow: 'hidden',
-    paddingBottom: 10,
+    paddingBottom: 0,
   },
   statusBarSpacer: {
     height: STATUSBAR_HEIGHT,
@@ -496,8 +517,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 18,
+    paddingTop: 12,
+    paddingBottom: 12,
   },
   headerTextBlock: {
     flex: 1,
@@ -516,22 +537,42 @@ const styles = StyleSheet.create({
   tabRow: {
     flexDirection: 'row',
     paddingHorizontal: 24,
-    paddingTop: 4,
+    gap: 10,
+    marginTop: 8,
   },
-  tabItem: {
+  filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 28,
-    paddingBottom: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: '#EBDFC4',
+    backgroundColor: '#FFFFFF',
   },
-  tabLabel: {
-    fontSize: 14,
+  filterChipActive: {
+    borderRadius: 22,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+  },
+  filterGrad: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  filterLabel: {
+    fontSize: 13,
     fontWeight: '700',
-    color: TEXT_MUTED,
-    letterSpacing: 0.3,
+    color: '#5B0E8B',
+    letterSpacing: 0.5,
   },
-  tabLabelActive: {
-    color: '#FF1493',
+  filterLabelActive: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#2A1240',
+    letterSpacing: 0.5,
   },
   tabBadge: {
     marginLeft: 7,
@@ -608,15 +649,15 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: 20,
-    marginTop: 16,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#FF1493',
-    borderRadius: 24,
-    paddingHorizontal: 16,
-    height: 44,
     backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#EBDFC4',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    height: 48,
+    marginHorizontal: 24,
+    marginTop: 12,
+    marginBottom: 12,
   },
   searchIcon: {
     marginRight: 8,
