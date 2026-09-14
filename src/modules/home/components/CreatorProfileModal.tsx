@@ -23,7 +23,6 @@ import apiClient from '../../../api/apiClient';
 import EmojiSelector, { Categories } from 'react-native-emoji-selector';
 import { launchCamera, launchImageLibrary, ImagePickerResponse } from 'react-native-image-picker';
 import { ArrowLeft, Phone, Video, MoreVertical, UserPlus, User, Coins, Send, Image as ImageIcon, Smile, Camera, Mic, Ban, Eraser, Trash2, Lock, Check, CheckCheck } from 'lucide-react-native';
-import BlockUserModal from './BlockUserModal';
 import { initSocket, disconnectSocket, getSocket } from '../../../api/socketClient';
 
 const PLUM_ROYAL = '#5B0E8B';
@@ -81,7 +80,6 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
   onVideoCall,
 }) => {
   const [menuVisible, setMenuVisible] = useState(false);
-  const [isBlockModalVisible, setIsBlockModalVisible] = useState(false);
   const [friendStatus, setFriendStatus] = useState<'none' | 'pending' | 'friends' | 'blocked'>('none');
   const [isLoadingStatus, setIsLoadingStatus] = useState(true);
   
@@ -335,18 +333,14 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
     }
   };
 
-  const handleBlockUser = () => {
+  const handleBlockUser = async () => {
     setMenuVisible(false);
-    setIsBlockModalVisible(true);
-  };
-
-  const handleBlockSubmit = async (deleteChat: boolean) => {
-    setIsBlockModalVisible(false);
     try {
-      await apiClient.post(`/api/creator/${creator.id}/block`, { deleteChat });
+      await apiClient.post(`/api/friends/block`, { target_user_id: creator.id });
       setFriendStatus('blocked');
       disconnectSocket();
       showToast('User blocked');
+      // onClose(); // Removed so the modal stays open on the 'Blocked' state
     } catch (e) {
       console.error('Failed to block user', e);
       Alert.alert('Error', 'Failed to block user. Please try again.');
