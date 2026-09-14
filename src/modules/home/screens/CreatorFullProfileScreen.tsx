@@ -79,7 +79,7 @@ const CreatorFullProfileScreen: React.FC<Props> = ({ navigation, route }) => {
         setDebugApiRes(JSON.stringify(res.data, null, 2));
         if (res.data?.status === 'success') {
           setProfileData(res.data.data);
-          setIsFavorite(res.data.data.friendshipStatus === 'favourite');
+          setIsFavorite(!!res.data.data.is_favourite);
           setFriendStatus(res.data.data.friendshipStatus || 'none');
           setNotifyOnline(!!res.data.data.is_notify_online_enabled);
           setIsBlocked(!!res.data.data.is_blocked);
@@ -222,7 +222,7 @@ const CreatorFullProfileScreen: React.FC<Props> = ({ navigation, route }) => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" {...({ translucent: true, backgroundColor: 'transparent' } as any)} />
+      <StatusBar barStyle="dark-content" {...({ translucent: true, backgroundColor: 'transparent' } as any)} />
 
       {/* Animated Cover Background */}
       <Animated.View
@@ -233,15 +233,12 @@ const CreatorFullProfileScreen: React.FC<Props> = ({ navigation, route }) => {
           },
         ]}
       >
-        <Image
-          source={{ uri: avatarImage }}
-          style={styles.coverImage}
-          blurRadius={10}
-        />
         <LinearGradient
-          colors={['rgba(0,0,0,0.5)', 'rgba(0,0,0,0.1)', BG_COLOR]}
-          style={StyleSheet.absoluteFill}
-        />
+            colors={['#FBF7FF', '#EFDFFB']}
+            start={{ x: 0.15, y: 0 }}
+            end={{ x: 0.85, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
       </Animated.View>
 
       {/* Main Scrollable Content */}
@@ -323,10 +320,10 @@ const CreatorFullProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             {friendStatus === 'none' ? (
               <TouchableOpacity activeOpacity={0.8} style={styles.addFriendBtnContainer} onPress={handleAddFriend}>
                 <LinearGradient
-                  colors={['#FF1493', '#9C27B0']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.addFriendBtn}
+                  colors={['#5B0E8B', '#2A1240']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.addFriendBtn}
                 >
                   <UserPlus size={20} color="#FFFFFF" strokeWidth={2.5} />
                   <Text style={styles.addFriendText}>Add Friend</Text>
@@ -414,9 +411,9 @@ const CreatorFullProfileScreen: React.FC<Props> = ({ navigation, route }) => {
           ]}
         >
           <LinearGradient
-            colors={['#FF1493', '#9C27B0']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
+            colors={['#FBF7FF', '#EFDFFB']}
+            start={{ x: 0.15, y: 0 }}
+            end={{ x: 0.85, y: 1 }}
             style={StyleSheet.absoluteFill}
           />
         </Animated.View>
@@ -427,7 +424,7 @@ const CreatorFullProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             onPress={() => navigation.goBack()}
             activeOpacity={0.8}
           >
-            <ArrowLeft size={24} color="#FFFFFF" />
+            <ArrowLeft size={24} color="#5B0E8B" />
           </TouchableOpacity>
 
           <Animated.Text style={[styles.headerTitle, { opacity: headerOpacity }]}>
@@ -435,7 +432,7 @@ const CreatorFullProfileScreen: React.FC<Props> = ({ navigation, route }) => {
           </Animated.Text>
 
           <TouchableOpacity style={styles.headerIconBtn} activeOpacity={0.8} onPress={toggleFavorite}>
-            <Heart size={24} color={isFavorite ? PINK : "#FFFFFF"} fill={isFavorite ? PINK : "transparent"} />
+            <Heart size={24} color={isFavorite ? PINK : "#5B0E8B"} fill={isFavorite ? PINK : "transparent"} />
           </TouchableOpacity>
         </View>
       </View>
@@ -502,14 +499,14 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
   toastIcon: {
-    width: 24,
-    height: 24,
-    marginRight: 10,
+    width: 20,
+    height: 20,
+    marginRight: 12,
     resizeMode: 'contain',
   },
   toastText: {
-    color: '#333',
-    fontSize: 14,
+    color: '#2A1240',
+    fontSize: 13,
     fontWeight: '600',
   },
   avatarWrapper: {
@@ -722,20 +719,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'android' ? 36 : 46,
+    paddingTop: Platform.OS === 'android' ? 50 : 60,
   },
   headerIconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.25)',
+      width: 40,
+      height: 40,
+      borderRadius: 10,
+      backgroundColor: '#FFFFFF',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#FFFFFF',
+      fontSize: 18,
+      fontWeight: '800',
+      color: '#2A1240',
   },
 });
 
