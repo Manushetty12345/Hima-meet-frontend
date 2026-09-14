@@ -140,7 +140,7 @@ const CreatorFullProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     } catch (error) {
       console.error('Failed to send request', error);
       setFriendStatus('none'); // revert
-      showToast(error.response?.data?.message || 'Failed to send friend request');
+      showToast((error as any).response?.data?.message || 'Failed to send friend request');
     }
   };
 
