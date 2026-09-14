@@ -89,7 +89,6 @@ const CreatorFullProfileScreen: React.FC<Props> = ({ navigation, route }) => {
         setLoading(false);
       }
     };
-    };
 
   useEffect(() => {
     fetchProfile();
