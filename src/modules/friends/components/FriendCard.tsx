@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { Phone, Video, Pin, Bell, BellOff } from 'lucide-react-native';
+import apiClient from '../../../api/apiClient';
 
 const TEXT_DARK = '#1A1A2E';
 const TEXT_MUTED = '#9B9BAD';
@@ -14,31 +15,69 @@ export type FriendItem = {
   isOnline?: boolean;
   callRate?: number;
   videoRate?: number;
-};
+  callAvailable?: boolean;
+    videoAvailable?: boolean;
+    isPinned?: boolean;
+  };
 
 interface FriendCardProps {
   item: FriendItem;
   onPress: () => void;
   onCall: () => void;
   onVideoCall: () => void;
-  onShowToast: (message: string, type?: 'error' | 'info', icon?: React.ReactNode) => void;
+  onShowToast: (message: string, type?: 'error' | 'info', showLogo?: boolean) => void;
 }
 
 const FriendCard: React.FC<FriendCardProps> = ({ item, onPress, onCall, onVideoCall, onShowToast }) => {
   const [isMuted, setIsMuted] = useState(false);
+  const [isPinned, setIsPinned] = useState(item.isPinned || false);
 
-  const toggleMute = () => {
-    setIsMuted(!isMuted);
-    if (!isMuted) {
-      onShowToast(`Notifications turned off for ${item.name}`);
+  const isAudioAvailable = item.isOnline && item.callAvailable !== false;
+  const isVideoAvailable = item.isOnline && item.videoAvailable !== false;
+
+  const toggleMute = async () => {
+    const newMutedState = !isMuted;
+    setIsMuted(newMutedState);
+    
+    // isMuted means notifications are OFF. So if newMutedState is false, enabled is true.
+    const enableNotifications = !newMutedState;
+
+    try {
+      await apiClient.post(`/api/creator/${item.id}/notify-online`, { enabled: enableNotifications });
+    } catch (err) {
+      console.error('Failed to toggle notification', err);
+    }
+
+    if (newMutedState) {
+      onShowToast(`Notifications off for ${item.name}`, 'info', true);
     } else {
-      onShowToast(`You'll be notified when ${item.name} comes online`, 'info', <Bell size={16} color="#FF1493" />);
+      onShowToast(`You will be notified when ${item.name} comes online`, 'info', true);
     }
   };
+
+  
+    const togglePin = async () => {
+      const newPinnedState = !isPinned;
+      setIsPinned(newPinnedState);
+      
+      try {
+        await apiClient.post(`/api/friends/${item.id}/pin`);
+      } catch (err) {
+        console.error('Failed to toggle pin', err);
+      }
+
+      if (newPinnedState) {
+        onShowToast('Chat pinned', 'info', true);
+      } else {
+        onShowToast('Chat unpinned', 'info', true);
+      }
+    };
 
   const handleAudioCall = () => {
     if (!item.isOnline) {
       onShowToast('This user is not available for audio calls right now.', 'error');
+    } else if (item.callAvailable === false) {
+      onShowToast('This user has turned off audio calls.', 'error');
     } else {
       onCall();
     }
@@ -47,6 +86,8 @@ const FriendCard: React.FC<FriendCardProps> = ({ item, onPress, onCall, onVideoC
   const handleVideoCall = () => {
     if (!item.isOnline) {
       onShowToast('This user is not available for video calls right now.', 'error');
+    } else if (item.videoAvailable === false) {
+      onShowToast('This user has turned off video calls.', 'error');
     } else {
       onVideoCall();
     }
@@ -56,7 +97,7 @@ const FriendCard: React.FC<FriendCardProps> = ({ item, onPress, onCall, onVideoC
     <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={onPress}>
       {/* Avatar with purple ring */}
       <LinearGradient
-        colors={['#C850C0', '#FF1493']}
+        colors={['#9C27B0', '#5B0E8B']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.avatarRing}
@@ -70,53 +111,61 @@ const FriendCard: React.FC<FriendCardProps> = ({ item, onPress, onCall, onVideoC
       <View style={styles.textContainer}>
         <View style={styles.nameRow}>
           <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
-          <TouchableOpacity onPress={toggleMute} style={styles.iconBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            {isMuted ? (
-              <BellOff size={14} color="#9CA3AF" />
-            ) : (
-              <Bell size={14} color="#FF1493" />
-            )}
-          </TouchableOpacity>
         </View>
         <Text style={styles.lastMessageText} numberOfLines={1}>
           {item.lastMessage || 'No messages yet'}
         </Text>
       </View>
 
-      {/* Actions */}
-      <View style={styles.actionsContainer}>
-        <View style={styles.callAction}>
-          <TouchableOpacity onPress={handleAudioCall} style={[styles.callBtn, item.isOnline && styles.callBtnOnline]}>
-            <Phone size={18} color={item.isOnline ? '#FF1493' : '#9CA3AF'} fill={item.isOnline ? '#FF1493' : '#9CA3AF'} />
+      {/* Right Column: Top Icons + Actions */}
+      <View style={styles.rightColumn}>
+        {/* Top Icons */}
+        <View style={styles.topIconsRow}>
+          <TouchableOpacity onPress={togglePin} style={styles.topIconBtn}>
+              <Pin size={17} color={isPinned ? "#9C27B0" : "#6B7280"} fill={isPinned ? "#9C27B0" : "transparent"} />
+            </TouchableOpacity>
+          <TouchableOpacity onPress={toggleMute} style={styles.topIconBtn}>
+            {isMuted ? (
+              <BellOff size={17} color="#6B7280" />
+            ) : (
+              <Bell size={17} color="#6B7280" />
+            )}
           </TouchableOpacity>
-          {item.isOnline ? (
-            <View style={styles.rateContainer}>
-              <View style={styles.coinBadge}>
-                <Text style={styles.coinBadgeText}>H</Text>
-              </View>
-              <Text style={styles.rateText}>{item.callRate || 20}/min</Text>
-            </View>
-          ) : (
-            <Text style={styles.offlineText}>Offline</Text>
-          )}
         </View>
 
-        <View style={styles.verticalDivider} />
-
-        <View style={styles.callAction}>
-          <TouchableOpacity onPress={handleVideoCall} style={[styles.callBtn, item.isOnline && styles.callBtnOnline]}>
-            <Video size={18} color={item.isOnline ? '#FF1493' : '#9CA3AF'} fill={item.isOnline ? '#FF1493' : '#9CA3AF'} />
-          </TouchableOpacity>
-          {item.isOnline ? (
-            <View style={styles.rateContainer}>
-              <View style={styles.coinBadge}>
-                <Text style={styles.coinBadgeText}>H</Text>
+        {/* Actions */}
+        <View style={styles.actionsContainer}>
+          <View style={styles.callAction}>
+            <TouchableOpacity onPress={handleAudioCall} style={[styles.callBtn, isAudioAvailable && styles.callBtnOnline]}>
+              <Phone size={14} color={isAudioAvailable ? '#9C27B0' : '#D1D5DB'} fill={isAudioAvailable ? '#9C27B0' : '#D1D5DB'} />
+            </TouchableOpacity>
+            {isAudioAvailable ? (
+              <View style={styles.rateContainer}>
+                <View style={styles.coinBadge}>
+                  <Text style={styles.coinBadgeText}>H</Text>
+                </View>
+                <Text style={styles.rateText}>{Math.round(Number(item.callRate)) || 20}/min</Text>
               </View>
-              <Text style={styles.rateText}>{item.videoRate || 40}/min</Text>
-            </View>
-          ) : (
-            <Text style={styles.offlineText}>Offline</Text>
-          )}
+            ) : (
+              <Text style={styles.offlineText}>Offline</Text>
+            )}
+          </View>
+
+          <View style={styles.callAction}>
+            <TouchableOpacity onPress={handleVideoCall} style={[styles.callBtn, isVideoAvailable && styles.callBtnOnline]}>
+              <Video size={14} color={isVideoAvailable ? '#9C27B0' : '#D1D5DB'} fill={isVideoAvailable ? '#9C27B0' : '#D1D5DB'} />
+            </TouchableOpacity>
+            {isVideoAvailable ? (
+              <View style={styles.rateContainer}>
+                <View style={styles.coinBadge}>
+                  <Text style={styles.coinBadgeText}>H</Text>
+                </View>
+                <Text style={styles.rateText}>{Math.round(Number(item.videoRate)) || 40}/min</Text>
+              </View>
+            ) : (
+              <Text style={styles.offlineText}>Offline</Text>
+            )}
+          </View>
         </View>
       </View>
     </TouchableOpacity>
@@ -129,8 +178,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
-    padding: 16,
-    marginBottom: 12,
+    padding: 10,
+    marginBottom: 6,
     shadowColor: '#4A0F6E',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.06,
@@ -138,26 +187,26 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   avatarRing: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
+      width: 52,
+      height: 52,
+      borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    marginRight: 10,
   },
   avatarInner: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+      width: 48,
+      height: 48,
+      borderRadius: 24,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 2,
   },
   avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+      width: 46,
+      height: 46,
+      borderRadius: 23,
   },
   textContainer: {
     flex: 1,
@@ -171,7 +220,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   name: {
-    fontSize: 16,
+      fontSize: 16,
     fontWeight: '700',
     color: TEXT_DARK,
     flex: 1,
@@ -180,30 +229,47 @@ const styles = StyleSheet.create({
     padding: 2,
   },
   lastMessageText: {
-    fontSize: 13,
+    fontSize: 11,
     color: TEXT_MUTED,
     marginTop: 4,
+  },
+  
+  rightColumn: {
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  topIconsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+    paddingRight: 8,
+  },
+  topIconBtn: {
+    padding: 2,
   },
   actionsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
+    gap: 16,
   },
   callAction: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 50,
+    width: 40,
   },
   verticalDivider: {
     width: 1,
     height: 36,
     backgroundColor: '#E5E7EB',
-    marginHorizontal: 8,
+    marginHorizontal: 6,
   },
   callBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#F3F4F6',
     backgroundColor: '#FFFFFF',
@@ -217,10 +283,10 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   callBtnOnline: {
-    borderColor: '#FCE7F3',
+    borderColor: '#F3E5F5',
   },
   offlineText: {
-    fontSize: 11,
+    fontSize: 9,
     color: '#9CA3AF',
     fontWeight: '500',
   },
@@ -230,20 +296,20 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   coinBadge: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     backgroundColor: '#FBC02D',
     alignItems: 'center',
     justifyContent: 'center',
   },
   coinBadgeText: {
-    fontSize: 8,
+    fontSize: 7,
     color: '#FFFFFF',
     fontWeight: 'bold',
   },
   rateText: {
-    fontSize: 11,
+    fontSize: 9,
     color: TEXT_DARK,
     fontWeight: '600',
   },

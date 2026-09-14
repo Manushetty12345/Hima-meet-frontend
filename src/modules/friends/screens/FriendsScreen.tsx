@@ -10,9 +10,9 @@ import {
   ActivityIndicator,
   Animated,
   TextInput,
-} from 'react-native';
+ Alert, Image } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { UserPlus, Search, Bell } from 'lucide-react-native';
+import {  UserPlus, Search, Bell } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -88,13 +88,13 @@ const FriendsScreen: React.FC<Props> = () => {
   // Toast state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<'error' | 'info'>('info');
-  const [toastIcon, setToastIcon] = useState<React.ReactNode>(null);
+  const [toastShowLogo, setToastShowLogo] = useState<boolean>(false);
   const toastOpacity = React.useRef(new Animated.Value(0)).current;
 
-  const showToast = (message: string, type: 'error' | 'info' = 'info', icon?: React.ReactNode) => {
+  const showToast = (message: string, type: 'error' | 'info' = 'info', showLogo: boolean = false) => {
     setToastMessage(message);
     setToastType(type);
-    setToastIcon(icon || null);
+    setToastShowLogo(showLogo);
     
     toastOpacity.setValue(0);
     Animated.sequence([
@@ -263,23 +263,29 @@ const FriendsScreen: React.FC<Props> = () => {
         }
 
         if (res?.data?.data) {
-          const formatted = res.data.data.map((item: any) => ({
+          let formatted = res.data.data.map((item: any) => ({
             id: item.user_id?.toString() || item.id?.toString(),
             name: item.name || item.full_name,
             avatarUri: item.avatar_url || 'https://hima-bucket.s3.amazonaws.com/default-avatar.png',
             isOnline: Boolean(item.isOnline !== undefined ? item.isOnline : item.is_online),
             callAvailable: Boolean(item.isVoiceOnline),
-            callRate: item.voice?.rate_per_min,
+            callRate: item.voice_rate,
             videoAvailable: Boolean(item.isVideoOnline),
-            videoRate: item.video?.rate_per_min,
+            videoRate: item.video_rate,
             lastMessage: item.lastMessage,
             lastMessageStatus: item.lastMessageStatus,
             lastMessageSenderId: item.lastMessageSenderId,
             lastMessageTime: item.lastMessageTime,
+              is_pinned: !!item.is_pinned,
             lastSeen: item.lastSeen,
             // For requests tab, use the status from API (can be 'received' or 'accepted_by_receiver')
             type: activeTab === 'requests' ? (item.status || type) : type,
           }));
+            formatted.sort((a, b) => {
+              if (a.is_pinned && !b.is_pinned) return -1;
+              if (!a.is_pinned && b.is_pinned) return 1;
+              return 0;
+            });
           setData(prev => ({ ...prev, [activeTab]: formatted }));
         }
       } catch (err) {
@@ -293,7 +299,11 @@ const FriendsScreen: React.FC<Props> = () => {
     // WebSocket auto-refresh
     const socket = getSocket();
     if (socket) {
-      socket.off('friend_update').on('friend_update', fetchData);
+      socket.off('friend_update').on('friend_update', () => {
+        console.log('?? [WebSocket] friend_update received - automatically refreshing Friends tab!');
+        
+        fetchData();
+      });
     }
 
     return () => {
@@ -457,7 +467,7 @@ const FriendsScreen: React.FC<Props> = () => {
           toastType === 'error' ? styles.toastError : styles.toastInfo,
           { opacity: toastOpacity }
         ]}>
-          {toastIcon}
+          {toastShowLogo && <Image source={require('../../../assets/images/logo1.png')} style={{width: 20, height: 20, marginRight: 10, resizeMode: 'contain'}} />}
           <Text style={[styles.toastText, toastType === 'error' && styles.toastTextError]}>
             {toastMessage}
           </Text>
@@ -669,12 +679,12 @@ const styles = StyleSheet.create({
   },
   toastContainer: {
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 40 : 20,
+    bottom: Platform.OS === 'ios' ? 160 : 140, // Moved up slightly more
     alignSelf: 'center',
-    backgroundColor: '#2A1240',
+    backgroundColor: '#EFDFFB', // Matches friends screen header background
     borderRadius: 24,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingVertical: 10,
+      paddingHorizontal: 18,
     flexDirection: 'row',
     alignItems: 'center',
     shadowColor: '#000',
@@ -691,13 +701,13 @@ const styles = StyleSheet.create({
     // Info uses the default #2A1240 background from container
   },
   toastText: {
-    color: '#FFFFFF',
-    fontSize: 14,
+      color: '#2A1240', // TEXT_PLUM to match header
+      fontSize: 13,
     fontWeight: '600',
   },
   toastTextError: {
-    color: '#FFFFFF',
-  },
+      color: '#FFFFFF',
+    },
 });
 
 export default FriendsScreen;
