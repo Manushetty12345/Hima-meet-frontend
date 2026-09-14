@@ -71,11 +71,10 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#FF1493',
+    backgroundColor: '#5B0E8B',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
-    marginTop: -48, // To give that half-outside look if needed, but per screenshot it's inside. Let's adjust to be inside
   },
   title: {
     fontSize: 20,
@@ -107,8 +106,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#FF1493',
-    borderColor: '#FF1493',
+    backgroundColor: '#5B0E8B',
+    borderColor: '#5B0E8B',
   },
   checkmark: {
     color: '#FFFFFF',
@@ -148,7 +147,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 16,
-    backgroundColor: '#FF1493',
+    backgroundColor: '#5B0E8B',
     alignItems: 'center',
   },
   blockBtnText: {
