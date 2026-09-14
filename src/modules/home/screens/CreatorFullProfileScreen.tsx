@@ -80,7 +80,7 @@ const CreatorFullProfileScreen: React.FC<Props> = ({ navigation, route }) => {
         if (res.data?.status === 'success') {
           setProfileData(res.data.data);
           setIsFavorite(!!res.data.data.is_favourite);
-          setFriendStatus(res.data.data.friendshipStatus || 'none');
+          setFriendStatus(res.data.data.friendship_status || 'none');
           setNotifyOnline(!!res.data.data.is_notify_online_enabled);
           setIsBlocked(!!res.data.data.is_blocked);
         }
@@ -140,7 +140,7 @@ const CreatorFullProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     } catch (error) {
       console.error('Failed to send request', error);
       setFriendStatus('none'); // revert
-      showToast('Failed to send friend request');
+      showToast(error.response?.data?.message || 'Failed to send friend request');
     }
   };
 
