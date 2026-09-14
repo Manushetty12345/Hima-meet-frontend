@@ -66,8 +66,7 @@ const CreatorFullProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     ]).start(() => setToastMessage(''));
   };
 
-  useEffect(() => {
-    const fetchProfile = async () => {
+  const fetchProfile = async () => {
       if (!creatorId) {
         setDebugApiRes('Error: creatorId is undefined!');
         setLoading(false);
@@ -90,6 +89,9 @@ const CreatorFullProfileScreen: React.FC<Props> = ({ navigation, route }) => {
         setLoading(false);
       }
     };
+    };
+
+  useEffect(() => {
     fetchProfile();
   }, [creatorId]);
 
@@ -180,6 +182,7 @@ const CreatorFullProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     try {
       await apiClient.post(`/api/creator/${creatorId}/block`, { deleteChat });
       setIsBlocked(true);
+      await fetchProfile();
       showToast('User blocked successfully');
     } catch (error) {
       console.error('Failed to block user', error);
@@ -192,6 +195,7 @@ const CreatorFullProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     try {
       await apiClient.post(`/api/creator/${creatorId}/unblock`);
       setIsBlocked(false);
+      await fetchProfile();
       showToast('User unblocked successfully');
     } catch (error) {
       console.error('Failed to unblock user', error);
