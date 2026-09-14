@@ -105,6 +105,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
+    paddingBottom: Platform.OS === 'ios' ? 44 : 36,
     alignItems: 'center',
   },
   handleBar: {
