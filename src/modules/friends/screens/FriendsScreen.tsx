@@ -281,7 +281,7 @@ const FriendsScreen: React.FC<Props> = () => {
             // For requests tab, use the status from API (can be 'received' or 'accepted_by_receiver')
             type: activeTab === 'requests' ? (item.status || type) : type,
           }));
-            formatted.sort((a, b) => {
+            formatted.sort((a: any, b: any) => {
               if (a.is_pinned && !b.is_pinned) return -1;
               if (!a.is_pinned && b.is_pinned) return 1;
               return 0;
