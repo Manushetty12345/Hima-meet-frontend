@@ -101,9 +101,8 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   // Fetch status
-  useEffect(() => {
-    if (visible && creator) {
-      const fetchStatus = async () => {
+  const fetchStatus = async () => {
+      if (creator) {
         setIsLoadingStatus(true);
         try {
           const res = await apiClient.get(`/api/friends/status/${creator.id}`);
@@ -113,8 +112,12 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
         } finally {
           setIsLoadingStatus(false);
         }
-      };
-      fetchStatus();
+      }
+    };
+
+  useEffect(() => {
+    if (visible && creator) {
+        fetchStatus();
     }
   }, [visible, creator]);
 
@@ -325,7 +328,7 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
   const handleUnblockUser = async () => {
     try {
       await apiClient.post(`/api/creator/${creator.id}/unblock`);
-      setFriendStatus('none');
+      await fetchStatus();
       showToast('User unblocked successfully');
     } catch (e) {
       console.error('Failed to unblock user', e);
