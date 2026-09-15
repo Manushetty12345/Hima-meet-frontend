@@ -85,6 +85,8 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
   
   // Real-time online status state
   const [isOnline, setIsOnline] = useState(creator?.isOnline || false);
+  const [callAvailable, setCallAvailable] = useState(creator?.callAvailable !== false);
+  const [videoAvailable, setVideoAvailable] = useState(creator?.videoAvailable !== false);
   const [lastSeen, setLastSeen] = useState<string | null>((creator as any)?.lastSeen || null);
 
   const [message, setMessage] = useState('');
@@ -183,6 +185,13 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
               if (data.userId?.toString() === creator.id?.toString()) setIsOnline(true);
             });
             
+            
+            localSocket.on('availability_changed', (data: any) => {
+              if (data.userId?.toString() === creator.id?.toString()) {
+                if (data.call_type === 'voice') setCallAvailable(data.is_online);
+                if (data.call_type === 'video') setVideoAvailable(data.is_online);
+              }
+            });
             localSocket.on('user_offline', (data: any) => {
               if (data.userId?.toString() === creator.id?.toString()) {
                 setIsOnline(false);
@@ -408,14 +417,14 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
             {/* Phone Button */}
             <View style={styles.actionBtn}>
               <TouchableOpacity
-                style={[styles.actionCircle, (isOnline && creator.callAvailable) ? styles.actionCircleActive : styles.actionCircleDisabled]}
+                style={[styles.actionCircle, (isOnline && callAvailable) ? styles.actionCircleActive : styles.actionCircleDisabled]}
                 activeOpacity={0.8}
-                disabled={!isOnline || !creator.callAvailable}
+                disabled={!isOnline || !callAvailable}
                 onPress={() => onCall?.(creator)}
               >
-                <Phone size={16} color={(isOnline && creator.callAvailable) ? '#9C27B0' : '#D1D5DB'} fill={(isOnline && creator.callAvailable) ? '#9C27B0' : 'transparent'} />
+                <Phone size={16} color={(isOnline && callAvailable) ? '#9C27B0' : '#D1D5DB'} fill={(isOnline && callAvailable) ? '#9C27B0' : 'transparent'} />
               </TouchableOpacity>
-              {(isOnline && creator.callAvailable) ? (
+              {(isOnline && callAvailable) ? (
                 <View style={styles.rateContainer}>
                   <View style={styles.coinBadge}>
                     <Text style={styles.coinBadgeText}>H</Text>
@@ -430,14 +439,14 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
             {/* Video Button */}
             <View style={styles.actionBtn}>
               <TouchableOpacity
-                style={[styles.actionCircle, (isOnline && creator.videoAvailable) ? styles.actionCircleActive : styles.actionCircleDisabled]}
+                style={[styles.actionCircle, (isOnline && videoAvailable) ? styles.actionCircleActive : styles.actionCircleDisabled]}
                 activeOpacity={0.8}
-                disabled={!isOnline || !creator.videoAvailable}
+                disabled={!isOnline || !videoAvailable}
                 onPress={() => onVideoCall?.(creator)}
               >
-                <Video size={16} color={(isOnline && creator.videoAvailable) ? '#9C27B0' : '#D1D5DB'} fill={(isOnline && creator.videoAvailable) ? '#9C27B0' : '#D1D5DB'} />
+                <Video size={16} color={(isOnline && videoAvailable) ? '#9C27B0' : '#D1D5DB'} fill={(isOnline && videoAvailable) ? '#9C27B0' : '#D1D5DB'} />
               </TouchableOpacity>
-              {(isOnline && creator.videoAvailable) ? (
+              {(isOnline && videoAvailable) ? (
                 <View style={styles.rateContainer}>
                   <View style={styles.coinBadge}>
                     <Text style={styles.coinBadgeText}>H</Text>
