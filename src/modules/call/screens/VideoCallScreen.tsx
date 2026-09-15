@@ -166,7 +166,7 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
 
       const fetchedCoins = walletRes?.data?.data?.coin_balance ?? 0;
       setCoins(fetchedCoins);
-      setTimeLeft(Math.floor((fetchedCoins / cost) * 60));
+      setTimeLeft(Math.floor(fetchedCoins / cost) * 60);
     } catch (err) {
       console.log('Error fetching initial data:', err);
       setCoins(0);
@@ -420,7 +420,7 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
     try {
       const newCoins = coins - gift.price;
       setCoins(newCoins);
-      const newMaxSeconds = Math.floor((newCoins / callCostPerMinute) * 60);
+      const newMaxSeconds = Math.floor(newCoins / callCostPerMinute) * 60;
       if (timeLeft && newMaxSeconds < timeLeft) setTimeLeft(newMaxSeconds);
       if (newMaxSeconds <= 60 && newMaxSeconds > 0) setShowLowBalance(true);
       else if (newMaxSeconds <= 0) handleEndCall();

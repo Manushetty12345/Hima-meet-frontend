@@ -152,7 +152,7 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
       const fetchedCoins = walletRes?.data?.data?.coin_balance ?? 0;
       setCoins(fetchedCoins);
       
-      const maxSeconds = Math.floor((fetchedCoins / cost) * 60);
+      const maxSeconds = Math.floor(fetchedCoins / cost) * 60;
       setTimeLeft(maxSeconds);
     } catch (err) {
       console.log('Error fetching initial data:', err);
