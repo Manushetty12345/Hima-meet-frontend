@@ -119,6 +119,21 @@ const FriendCard: React.FC<FriendCardProps> = ({ item, onPress, onCall, onVideoC
 
       {/* Right Column: Top Icons + Actions */}
       <View style={styles.rightColumn}>
+        
+        {/* Top Icons */}
+        <View style={styles.topIconsRow}>
+          <TouchableOpacity onPress={togglePin} style={styles.topIconBtn}>
+              <Pin size={17} color={isPinned ? "#9C27B0" : "#6B7280"} fill={isPinned ? "#9C27B0" : "transparent"} />
+            </TouchableOpacity>
+          <TouchableOpacity onPress={toggleMute} style={styles.topIconBtn}>
+            {isMuted ? (
+              <BellOff size={17} color="#6B7280" />
+            ) : (
+              <Bell size={17} color="#6B7280" />
+            )}
+          </TouchableOpacity>
+        </View>
+
         {/* Actions */}
         <View style={styles.actionsContainer}>
           <View style={styles.callAction}>
@@ -225,10 +240,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
+  
   rightColumn: {
     alignItems: 'flex-end',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     paddingVertical: 4,
+  },
+  topIconsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+    paddingRight: 8,
+  },
+  topIconBtn: {
+    padding: 2,
   },
   actionsContainer: {
     flexDirection: 'row',
