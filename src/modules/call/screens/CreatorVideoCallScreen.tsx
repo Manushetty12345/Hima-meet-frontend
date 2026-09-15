@@ -135,7 +135,7 @@ const CreatorVideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
         onUserOffline: (connection, uid, reason) => {
           remoteUidRef.current = null;
           setRemoteUid(null);
-          handleCallCleanup();
+          // handleCallCleanup(); // Temporarily disabled: do not aggressively end call if user drops due to payment app
         },
         onSnapshotTaken: async (connection, uid, filePath, width, height, errCode) => {
           if (errCode !== 0 || !filePath) {

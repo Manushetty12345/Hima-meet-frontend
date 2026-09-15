@@ -183,7 +183,7 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
         },
         onUserOffline: (connection, uid, reason) => {
           console.log('Remote user left', uid);
-          handleEndCall(); // End call if other user leaves
+          // handleEndCall(); // Temporarily disabled: do not aggressively end call if user drops due to payment app
         }
       });
 

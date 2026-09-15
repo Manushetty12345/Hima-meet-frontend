@@ -131,7 +131,7 @@ const CreatorAudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
         },
         onUserOffline: (connection, uid, reason) => {
           console.log('Remote user left', uid);
-          handleCallCleanup();
+          // handleCallCleanup(); // Temporarily disabled: do not aggressively end call if user drops due to payment app
         },
         onError: (err, msg) => {
           console.log('Agora Error:', err, msg);

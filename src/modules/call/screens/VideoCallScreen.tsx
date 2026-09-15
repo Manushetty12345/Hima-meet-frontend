@@ -212,7 +212,7 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
           console.log('Remote video user left:', uid);
           setRemoteUid(null);
           remoteUidRef.current = null;
-          handleEndCall(); // End if the other user leaves
+          // handleEndCall(); // End if the other user leaves
         }
       });
 
