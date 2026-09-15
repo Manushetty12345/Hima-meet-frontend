@@ -387,7 +387,7 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
           style={styles.header}
         >
           <TouchableOpacity style={styles.backBtn} onPress={handleClose} activeOpacity={0.8}>
-            <ArrowLeft size={20} color={PINK} />
+            <ArrowLeft size={16} color={PINK} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.headerCenter} onPress={() => onViewProfile(creator)} activeOpacity={0.8}>
@@ -753,9 +753,9 @@ const styles = StyleSheet.create({
       // backgroundColor removed for gradient
   },
   backBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
+      width: 32,
+      height: 32,
+      borderRadius: 10,
     backgroundColor: '#FFFFFF',
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
@@ -863,7 +863,7 @@ const styles = StyleSheet.create({
 
     rateText: {
     fontSize: 9.5,
-    color: GOLD_DEEP,
+    color: '#1A1A2E',
     fontWeight: '600',
   },
   offlineText: {
