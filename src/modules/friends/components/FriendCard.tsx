@@ -94,10 +94,10 @@ const FriendCard: React.FC<FriendCardProps> = ({ item, onPress, onCall, onVideoC
   };
 
   return (
-    <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={onPress}>
+    <View style={styles.card}>
       {/* Avatar with purple ring */}
       <LinearGradient
-        colors={['#9C27B0', '#5B0E8B']}
+        colors={['#EC4899', '#A855F7']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.avatarRing}
@@ -112,27 +112,13 @@ const FriendCard: React.FC<FriendCardProps> = ({ item, onPress, onCall, onVideoC
         <View style={styles.nameRow}>
           <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
         </View>
-        <Text style={styles.lastMessageText} numberOfLines={1}>
-          {item.lastMessage || 'No messages yet'}
-        </Text>
+        <TouchableOpacity style={styles.chatNowBtn} onPress={onPress} activeOpacity={0.7}>
+          <Text style={styles.chatNowText}>Chat Now</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Right Column: Top Icons + Actions */}
       <View style={styles.rightColumn}>
-        {/* Top Icons */}
-        <View style={styles.topIconsRow}>
-          <TouchableOpacity onPress={togglePin} style={styles.topIconBtn}>
-              <Pin size={17} color={isPinned ? "#9C27B0" : "#6B7280"} fill={isPinned ? "#9C27B0" : "transparent"} />
-            </TouchableOpacity>
-          <TouchableOpacity onPress={toggleMute} style={styles.topIconBtn}>
-            {isMuted ? (
-              <BellOff size={17} color="#6B7280" />
-            ) : (
-              <Bell size={17} color="#6B7280" />
-            )}
-          </TouchableOpacity>
-        </View>
-
         {/* Actions */}
         <View style={styles.actionsContainer}>
           <View style={styles.callAction}>
@@ -150,7 +136,7 @@ const FriendCard: React.FC<FriendCardProps> = ({ item, onPress, onCall, onVideoC
               <Text style={styles.offlineText}>Offline</Text>
             )}
           </View>
-
+          <View style={styles.verticalDivider} />
           <View style={styles.callAction}>
             <TouchableOpacity onPress={handleVideoCall} style={[styles.callBtn, isVideoAvailable && styles.callBtnOnline]}>
               <Video size={14} color={isVideoAvailable ? '#9C27B0' : '#D1D5DB'} fill={isVideoAvailable ? '#9C27B0' : '#D1D5DB'} />
@@ -168,7 +154,7 @@ const FriendCard: React.FC<FriendCardProps> = ({ item, onPress, onCall, onVideoC
           </View>
         </View>
       </View>
-    </TouchableOpacity>
+    </View>
   );
 };
 
@@ -220,45 +206,40 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   name: {
-      fontSize: 16,
+    fontSize: 16,
     fontWeight: '700',
     color: TEXT_DARK,
     flex: 1,
   },
-  iconBtn: {
-    padding: 2,
+  chatNowBtn: {
+    borderWidth: 1.5,
+    borderColor: '#EC4899',
+    borderRadius: 20,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    alignSelf: 'flex-start',
+    backgroundColor: '#FFFFFF',
   },
-  lastMessageText: {
-    fontSize: 11,
-    color: TEXT_MUTED,
-    marginTop: 4,
+  chatNowText: {
+    color: '#EC4899',
+    fontSize: 12,
+    fontWeight: '600',
   },
-  
   rightColumn: {
     alignItems: 'flex-end',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     paddingVertical: 4,
-  },
-  topIconsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-    paddingRight: 8,
-  },
-  topIconBtn: {
-    padding: 2,
   },
   actionsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    gap: 16,
+    gap: 8,
   },
   callAction: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 40,
+    width: 44,
   },
   verticalDivider: {
     width: 1,
