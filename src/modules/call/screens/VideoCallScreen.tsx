@@ -610,10 +610,14 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
       <LowBalanceWarning
         visible={showLowBalance}
         onClose={() => setShowLowBalance(false)}
-        onRecharge={() => {
-          setShowLowBalance(false);
-          navigation.navigate('Wallet');
-        }}
+          onRecharge={() => {
+            setShowLowBalance(false);
+            import('@react-native-async-storage/async-storage').then(({ default: AsyncStorage }) => {
+              AsyncStorage.setItem('hima_returnToScreen', 'VideoCallScreen');
+              AsyncStorage.setItem('hima_call_params', JSON.stringify(route.params || {}));
+              navigation.navigate('Wallet' as any);
+            });
+          }}
       />
 
       {toastMessage && (

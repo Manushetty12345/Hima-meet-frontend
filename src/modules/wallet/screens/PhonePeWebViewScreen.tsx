@@ -78,8 +78,32 @@ const PhonePeWebViewScreen: React.FC<Props> = ({ navigation, route }) => {
       // Clear pending transaction — payment handled
       await AsyncStorage.removeItem('hima_pending_payment');
 
+      const shouldReturn = await AsyncStorage.getItem('hima_returnToScreen');
+      const savedParamsStr = await AsyncStorage.getItem('hima_call_params');
+      if (isSuccess && shouldReturn && savedParamsStr) {
+        await AsyncStorage.removeItem('hima_returnToScreen');
+        await AsyncStorage.removeItem('hima_call_params');
+        
+        try {
+          const params = JSON.parse(savedParamsStr);
+          // Show alert but navigate with all original parameters
+          Alert.alert('Payment Successful', `Added ${coinsAdded} coins! Returning to call.`, [
+            {
+              text: 'OK',
+              onPress: () => {
+                navigation.navigate(shouldReturn as any, params);
+              }
+            }
+          ]);
+          navigation.navigate(shouldReturn as any, params);
+          return;
+        } catch (e) {
+          console.error("Failed to parse saved call params", e);
+        }
+      }
+
       // Navigate back to Wallet with result params
-      navigation.navigate('Wallet', {
+      navigation.navigate('Wallet' as any, {
         paymentResult: {
           success: isSuccess,
           coinsAdded,
