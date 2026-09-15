@@ -579,9 +579,10 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
         </View>
         {/* Bottom CTA / Input */}
         <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={{ backgroundColor: 'transparent' }}
-        >
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+            style={{ backgroundColor: 'transparent' }}
+          >
           {isLoadingStatus ? (
             <View style={[styles.footer, { paddingVertical: 40 }]}>
               <ActivityIndicator size="small" color={PINK} />
