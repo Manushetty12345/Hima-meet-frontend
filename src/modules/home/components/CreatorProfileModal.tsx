@@ -493,11 +493,7 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
         )}
 
         {/* Body — Chat area with subtle Whatsapp-like background */}
-        <ImageBackground 
-          source={{ uri: 'https://www.transparenttextures.com/patterns/cubes.png' }} 
-          style={styles.body}
-          imageStyle={{ opacity: 0.05 }}
-        >
+        <LinearGradient colors={['#F4EDFB', '#FFFFFF']} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.body}>
           {friendStatus === 'friends' ? (
             <ScrollView 
               style={styles.chatScrollView}
@@ -579,7 +575,7 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
               </View>
             </View>
           )}
-        </ImageBackground>
+        </LinearGradient>
 
         {/* Bottom CTA / Input */}
         <KeyboardAvoidingView 
@@ -1115,30 +1111,30 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
   },
   chatFooterContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    backgroundColor: '#F5F0FA',
-    paddingHorizontal: 10,
-    paddingTop: 16,
-    paddingBottom: Platform.OS === 'ios' ? 44 : 24,
-    borderTopWidth: 1,
-    borderTopColor: '#EBE5F2',
-  },
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#F5F0FA',
+      paddingHorizontal: 12,
+      paddingTop: 12,
+      paddingBottom: Platform.OS === 'ios' ? 44 : 24,
+      borderTopWidth: 1,
+      borderTopColor: '#EBE5F2',
+      gap: 10,
+    },
   chatInputWrapper: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 32,
-    minHeight: 64,
-    maxHeight: 120,
-    marginRight: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
-  },
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#FFFFFF',
+      borderRadius: 24,
+      minHeight: 48,
+      maxHeight: 120,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.04,
+      shadowRadius: 4,
+      elevation: 2,
+    },
   iconBtnLeft: {
     padding: 14,
     justifyContent: 'center',
@@ -1146,13 +1142,14 @@ const styles = StyleSheet.create({
     height: 64,
   },
   chatInput: {
-    flex: 1,
-    minHeight: 64,
-    paddingTop: Platform.OS === 'ios' ? 22 : 20,
-    paddingBottom: Platform.OS === 'ios' ? 22 : 20,
-    fontSize: 18,
-    color: '#2A1240',
-  },
+      flex: 1,
+      minHeight: 48,
+      paddingHorizontal: 16,
+      paddingTop: Platform.OS === 'ios' ? 14 : 12,
+      paddingBottom: Platform.OS === 'ios' ? 14 : 12,
+      fontSize: 16,
+      color: '#2A1240',
+    },
   chatInputActions: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1164,23 +1161,38 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  sendBtnGradientWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    shadowColor: PINK,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 4,
-  },
+  emojiBtnGradientWrap: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      shadowColor: '#C90E62',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 6,
+      elevation: 4,
+    },
+    emojiBtnInner: {
+      flex: 1,
+      borderRadius: 22,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    sendBtnGradientWrap: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      shadowColor: '#C90E62',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 6,
+      elevation: 4,
+    },
   sendBtnInner: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+      flex: 1,
+      borderRadius: 22,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
   micBtn: {
     width: 64,
     height: 64,
