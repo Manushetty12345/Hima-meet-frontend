@@ -413,16 +413,11 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
                 disabled={!isOnline || !creator.callAvailable}
                 onPress={() => onCall?.(creator)}
               >
-                <Phone size={16} color={(isOnline && creator.callAvailable) ? PINK : '#B9AFC4'} fill={(isOnline && creator.callAvailable) ? PINK : 'transparent'} />
+                <Phone size={16} color={(isOnline && creator.callAvailable) ? '#9C27B0' : '#D1D5DB'} fill={(isOnline && creator.callAvailable) ? '#9C27B0' : 'transparent'} />
               </TouchableOpacity>
-              {(isOnline && creator.callAvailable) ? (
-                <View style={styles.rateRow}>
-                  <Coins size={10} color={GOLD_DEEP} />
-                  <Text style={styles.rateText}>{creator.callRate || 0}/min</Text>
-                </View>
-              ) : (
-                <Text style={styles.offlineText}>{isOnline ? 'Busy' : 'Offline'}</Text>
-              )}
+              {(isOnline && creator.callAvailable) ? null : (
+                  <Text style={styles.offlineText}>{isOnline ? 'Busy' : 'Offline'}</Text>
+                )}
             </View>
 
             {/* Video Button */}
@@ -433,16 +428,11 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
                 disabled={!isOnline || !creator.videoAvailable}
                 onPress={() => onVideoCall?.(creator)}
               >
-                <Video size={16} color={(isOnline && creator.videoAvailable) ? PLUM_ROYAL : '#B9AFC4'} fill={(isOnline && creator.videoAvailable) ? PLUM_ROYAL : '#B9AFC4'} />
+                <Video size={16} color={(isOnline && creator.videoAvailable) ? '#9C27B0' : '#D1D5DB'} fill={(isOnline && creator.videoAvailable) ? '#9C27B0' : '#D1D5DB'} />
               </TouchableOpacity>
-              {(isOnline && creator.videoAvailable) ? (
-                <View style={styles.rateRow}>
-                  <Coins size={10} color={GOLD_DEEP} />
-                  <Text style={styles.rateText}>{creator.videoRate || 0}/min</Text>
-                </View>
-              ) : (
-                <Text style={styles.offlineText}>{isOnline ? 'Busy' : 'Offline'}</Text>
-              )}
+              {(isOnline && creator.videoAvailable) ? null : (
+                  <Text style={styles.offlineText}>{isOnline ? 'Busy' : 'Offline'}</Text>
+                )}
             </View>
 
             <TouchableOpacity 
