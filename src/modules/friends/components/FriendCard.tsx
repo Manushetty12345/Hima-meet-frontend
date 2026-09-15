@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
   },
   chatNowBtn: {
     borderWidth: 1,
-    borderColor: '#E91E63',
+    borderColor: '#9C27B0',
     borderRadius: 14,
     paddingVertical: 4,
     paddingHorizontal: 12,
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   chatNowText: {
-    color: '#E91E63',
+    color: '#9C27B0',
     fontSize: 12,
     fontWeight: '500',
   },
