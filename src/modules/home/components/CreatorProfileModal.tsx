@@ -695,10 +695,11 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
           {showEmojiPicker && (
             <View style={{ height: 250, backgroundColor: '#FFFFFF' }}>
               <EmojiSelector
-                onEmojiSelected={(emoji) => setMessage(prev => prev + emoji)}
-                showSearchBar={false}
-                category={Categories.emotion}
-              />
+                  onEmojiSelected={(emoji) => setMessage(prev => prev + emoji)}
+                  showSearchBar={false}
+                  category={Categories.emotion}
+                  columns={9}
+                />
             </View>
           )}
         </View>
@@ -1087,8 +1088,8 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
   },
   dummyMessageRight: {
-    alignSelf: 'flex-end',
-    backgroundColor: '#E1FEC6', // Whatsapp-like light green
+      alignSelf: 'flex-end',
+      backgroundColor: '#9C27B0', // Premium Plum Purple
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 18,
@@ -1101,13 +1102,13 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   dummyMessageTextRight: {
-    fontSize: 15,
-    color: TEXT_PLUM,
+      fontSize: 15,
+      color: '#FFFFFF',
     marginBottom: 4,
   },
   dummyMessageTimeRight: {
-    fontSize: 10,
-    color: '#607D8B',
+      fontSize: 10,
+      color: 'rgba(255, 255, 255, 0.7)',
     alignSelf: 'flex-end',
   },
   chatFooterContainer: {
