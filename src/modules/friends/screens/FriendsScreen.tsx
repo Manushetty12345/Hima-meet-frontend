@@ -221,6 +221,7 @@ const FriendsScreen: React.FC<Props> = () => {
     sent: [],
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [refreshToggle, setRefreshToggle] = useState(0);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   React.useEffect(() => {
@@ -311,7 +312,7 @@ const FriendsScreen: React.FC<Props> = () => {
         socket.off('friend_update', fetchData);
       }
     };
-  }, [activeTab]);
+  }, [activeTab, refreshToggle]);
   const renderEmptyState = (tab: TabKey) => (
     <View style={styles.emptyState}>
       <LinearGradient
@@ -478,7 +479,7 @@ const FriendsScreen: React.FC<Props> = () => {
         <CreatorProfileModal
           creator={selectedCreator}
           visible={!!selectedCreator}
-          onClose={() => setSelectedCreator(null)}
+          onClose={() => { setSelectedCreator(null); setRefreshToggle(prev => prev + 1); }}
           onSendFriendRequest={() => {}}
           onViewProfile={() => {
             setSelectedCreator(null);
