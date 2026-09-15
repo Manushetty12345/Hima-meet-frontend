@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+﻿import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -249,7 +249,7 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
               const setupComplete = data.profile_setup_complete !== false; // default true
               if (!setupComplete) {
                 nextScreen = 'GenderSelect';
-              } else if (data.user.role === 'creator') {
+              } else if (data.application_status === 'pending_review') { nextScreen = 'ProfileReview'; } else if (data.user.role === 'creator') {
                 nextScreen = 'CreatorDashboard';
               } else {
                 // User with complete profile → go straight to Home 🏠
@@ -371,12 +371,9 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
                   },
                 ]}
               >
-                Hima
-              </Animated.Text>
-              <Animated.Text
+                Hima</Animated.Text><Animated.Text
                 style={[
-                  styles.wordMeet,
-                  {
+                  styles.wordHima, { marginLeft: 0 }, {
                     opacity: wordMeetOpacity,
                     transform: [{ translateX: wordMeetTranslate }],
                   },
@@ -606,9 +603,9 @@ const styles = StyleSheet.create({
   wordMeet: {
     fontSize: 34,
     fontWeight: '300',
-    color: '#F3E9FF',
+    color: GOLD,
     letterSpacing: 3,
-    marginLeft: 5,
+    marginLeft: 0,
     fontFamily: 'PlayfairDisplay-Regular',
   },
   shine: {
@@ -673,3 +670,7 @@ const styles = StyleSheet.create({
 });
 
 export default SplashScreen;
+
+
+
+

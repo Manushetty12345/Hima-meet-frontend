@@ -36,7 +36,8 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
     calleeAvatar = 'https://ui-avatars.com/api/?name=User&background=random',
     callId,
     targetId,
-    agoraToken = ''
+    agoraToken = '',
+    callRate
   } = route.params || {};
 
   // Coin & Timer State
@@ -94,7 +95,7 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
 
     // Fetch configs & coins
     fetchInitialData();
-    
+
     // Setup Agora
     setupAgoraEngine();
     
@@ -109,6 +110,10 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
       });
     }
 
+    const unsubscribeFocus = navigation.addListener('focus', () => {
+      fetchInitialData();
+    });
+
     return () => {
       // Cleanup
       engine.current?.leaveChannel();
@@ -117,8 +122,9 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
         socket.off('call_ended');
         socket.off('insufficient_coins');
       }
+      unsubscribeFocus();
     };
-  }, []);
+  }, [navigation]);
 
   const fetchInitialData = async () => {
     try {
@@ -132,7 +138,7 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
 
       if (giftsRes?.data?.data) setGifts(giftsRes.data.data);
       
-      const cost = configRes?.data?.data?.audioCallCost ?? 10; // Fallback only if missing in API
+      const cost = callRate || configRes?.data?.data?.audioCallCost || 10;
       setCallCostPerMinute(cost);
 
       const user = userRes?.data?.data;
@@ -197,14 +203,14 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
     let timer: ReturnType<typeof setInterval>;
     if (timeLeft !== null) {
       if (timeLeft <= 0) {
-        handleEndCall();
+        // Do not handleEndCall() here. Let backend emit 'insufficient_coins' when actually out of balance.
         return;
       }
       if (timeLeft === 60) {
         setShowLowBalance(true);
       }
       timer = setInterval(() => {
-        setTimeLeft((prev) => (prev !== null ? prev - 1 : null));
+        setTimeLeft((prev) => (prev !== null && prev > 0 ? prev - 1 : 0));
       }, 1000);
     }
     return () => clearInterval(timer);
@@ -273,7 +279,7 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
       } else if (newMaxSeconds <= 0) {
          handleEndCall();
       }
-      await apiClient.post('/api/call/gift', { giftId: gift.id });
+      await apiClient.post('/api/call/gift', { giftId: gift.id, receiverId: targetId });
       showToast(`Sent ${gift.name} ${gift.icon}`);
     } catch (err) {
       console.log('Error sending gift', err);
@@ -294,60 +300,43 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
   return (
     <View style={styles.container}>
       {/* @ts-ignore */}
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
 
-      {/* Base Blurred Image */}
-      <Image 
-        source={{ uri: calleeAvatar }} 
-        style={[StyleSheet.absoluteFill, { opacity: 0.5 }]} 
-        blurRadius={40} 
-      />
-
+      {/* Main Layout Gradient */}
       <LinearGradient 
-        colors={['rgba(18, 10, 30, 0.6)', 'rgba(10, 5, 20, 0.9)', '#000000']} 
-        style={styles.container} 
+        colors={['#FBF7FF', '#EFDFFB', '#FBF6EC']} 
+        style={styles.container}
       >
         <View style={styles.safeArea}>
-          {/* Top Header - Floating Timer */}
-          <View style={styles.header}>
-            <View style={styles.timerGlassPill}>
-              <Clock size={16} color={timeLeft !== null && timeLeft <= 60 ? "#FF4D4D" : "#00DFD8"} />
+          
+          {/* Top Bar: Coin Balance & Timer */}
+          <View style={styles.topBar}>
+            <View style={styles.coinPill}>
+              <View style={styles.coinDotSmall} />
+              <Text style={styles.coinText}>{coins.toLocaleString()} Coins</Text>
+            </View>
+            <View style={styles.timerPill}>
+              <Clock size={14} color="#5B0E8B" />
               <Text style={[styles.timerText, timeLeft !== null && timeLeft <= 60 && { color: '#FF4D4D' }]}>
                 {timeLeft !== null ? formatTime(timeLeft) : 'Connecting...'}
               </Text>
             </View>
-            <View style={styles.coinPill}>
-               <Text style={styles.coinText}>{coins} Coins</Text>
-            </View>
           </View>
 
-          {/* Dynamic Interlocking Avatars */}
-          <View style={styles.avatarsContainer}>
-            {/* Caller Avatar */}
-            <Animated.View style={[styles.avatarWrapper, { zIndex: 2 }]}>
-              <Animated.View style={[styles.glowRingContainer, { transform: [{ scale: pulseAnim }] }]}>
-                <LinearGradient colors={['#FF007A', '#7928CA']} style={styles.avatarGlowRing} />
-              </Animated.View>
-              <View style={styles.avatarInner}>
-                <Image source={{ uri: fetchedCallerAvatar || callerAvatar }} style={styles.avatarImage} />
+          {/* Center Avatar & Ripples */}
+          <View style={styles.centerContent}>
+            <View style={styles.avatarContainer}>
+              <Animated.View style={[styles.rippleOuter, { transform: [{ scale: pulseAnim }] }]} />
+              <Animated.View style={[styles.rippleInner, { transform: [{ scale: pulseAnim }] }]} />
+              
+              <View style={styles.avatarCore}>
+                <Image source={{ uri: calleeAvatar }} style={styles.avatarImg} />
               </View>
-              <View style={styles.nameBadge}>
-                <Text style={styles.avatarName}>{fetchedCallerName || callerName}</Text>
-              </View>
-            </Animated.View>
+            </View>
 
-            {/* Callee Avatar */}
-            <Animated.View style={[styles.avatarWrapper, { zIndex: 1 }]}>
-              <Animated.View style={[styles.glowRingContainer, { transform: [{ scale: pulseAnim }] }]}>
-                <LinearGradient colors={['#00DFD8', '#007CF0']} style={styles.avatarGlowRing} />
-              </Animated.View>
-              <View style={styles.avatarInner}>
-                <Image source={{ uri: calleeAvatar }} style={styles.avatarImage} />
-              </View>
-              <View style={[styles.nameBadge, { backgroundColor: 'rgba(0, 124, 240, 0.3)' }]}>
-                <Text style={[styles.avatarName, { color: '#E0F7FA' }]}>{calleeName}</Text>
-              </View>
-            </Animated.View>
+            <View style={styles.nameBadge}>
+              <Text style={styles.avatarName}>{calleeName}</Text>
+            </View>
           </View>
 
           <View style={{ flex: 1 }} />
@@ -384,7 +373,7 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
           {/* Floating Controls Dock */}
           <View style={styles.controlsDock}>
             <LinearGradient 
-              colors={['rgba(40, 30, 60, 0.6)', 'rgba(20, 15, 30, 0.8)']} 
+              colors={['#FFFFFF', '#FBF7FF']} 
               style={styles.controlsPill}
             >
               <TouchableOpacity 
@@ -392,9 +381,9 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
                 onPress={handleMute}
               >
                 {isMuted ? (
-                  <MicOff size={24} color="#FFFFFF" />
+                  <MicOff size={24} color="#5B0E8B" />
                 ) : (
-                  <Mic size={24} color="#B9AFC4" />
+                  <Mic size={24} color="#8B7F98" />
                 )}
               </TouchableOpacity>
 
@@ -413,9 +402,9 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
                 onPress={handleSpeaker}
               >
                 {isSpeakerOn ? (
-                  <Volume2 size={24} color="#FFFFFF" />
+                  <Volume2 size={24} color="#5B0E8B" />
                 ) : (
-                  <VolumeX size={24} color="#B9AFC4" />
+                  <VolumeX size={24} color="#8B7F98" />
                 )}
               </TouchableOpacity>
             </LinearGradient>
@@ -469,102 +458,137 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#FBF6EC',
   },
   safeArea: {
     flex: 1,
+    paddingTop: Platform.OS === 'ios' ? 40 : StatusBar.currentHeight ?? 24,
   },
-  header: {
+  topBar: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: Platform.OS === 'android' ? StatusBar.currentHeight! + 20 : 20,
-    paddingHorizontal: 20,
-    gap: 12,
-  },
-  timerGlassPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 30,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    gap: 8,
-  },
-  timerText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
-    letterSpacing: 1,
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    marginTop: 16,
   },
   coinPill: {
-    backgroundColor: 'rgba(255, 215, 0, 0.15)',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 215, 0, 0.3)',
+    borderColor: '#EBDFC4',
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  coinDotSmall: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#F5C542',
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
   },
   coinText: {
-    color: '#FFD700',
+    color: '#2A1240',
     fontSize: 14,
     fontWeight: '700',
   },
-  avatarsContainer: {
+  timerPill: {
     flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#EBDFC4',
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  timerText: {
+    color: '#5B0E8B',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  centerContent: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: height * 0.12,
-    gap: 30,
+    marginTop: 20,
   },
-  avatarWrapper: {
+  avatarContainer: {
+    width: 220,
+    height: 220,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  glowRingContainer: {
+  rippleOuter: {
     position: 'absolute',
-    top: -6,
-    bottom: -6,
-    left: -6,
-    right: -6,
-    borderRadius: 100,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    borderWidth: 1,
+    borderColor: '#F5C542',
+    backgroundColor: 'rgba(245, 197, 66, 0.1)',
   },
-  avatarGlowRing: {
-    flex: 1,
-    borderRadius: 100,
-    opacity: 0.85,
+  rippleInner: {
+    position: 'absolute',
+    width: 170,
+    height: 170,
+    borderRadius: 85,
+    borderWidth: 2,
+    borderColor: '#5B0E8B',
+    backgroundColor: 'rgba(91, 14, 139, 0.1)',
   },
-  avatarInner: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 4,
-    borderColor: '#1A1025',
+  avatarCore: {
+    width: 130,
+    height: 130,
+    borderRadius: 65,
     overflow: 'hidden',
-    backgroundColor: '#333',
+    borderWidth: 4,
+    borderColor: '#FFFFFF',
+    shadowColor: '#5B0E8B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 8,
   },
-  avatarImage: {
+  avatarImg: {
     width: '100%',
     height: '100%',
   },
   nameBadge: {
-    marginTop: 16,
-    backgroundColor: 'rgba(255, 0, 122, 0.25)',
+    marginTop: 24,
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
     paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: '#EBDFC4',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   avatarName: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    color: '#2A1240',
+    fontSize: 18,
+    fontWeight: '800',
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   giftDockWrapper: {
-    marginBottom: 20,
+    marginBottom: 30,
     paddingHorizontal: 20,
   },
   giftsHeader: {
@@ -575,10 +599,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   giftsTitle: {
-    color: '#FFFFFF',
+    color: '#2A1240',
     fontSize: 16,
     fontWeight: '700',
-    letterSpacing: 0.5,
   },
   giftsScroll: {
     gap: 16,
@@ -591,21 +614,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: '#EBDFC4',
+    backgroundColor: '#FFFFFF',
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   giftIconText: {
     fontSize: 34,
     marginBottom: 10,
-    textShadowColor: 'rgba(0,0,0,0.3)',
-    textShadowOffset: { width: 0, height: 4 },
-    textShadowRadius: 6,
   },
   giftPriceRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: '#EFDFFB',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -614,18 +640,18 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#FFD700',
+    backgroundColor: '#F5C542',
     borderWidth: 1,
     borderColor: '#FFF',
   },
   giftPriceText: {
-    color: '#FFFFFF',
+    color: '#5B0E8B',
     fontSize: 12,
     fontWeight: '800',
   },
   controlsDock: {
     paddingHorizontal: 24,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 30,
+    paddingBottom: Platform.OS === 'ios' ? 60 : 50,
   },
   controlsPill: {
     flexDirection: 'row',
@@ -635,25 +661,33 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 40,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: '#EBDFC4',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 5,
   },
   controlBtn: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: '#FBF6EC',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#EBDFC4',
   },
   controlBtnActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(91, 14, 139, 0.1)',
+    borderColor: '#5B0E8B',
   },
   endCallBtnWrapper: {
-    shadowColor: '#FF4D4D',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 10,
+    shadowColor: '#EC1372',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 8,
   },
   endCallBtn: {
     width: 72,
@@ -662,7 +696,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: '#FFFFFF',
   },
   toastContainer: {
     position: 'absolute',

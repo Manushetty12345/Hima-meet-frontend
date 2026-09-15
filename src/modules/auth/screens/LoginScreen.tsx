@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+﻿import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -250,7 +250,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <Text style={styles.wordmark}>
-            <Text style={styles.wordmarkAccent}>Hima</Text>meet
+            Himameet
           </Text>
           <View style={styles.taglineDivider}>
             <View style={styles.taglineLine} />
@@ -476,8 +476,9 @@ const styles = StyleSheet.create({
   wordmark: {
     marginTop: 16,
     fontSize: 24,
-    fontWeight: '300',
-    color: TEXT_PLUM,
+    fontWeight: '800',
+    fontStyle: 'italic',
+    color: '#D4AF37',
     letterSpacing: 1,
   },
   wordmarkAccent: {
@@ -659,7 +660,7 @@ const styles = StyleSheet.create({
   },
   ctaWrapper: {
     marginTop: 20,
-    borderRadius: 999,
+    borderRadius: 0,
     overflow: 'hidden',
     shadowColor: GOLD_DEEP,
     shadowOffset: { width: 0, height: 6 },
@@ -701,3 +702,4 @@ const styles = StyleSheet.create({
 });
 
 export default LoginScreen;
+

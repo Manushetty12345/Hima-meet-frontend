@@ -1,22 +1,68 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, FlatList } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import { ArrowLeft, Phone, Video, MessageCircle } from 'lucide-react-native';
-
-const dummySessions = [
-  { id: '1', type: 'video', user: 'Rahul K.', duration: '15 mins', amount: '₹150', date: 'Today, 2:30 PM' },
-  { id: '2', type: 'audio', user: 'Amit S.', duration: '5 mins', amount: '₹50', date: 'Today, 1:15 PM' },
-  { id: '3', type: 'chat', user: 'Priya M.', duration: '20 messages', amount: '₹40', date: 'Yesterday, 8:45 PM' },
-  { id: '4', type: 'video', user: 'Sneha R.', duration: '30 mins', amount: '₹300', date: 'Yesterday, 5:20 PM' },
-  { id: '5', type: 'audio', user: 'Vikram B.', duration: '10 mins', amount: '₹100', date: 'Sep 08, 11:00 AM' },
-];
+import apiClient from '../../../api/apiClient';
 
 const EarningsDetailScreen = ({ navigation }: any) => {
   const [activeTab, setActiveTab] = useState('Today');
+  const [history, setHistory] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchSessionEarnings = async () => {
+    try {
+      setLoading(true);
+      const res = await apiClient.get('/api/creator/calls/history');
+      if (res.data?.status === 'success') {
+        const formatted = res.data.data.map((item: any) => {
+          const dateObj = new Date(item.created_at);
+          return {
+            id: String(item.call_id),
+            type: item.call_type || 'voice', // fallback
+            user: item.caller_name || 'User',
+            duration: item.duration_seconds ? `${Math.floor(item.duration_seconds / 60)}m ${item.duration_seconds % 60}s` : '0m 0s',
+            amount: Number(item.earnings_coins || 0) / 10, // Assuming 10 coins = 1 INR
+            date: dateObj.toLocaleDateString(),
+            time: dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            timestamp: dateObj.getTime(),
+          };
+        });
+        setHistory(formatted);
+      }
+    } catch (error) {
+      console.error('Failed to fetch session earnings:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSessionEarnings();
+  }, []);
+
+  const getFilteredData = () => {
+    const now = new Date();
+    return history.filter(item => {
+      const itemDate = new Date(item.timestamp);
+      if (activeTab === 'Today') {
+        return itemDate.toDateString() === now.toDateString();
+      }
+      if (activeTab === 'This Week') {
+        const weekAgo = new Date();
+        weekAgo.setDate(now.getDate() - 7);
+        return itemDate >= weekAgo;
+      }
+      if (activeTab === 'This Month') {
+        return itemDate.getMonth() === now.getMonth() && itemDate.getFullYear() === now.getFullYear();
+      }
+      return true;
+    });
+  };
 
   const renderIcon = (type: string) => {
-    switch (type) {
+    switch (type?.toLowerCase()) {
       case 'video': return <Video size={20} color="#EC1372" />;
-      case 'audio': return <Phone size={20} color="#5B0E8B" />;
+      case 'audio': 
+      case 'voice': return <Phone size={20} color="#5B0E8B" />;
       case 'chat': return <MessageCircle size={20} color="#F5C542" />;
       default: return <Phone size={20} color="#5B0E8B" />;
     }
@@ -27,9 +73,9 @@ const EarningsDetailScreen = ({ navigation }: any) => {
       <View style={styles.iconContainer}>{renderIcon(item.type)}</View>
       <View style={styles.sessionInfo}>
         <Text style={styles.sessionUser}>{item.user}</Text>
-        <Text style={styles.sessionMeta}>{item.duration} • {item.date}</Text>
+        <Text style={styles.sessionMeta}>{item.duration} • {item.date}, {item.time}</Text>
       </View>
-      <Text style={styles.sessionAmount}>+{item.amount}</Text>
+      <Text style={styles.sessionAmount}>+₹{item.amount}</Text>
     </View>
   );
 
@@ -54,13 +100,19 @@ const EarningsDetailScreen = ({ navigation }: any) => {
         ))}
       </View>
 
-      <FlatList
-        data={dummySessions}
-        keyExtractor={item => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-      />
+      {loading ? (
+        <ActivityIndicator color="#F91970" size="large" style={{ marginTop: 50 }} />
+      ) : getFilteredData().length === 0 ? (
+        <Text style={{ textAlign: 'center', color: '#8B7F98', marginTop: 50 }}>No earnings in this period.</Text>
+      ) : (
+        <FlatList
+          data={getFilteredData()}
+          keyExtractor={item => item.id}
+          renderItem={renderItem}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
     </SafeAreaView>
   );
 };

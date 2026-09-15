@@ -1,4 +1,6 @@
-﻿import React from 'react';
+﻿import React, { useState, useEffect } from 'react';
+import apiClient from '../../../api/apiClient';
+import { useIsFocused } from '@react-navigation/native';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, StatusBar } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { ArrowLeft, ChevronRight, Info } from 'lucide-react-native';
@@ -23,6 +25,21 @@ const LILAC_PALE = '#EFDFFB';
 const STATUSBAR_HEIGHT = Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 0;
 
 const HelpSupportScreen: React.FC<Props> = ({ navigation }) => {
+  const [ticketCount, setTicketCount] = useState(0);
+  const isFocused = useIsFocused();
+
+  useEffect(() => {
+    if (isFocused) {
+      apiClient.get('/api/support/tickets')
+        .then((res: any) => {
+          if (res.data && res.data.data) {
+            const activeTickets = res.data.data.filter((t: any) => t.status === 'active');
+            setTicketCount(activeTickets.length);
+          }
+        })
+        .catch((err: any) => console.error('Failed to load tickets count:', err));
+    }
+  }, [isFocused]);
   return (
     <View style={styles.flex}>
       <StatusBar barStyle="dark-content" />
@@ -61,7 +78,7 @@ const HelpSupportScreen: React.FC<Props> = ({ navigation }) => {
               </LinearGradient>
               <View style={styles.textContainer}>
                 <Text style={styles.cardTitle}>Raised Ticket</Text>
-                <Text style={styles.cardSubtitle}>No ticket raised</Text>
+                <Text style={styles.cardSubtitle}>{ticketCount > 0 ? `${ticketCount} active ticket${ticketCount > 1 ? 's' : ''}` : 'No ticket raised'}</Text>
               </View>
             </View>
             <ChevronRight size={20} color={TEXT_MUTED} />

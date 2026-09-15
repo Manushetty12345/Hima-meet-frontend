@@ -1,9 +1,42 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { ClipboardList, Building2, History, ChevronRight, TrendingUp, BarChart3 } from 'lucide-react-native';
+import apiClient from '../../../api/apiClient';
 
 const CreatorEarningsScreen = ({ navigation }: any) => {
+  const [earningsSummary, setEarningsSummary] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+
+  const fetchEarnings = async () => {
+    try {
+      setLoading(true);
+      const res = await apiClient.get('/api/creator/earnings/summary');
+      if (res.data?.status === 'success') {
+        setEarningsSummary(res.data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch earnings summary:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEarnings();
+  }, []);
+
+  const totalEarned = earningsSummary?.lifetime_earnings_inr || 0;
+  const totalCoins = earningsSummary?.lifetime_earnings_coins || 0;
+  const withdrawn = earningsSummary?.withdrawn_inr || 0;
+  const withdrawnCoins = earningsSummary?.withdrawn_coins || 0;
+  const currentBalance = earningsSummary?.available_balance_inr || 0;
+  const currentBalanceCoins = earningsSummary?.available_balance_coins || 0;
+
+  const thisMonth = earningsSummary?.this_month_earnings_inr || 0;
+  const thisWeek = earningsSummary?.this_week_earnings_inr || 0;
+  const today = earningsSummary?.today_earnings_inr || 0;
+
   return (
     <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header Row */}
@@ -16,48 +49,73 @@ const CreatorEarningsScreen = ({ navigation }: any) => {
         </View>
       </View>
 
-      {/* Hero Balance Card */}
-      <LinearGradient colors={['#2A1240', '#1A0B2E']} style={styles.heroCard}>
-        <View style={styles.heroGlow} />
-        
-        <View style={styles.heroLabelRow}>
-          <Text style={styles.heroStarSmall}>✨</Text>
-          <Text style={styles.heroLabel}>AVAILABLE BALANCE</Text>
-          <Text style={styles.heroStarSmall}>✨</Text>
+      {loading && !earningsSummary ? (
+        <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#F91970" />
         </View>
+      ) : (
+        <>
+          {/* Hero Balance Card Breakdown */}
+          <LinearGradient colors={['#2A1240', '#1A0B2E']} style={styles.heroCard}>
+            <View style={styles.heroGlow} />
+            
+            <View style={styles.breakdownRow}>
+              <View style={styles.breakdownCol}>
+                <Text style={styles.breakdownLabel}>TOTAL EARNED</Text>
+                <Text style={styles.breakdownValue}>₹{totalEarned.toFixed(2)}</Text>
+                <Text style={styles.breakdownCoins}>{totalCoins} coins</Text>
+              </View>
+              
+              <View style={styles.divider} />
+              
+              <View style={styles.breakdownCol}>
+                <Text style={styles.breakdownLabel}>WITHDRAWN</Text>
+                <Text style={styles.breakdownValue}>₹{withdrawn.toFixed(2)}</Text>
+                <Text style={styles.breakdownCoins}>{withdrawnCoins} coins</Text>
+              </View>
+            </View>
 
-        <Text style={styles.heroAmount}>₹45,800</Text>
+            <View style={styles.horizontalDivider} />
 
-        <View style={styles.heroSubRow}>
-          <Text style={styles.heroSub}>Payable ₹45,800</Text>
-        </View>
+            <View style={styles.heroLabelRow}>
+              <Text style={styles.heroStarSmall}>✨</Text>
+              <Text style={styles.heroLabel}>AVAILABLE BALANCE</Text>
+              <Text style={styles.heroStarSmall}>✨</Text>
+            </View>
+            
+            <Text style={styles.heroAmount}>₹{currentBalance.toFixed(2)}</Text>
+            <View style={styles.coinPill}>
+              <Text style={styles.coinPillText}>{currentBalanceCoins} coins</Text>
+            </View>
 
-        {/* Withdraw Button inside Hero */}
-        <TouchableOpacity style={styles.withdrawBtnHero} activeOpacity={0.85} onPress={() => navigation.navigate('WithdrawalRequest')}>
-          <LinearGradient colors={['#F91970', '#FF4D8D']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.withdrawGradHero}>
-            <TrendingUp size={18} color="#FFFFFF" />
-            <Text style={styles.withdrawBtnTextHero}>Withdraw Now</Text>
+            {/* Withdraw Button inside Hero */}
+            <TouchableOpacity style={styles.withdrawBtnHero} activeOpacity={0.85} onPress={() => navigation.navigate('WithdrawalRequest')}>
+              <LinearGradient colors={['#F91970', '#FF4D8D']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.withdrawGradHero}>
+                <TrendingUp size={18} color="#FFFFFF" />
+                <Text style={styles.withdrawBtnTextHero}>Withdraw Now</Text>
+              </LinearGradient>
+            </TouchableOpacity>
           </LinearGradient>
-        </TouchableOpacity>
-      </LinearGradient>
 
-      {/* Stats Grid */}
-      <View style={styles.statsGrid}>
-        {[
-          { label: 'Lifetime', value: '₹1,24,000' },
-          { label: 'This Month', value: '₹14,200' },
-          { label: 'This Week', value: '₹8,400' },
-          { label: 'Today', value: '₹2,450' },
-        ].map((item, idx) => (
-          <View key={item.label} style={styles.statGridCard}>
-            <LinearGradient colors={['#FBF7FF', '#EFDFFB']} style={styles.statIconBox}>
-              <TrendingUp size={16} color="#5B0E8B" />
-            </LinearGradient>
-            <Text style={styles.statGridValue}>{item.value}</Text>
-            <Text style={styles.statGridLabel}>{item.label}</Text>
+          {/* Stats Grid */}
+          <View style={styles.statsGrid}>
+            {[
+              { label: 'Lifetime', value: `₹${totalEarned.toLocaleString('en-IN')}` },
+              { label: 'This Month', value: `₹${thisMonth.toLocaleString('en-IN')}` },
+              { label: 'This Week', value: `₹${thisWeek.toLocaleString('en-IN')}` },
+              { label: 'Today', value: `₹${today.toLocaleString('en-IN')}` },
+            ].map((item, idx) => (
+              <View key={item.label} style={styles.statGridCard}>
+                <LinearGradient colors={['#FBF7FF', '#EFDFFB']} style={styles.statIconBox}>
+                  <TrendingUp size={16} color="#5B0E8B" />
+                </LinearGradient>
+                <Text style={styles.statGridValue}>{item.value}</Text>
+                <Text style={styles.statGridLabel}>{item.label}</Text>
+              </View>
+            ))}
           </View>
-        ))}
-      </View>
+        </>
+      )}
 
       {/* Chart Placeholder */}
       <View style={styles.chartCard}>
@@ -168,17 +226,73 @@ const styles = StyleSheet.create({
     color: '#F5C542',
   },
   heroLabel: {
-    fontSize: 12,
-    color: '#F5C542', // GOLD
+    color: '#F91970',
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+  },
+  breakdownRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 10,
+    marginBottom: 20,
+  },
+  breakdownCol: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  divider: {
+    width: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    height: '100%',
+  },
+  horizontalDivider: {
+    width: '100%',
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    marginBottom: 20,
+  },
+  breakdownLabel: {
+    color: '#8B7F98',
+    fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1,
-    marginHorizontal: 8,
+    marginBottom: 4,
+  },
+  breakdownValue: {
+    color: '#FFF',
+    fontSize: 20,
+    fontWeight: '700',
+    fontFamily: 'Courier',
+  },
+  breakdownCoins: {
+    color: '#F5C542',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 2,
   },
   heroAmount: {
-    fontSize: 36,
+    color: '#FFF',
+    fontSize: 48,
     fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 8,
+    marginVertical: 10,
+    textShadowColor: 'rgba(249, 25, 112, 0.5)',
+    textShadowOffset: { width: 0, height: 4 },
+    textShadowRadius: 15,
+  },
+  coinPill: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginBottom: 20,
+  },
+  coinPillText: {
+    color: '#F5C542',
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   heroSubRow: {
     flexDirection: 'row',

@@ -56,7 +56,7 @@ const CreatorHomeScreen = () => {
         token = await getToken(messagingInstance);
       } catch (fcmErr: any) {
         console.log('FCM Sync error on creator home:', fcmErr);
-        Alert.alert("Firebase Native Error", "getToken() failed: " + (fcmErr?.message || String(fcmErr)));
+        // Alert removed
       }
 
       if (token) {
@@ -769,3 +769,6 @@ const styles = StyleSheet.create({
 });
 
 export default CreatorHomeScreen;
+
+
+

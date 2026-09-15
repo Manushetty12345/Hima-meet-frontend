@@ -145,21 +145,23 @@ const FriendsScreen: React.FC<Props> = () => {
 
       const handleCallBusy = (data: { message: string }) => {
         setShowRandomMatch(false);
-        showToast(data.message || 'The user is currently on another call. Please try again later.', 'error');
+        showToast(data.message || 'The user is currently on another call. Please try again.', 'error', true);
       };
 
       const handleCallDeclined = () => {
         setShowRandomMatch(false);
-        showToast('User is not available right now.', 'error');
+        showToast('User is not available right now.', 'error', true);
       };
 
-      const handleCallAccepted = (data: { callId: number }) => {
+      const handleCallAccepted = (data: { callId: number, agoraToken?: string, rate?: number }) => {
         setShowRandomMatch(false);
         navigation.navigate(randomMatchType === 'audio' ? 'AudioCallScreen' : 'VideoCallScreen', {
           callId: data.callId,
           targetId: randomMatchTarget?.id,
           calleeName: randomMatchTarget?.name,
-          calleeAvatar: randomMatchTarget?.avatarUri
+          calleeAvatar: randomMatchTarget?.avatarUri,
+          agoraToken: data.agoraToken || '',
+          callRate: data.rate || (randomMatchType === 'audio' ? 20 : 40),
         } as any);
       };
 
@@ -731,33 +733,27 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: Platform.OS === 'ios' ? 160 : 140, // Moved up slightly more
     alignSelf: 'center',
-    backgroundColor: '#EFDFFB', // Matches friends screen header background
-    borderRadius: 24,
-    paddingVertical: 10,
-      paddingHorizontal: 18,
+    backgroundColor: '#2A1240', // Deep purple
+    borderRadius: 30,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowRadius: 10,
+    elevation: 8,
     zIndex: 9999,
   },
-  toastError: {
-    backgroundColor: '#C8102E', // Keep it red for errors
-  },
-  toastInfo: {
-    // Info uses the default #2A1240 background from container
-  },
+  toastError: {},
+  toastInfo: {},
   toastText: {
-      color: '#2A1240', // TEXT_PLUM to match header
-      fontSize: 13,
+    color: '#FFFFFF',
+    fontSize: 13,
     fontWeight: '600',
   },
-  toastTextError: {
-      color: '#FFFFFF',
-    },
+  toastTextError: {},
 });
 
 export default FriendsScreen;

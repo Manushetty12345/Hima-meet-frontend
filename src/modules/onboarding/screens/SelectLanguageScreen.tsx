@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+﻿import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -96,29 +96,15 @@ const SelectLanguageScreen: React.FC<Props> = ({ navigation, route }) => {
     if (!isContinueEnabled) return;
     
     if (gender === 'female') {
-      try {
-        // First, create the user profile to get the full Auth Token
-        const setupRes = await saveProfileSetup({ 
-          gender, 
-          avatar_id: avatarId, 
-          language_id: parseInt(selectedLanguageId as string, 10) 
-        });
-
-        if (setupRes.data?.data?.token) {
-          await setAuthToken(setupRes.data.data.token);
-        }
-
-        // Then submit the creator specific details (bypassing voice as requested)
-        await submitCreatorApplication({
-          age: age || '',
-          bio: bio || '',
-          interest_names: selectedInterests || []
-        });
-
-        navigation.navigate('CreatorDashboard');
-      } catch (error) {
-        console.error('Failed to setup creator profile:', error);
-      }
+      // Go to voice verification screen for females (creators)
+      navigation.navigate('VoiceVerification', {
+        gender,
+        avatar_id: avatarId,
+        age,
+        selectedInterests,
+        bio,
+        language_id: parseInt(selectedLanguageId as string, 10)
+      });
     } else {
       navigation.navigate('NotificationSetup', {
         gender,
@@ -323,7 +309,7 @@ const styles = StyleSheet.create({
   ctaContainer: {
     paddingHorizontal: 24,
     paddingTop: 12,
-    paddingBottom: 24,
+    paddingBottom: 48,
     backgroundColor: IVORY,
     shadowColor: '#3A0F63',
     shadowOffset: { width: 0, height: -4 },
@@ -332,7 +318,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   ctaWrapper: {
-    borderRadius: 999,
+    borderRadius: 0,
     overflow: 'hidden',
     shadowColor: GOLD_DEEP,
     shadowOffset: { width: 0, height: 6 },

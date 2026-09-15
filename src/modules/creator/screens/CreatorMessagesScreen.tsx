@@ -166,8 +166,9 @@ const CreatorMessagesScreen = () => {
             id: item.call_id?.toString() || Math.random().toString(),
             name: item.caller_name || 'User',
             avatar_url: item.avatar_url,
-            type: item.call_type === 'video' ? 'video' : 'audio',
-            duration: `${mins}m ${secs}s`,
+            type: item.call_type === 'gift' ? 'gift' : (item.call_type === 'video' ? 'video' : 'voice'),
+            duration: item.call_type === 'gift' ? '' : `${mins}m ${secs}s`,
+            status: item.status, // captures "Gifted Rose"
             coins: item.earnings_coins || 0,
             earned: (item.earnings_coins || 0) * 0.10, // Assuming 0.10 conversion rate
             time: timeString

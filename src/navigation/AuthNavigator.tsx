@@ -49,11 +49,11 @@ export type AuthStackParamList = {
   LoginScreen: undefined;
   VerifyOtpScreen: { phoneNumber: string; generatedOtp: string };
   GenderSelect: undefined;
-  ProfileReview: { gender?: string, avatar_id?: number, language_id?: number } | undefined;
+  ProfileReview: { gender?: string, avatar_id?: number, age?: string, selectedInterests?: string[], bio?: string, language_id?: number, audioUri?: string } | undefined;
   SelectLanguage: { gender?: string, avatar_id?: number, age?: string, selectedInterests?: string[], bio?: string } | undefined;
   NotificationSetup: { gender?: string, avatar_id?: number, language_id?: number } | undefined;
   CreateProfileSetup: { gender?: string, avatar_id?: number } | undefined;
-  VoiceVerification: { gender?: string, avatar_id?: number, language_id?: number } | undefined;
+  VoiceVerification: { gender?: string, avatar_id?: number, age?: string, selectedInterests?: string[], bio?: string, language_id?: number } | undefined;
   MainTabs: undefined;
   Wallet: { paymentResult?: { success: boolean; coinsAdded: number; newBalance: number; transactionId: string } } | undefined;
   EditProfile: undefined;
@@ -80,10 +80,10 @@ export type AuthStackParamList = {
   Refer: undefined;
   PhonePeWebView: { paymentUrl: string; transactionId: string; coins: number };
   CreatorFullProfile: { creator: any };
-  AudioCallScreen: { callerName?: string; calleeName?: string; callerAvatar?: string; calleeAvatar?: string; channelId?: string; callId?: string | number; targetId?: string | number; agoraToken?: string; };
+  AudioCallScreen: { callerName?: string; calleeName?: string; callerAvatar?: string; calleeAvatar?: string; channelId?: string; callId?: string | number; targetId?: string | number; agoraToken?: string; callRate?: number; };
   CreatorAudioCallScreen: { callerName?: string; callerAvatar?: string; callId?: string | number; rate?: string | number; agoraToken?: string; };
   CallFeedbackScreen: { creatorName?: string; creatorId?: string | number; callId?: string | number };
-  VideoCallScreen: { callerName?: string; calleeName?: string; callerAvatar?: string; calleeAvatar?: string; channelId?: string; callId?: string; targetId?: string; agoraToken?: string; };
+  VideoCallScreen: { callerName?: string; calleeName?: string; callerAvatar?: string; calleeAvatar?: string; channelId?: string; callId?: string; targetId?: string; agoraToken?: string; callRate?: number; };
   CreatorVideoCallScreen: { callerName?: string; callerAvatar?: string; callId?: string | number; rate?: string | number; agoraToken?: string; };
   ChatScreen: { targetId: string | number; targetName: string; targetAvatar: string };
 };
@@ -142,3 +142,4 @@ const AuthNavigator = () => {
 };
 
 export default AuthNavigator;
+

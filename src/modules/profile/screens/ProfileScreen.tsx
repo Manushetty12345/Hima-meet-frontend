@@ -11,6 +11,8 @@ import {
   Image,
   Switch,
   Modal,
+  Alert,
+  Animated,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {
@@ -27,6 +29,7 @@ import {
   BadgeCheck,
   AlertCircle,
   BellOff,
+  Bell,
   BellRing,
   Settings,
   HelpCircle,
@@ -156,8 +159,36 @@ const SETTINGS_ITEMS = [
 
 const ProfileScreen = ({ navigation }: Props) => {
   const [dndEnabled, setDndEnabled] = useState(false);
+  const [dndUntil, setDndUntil] = useState<string | null>(null);
+  const [showDndModal, setShowDndModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastIcon, setToastIcon] = useState<React.ReactNode>(null);
+  const toastOpacity = React.useRef(new Animated.Value(0)).current;
+
+  const showToast = (message: string, icon?: React.ReactNode) => {
+    setToastMessage(message);
+    setToastIcon(icon || null);
+    
+    toastOpacity.setValue(0);
+    Animated.sequence([
+      Animated.timing(toastOpacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.delay(2500),
+      Animated.timing(toastOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setToastMessage(null);
+    });
+  };
 
   // Profile Data
   const [username, setUsername] = useState('Loading...');
@@ -173,6 +204,7 @@ const ProfileScreen = ({ navigation }: Props) => {
             setUsername(profile.username || 'User');
             setAvatarUrl(profile.avatar_url || 'https://hima-bucket.s3.amazonaws.com/default-avatar.png');
             setDndEnabled(!!profile.dnd_enabled);
+            setDndUntil(profile.dnd_until || null);
           }
         } catch (error) {
           console.error('Failed to fetch profile:', error);
@@ -182,15 +214,36 @@ const ProfileScreen = ({ navigation }: Props) => {
     }, [])
   );
 
-  const handleDndToggle = async (value: boolean) => {
-    // Optimistic update
-    setDndEnabled(value);
+  const confirmTurnOffDnd = async () => {
+    setShowDndModal(false);
+    setDndEnabled(false);
+    setDndUntil(null);
     try {
-      await apiClient.post('/api/user/dnd', { enabled: value });
+      await apiClient.post('/api/user/dnd', { enabled: false });
+      showToast('Do Not Disturb disabled', <Bell size={18} color="#FFFFFF" style={{ marginRight: 8 }} />);
     } catch (error) {
       console.error('Failed to update DND:', error);
-      // Revert if API fails
-      setDndEnabled(!value);
+      setDndEnabled(true); // revert
+    }
+  };
+
+  const handleDndToggle = async (value: boolean) => {
+    if (!value) {
+      setShowDndModal(true);
+      return;
+    }
+    
+    // Turn ON Optimistically
+    setDndEnabled(true);
+    try {
+      const res = await apiClient.post('/api/user/dnd', { enabled: true });
+      if (res.data?.dnd_until) {
+        setDndUntil(res.data.dnd_until);
+      }
+      showToast('Do Not Disturb enabled', <BellOff size={18} color="#FFFFFF" style={{ marginRight: 8 }} />);
+    } catch (error) {
+      console.error('Failed to update DND:', error);
+      setDndEnabled(false);
     }
   };
 
@@ -273,7 +326,7 @@ const ProfileScreen = ({ navigation }: Props) => {
           <View style={styles.quickActionsRow}>
             {renderQuickAction('Wallet', Wallet, GOLD_DEEP, 'rgba(245, 197, 66, 0.16)', () => navigation.navigate('Wallet'))}
             {renderQuickAction('Transactions', ReceiptText, PLUM_ROYAL, 'rgba(91, 14, 139, 0.10)', () => navigation.navigate('Transactions'))}
-            {renderQuickAction('Refer', UserPlus, GOLD_DEEP, 'rgba(245, 197, 66, 0.16)', () => navigation.navigate('Refer'))}
+            {renderQuickAction('Refer', UserPlus, GOLD_DEEP, 'rgba(245, 197, 66, 0.16)', () => Alert.alert('Coming Soon', 'Referral sharing will be implemented in the next version!'))}
             {renderQuickAction('Privacy', ShieldCheck, PLUM_ROYAL, 'rgba(91, 14, 139, 0.10)', () => navigation.navigate('AccountPrivacy'))}
           </View>
         </View>
@@ -315,7 +368,11 @@ const ProfileScreen = ({ navigation }: Props) => {
                     <Icon size={18} color={item.iconColor} />
                   </View>
                   <View style={styles.settingsTextWrap}>
-                    <Text style={styles.settingsTitle}>{item.title}</Text>
+                    {item.id === 'dnd' && dndEnabled && dndUntil ? (
+                      <Text style={styles.settingsTitle}>Do Not Disturb • Until {new Date(dndUntil).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+                    ) : (
+                      <Text style={styles.settingsTitle}>{item.title}</Text>
+                    )}
                     <Text style={styles.settingsSubtitle}>{item.subtitle}</Text>
                   </View>
                   {item.hasToggle ? (
@@ -340,7 +397,38 @@ const ProfileScreen = ({ navigation }: Props) => {
         <View style={styles.bottomSpacer} />
       </ScrollView>
 
-      {/* Logout Bottom Sheet */}
+      
+      <Modal
+        visible={showDndModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDndModal(false)}
+      >
+        <View style={styles.centeredModalOverlay}>
+          <View style={styles.dndModalContent}>
+            <View style={styles.dndModalIconContainer}>
+              <BellOff size={30} color="#FF3B5C" />
+            </View>
+            <Text style={styles.dndModalTitle}>Turn off Do Not Disturb?</Text>
+            <Text style={styles.dndModalBody}>
+              You're in Do Not Disturb. Turning it off means you'll start receiving incoming calls again.
+            </Text>
+            <Text style={styles.dndModalSubBody}>
+              You'll be available to all callers right away.
+            </Text>
+            <View style={styles.dndModalButtonRow}>
+              <TouchableOpacity style={styles.dndModalCancelBtn} onPress={() => setShowDndModal(false)}>
+                <Text style={styles.dndModalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.dndModalConfirmBtn} onPress={confirmTurnOffDnd}>
+                <Text style={styles.dndModalConfirmText}>Turn off DND</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+        {/* Logout Bottom Sheet */}
       <Modal
         visible={showLogoutModal}
         transparent
@@ -387,6 +475,18 @@ const ProfileScreen = ({ navigation }: Props) => {
         </View>
       </Modal>
 
+      {/* Toast */}
+      {toastMessage && (
+        <Animated.View style={[
+          styles.toastContainer, 
+          { opacity: toastOpacity }
+        ]}>
+          {toastIcon}
+          <Text style={styles.toastText}>
+            {toastMessage}
+          </Text>
+        </Animated.View>
+      )}
     </View>
   );
 };
@@ -585,6 +685,89 @@ const styles = StyleSheet.create({
   navLabelActive: {
     color: GOLD_DEEP,
   },
+  
+  dndModalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    padding: 32,
+    width: '90%',
+    maxWidth: 380,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 10,
+  },
+  dndModalIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(245, 197, 66, 0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 197, 66, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  dndModalTitle: {
+    fontFamily: 'PlayfairDisplay-Bold',
+    fontSize: 20,
+    color: '#2A1240',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  dndModalBody: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 15,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 12,
+    lineHeight: 22,
+  },
+  dndModalSubBody: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 14,
+    color: '#D4AF37',
+    textAlign: 'center',
+    marginBottom: 28,
+  },
+  dndModalButtonRow: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  dndModalCancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 999,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+  },
+  dndModalCancelText: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 15,
+    color: '#1a1a25',
+  },
+  dndModalConfirmBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 999,
+    backgroundColor: '#F5C542',
+    alignItems: 'center',
+  },
+  dndModalConfirmText: {
+    fontFamily: 'Inter-Bold',
+    fontSize: 15,
+    color: '#1A0733',
+  },
+
+  centeredModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(42, 18, 64, 0.5)',
@@ -652,6 +835,29 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: TEXT_PLUM,
+  },
+  toastContainer: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 100 : 80,
+    alignSelf: 'center',
+    backgroundColor: '#9B5DE5', // Light purple requested by user
+    borderRadius: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+    zIndex: 9999,
+  },
+  toastText: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 14,
+    color: '#FFFFFF',
+    flexShrink: 1,
   },
 });
 

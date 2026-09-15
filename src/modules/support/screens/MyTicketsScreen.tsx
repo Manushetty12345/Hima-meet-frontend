@@ -8,7 +8,8 @@ import {
   StatusBar,
   FlatList,
   ActivityIndicator,
-  Alert
+  Alert,
+  RefreshControl
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { ArrowLeft, Info, FileText } from 'lucide-react-native';
@@ -41,9 +42,15 @@ const MyTicketsScreen: React.FC<Props> = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState<'ACTIVE' | 'RESOLVED'>('ACTIVE');
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
-  const fetchTickets = async () => {
-    setIsLoading(true);
+  const fetchTickets = async (isRefresh = false) => {
+    if (isRefresh) {
+      setIsRefreshing(true);
+    } else {
+      setIsLoading(true);
+    }
+    
     try {
       const data = await getTickets();
       setTickets(data);
@@ -51,8 +58,13 @@ const MyTicketsScreen: React.FC<Props> = ({ navigation }) => {
       Alert.alert('Error', 'Could not load your tickets. Please try again.');
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
+
+  const onRefresh = React.useCallback(() => {
+    fetchTickets(true);
+  }, []);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -129,6 +141,14 @@ const MyTicketsScreen: React.FC<Props> = ({ navigation }) => {
             keyExtractor={item => item.id}
             renderItem={renderTicketItem}
             contentContainerStyle={styles.listContent}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={onRefresh}
+                colors={['#D4AF37']}
+                tintColor="#D4AF37"
+              />
+            }
           />
         ) : (
           <View style={styles.emptyStateContainer}>

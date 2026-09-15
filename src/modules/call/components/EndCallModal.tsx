@@ -24,7 +24,7 @@ const EndCallModal: React.FC<EndCallModalProps> = ({
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>
           <View style={styles.iconCircle}>
-            <PhoneOff size={24} color="#EC1372" fill="#EC1372" />
+            <PhoneOff size={24} color="#5B0E8B" fill="#5B0E8B" />
           </View>
           
           <Text style={styles.title}>End Call?</Text>
@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     width: '85%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FBF6EC', // IVORY
     borderRadius: 24,
     padding: 24,
     alignItems: 'center',
@@ -71,25 +71,30 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 10,
     elevation: 8,
+    borderWidth: 1,
+    borderColor: '#EBDFC4', // IVORY_LINE
   },
   iconCircle: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#FBE9F1',
+    backgroundColor: '#EFDFFB', // LILAC_PALE
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
+    borderWidth: 2,
+    borderColor: '#5B0E8B', // PLUM_ROYAL
   },
   title: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#333333',
+    fontWeight: '800',
+    color: '#2A1240', // TEXT_PLUM
     marginBottom: 8,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   subtitle: {
     fontSize: 14,
-    color: '#8A7A9C',
+    color: '#8B7F98', // TEXT_MUTED
     textAlign: 'center',
     marginBottom: 24,
   },
@@ -103,12 +108,12 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#EFEFEF',
+    borderColor: '#EBDFC4',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
   },
   cancelText: {
-    color: '#8A7A9C',
+    color: '#8B7F98',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -116,13 +121,18 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#EC1372',
+    backgroundColor: '#5B0E8B', // PLUM_ROYAL
     alignItems: 'center',
+    shadowColor: '#5B0E8B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
   },
   endText: {
     color: '#FFFFFF',
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });
 

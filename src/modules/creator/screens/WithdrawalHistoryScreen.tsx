@@ -1,43 +1,62 @@
-import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, FlatList } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import { ArrowLeft, Clock, CheckCircle2, XCircle } from 'lucide-react-native';
-
-const dummyHistory = [
-  { id: '1', amount: '₹10,500', date: 'Sep 09, 2026', time: '10:30 AM', status: 'pending', account: 'HDFC ****4582' },
-  { id: '2', amount: '₹25,000', date: 'Sep 01, 2026', time: '02:15 PM', status: 'completed', account: 'HDFC ****4582' },
-  { id: '3', amount: '₹5,000', date: 'Aug 15, 2026', time: '11:45 AM', status: 'completed', account: 'HDFC ****4582' },
-  { id: '4', amount: '₹8,200', date: 'Aug 02, 2026', time: '04:20 PM', status: 'failed', account: 'SBI ****1120' },
-];
+import apiClient from '../../../api/apiClient';
 
 const WithdrawalHistoryScreen = ({ navigation }: any) => {
+  const [history, setHistory] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchHistory = async () => {
+    try {
+      setLoading(true);
+      const res = await apiClient.get('/api/creator/withdrawals');
+      if (res.data?.status === 'success') {
+        setHistory(res.data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch withdrawal history:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchHistory();
+  }, []);
+
   const renderStatus = (status: string) => {
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case 'pending': return <View style={[styles.statusBadge, { backgroundColor: 'rgba(245, 197, 66, 0.15)' }]}><Clock size={14} color="#D4AF37" /><Text style={[styles.statusText, { color: '#D4AF37' }]}>Pending</Text></View>;
-      case 'completed': return <View style={[styles.statusBadge, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}><CheckCircle2 size={14} color="#10B981" /><Text style={[styles.statusText, { color: '#10B981' }]}>Completed</Text></View>;
+      case 'completed': 
+      case 'success': return <View style={[styles.statusBadge, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}><CheckCircle2 size={14} color="#10B981" /><Text style={[styles.statusText, { color: '#10B981' }]}>Completed</Text></View>;
       case 'failed': return <View style={[styles.statusBadge, { backgroundColor: 'rgba(236, 19, 114, 0.15)' }]}><XCircle size={14} color="#EC1372" /><Text style={[styles.statusText, { color: '#EC1372' }]}>Failed</Text></View>;
       default: return null;
     }
   };
 
-  const renderItem = ({ item }: { item: any }) => (
-    <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.amount}>{item.amount}</Text>
-        {renderStatus(item.status)}
-      </View>
-      <View style={styles.divider} />
-      <View style={styles.cardFooter}>
-        <View>
-          <Text style={styles.label}>Date & Time</Text>
-          <Text style={styles.value}>{item.date}, {item.time}</Text>
+  const renderItem = ({ item }: { item: any }) => {
+    const dateObj = new Date(item.requested_at);
+    return (
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.amount}>₹{Number(item.amount_inr).toLocaleString('en-IN')}</Text>
+          {renderStatus(item.status)}
         </View>
-        <View style={{ alignItems: 'flex-end' }}>
-          <Text style={styles.label}>Transfer To</Text>
-          <Text style={styles.value}>{item.account}</Text>
+        <View style={styles.divider} />
+        <View style={styles.cardFooter}>
+          <View>
+            <Text style={styles.label}>Date & Time</Text>
+            <Text style={styles.value}>{dateObj.toLocaleDateString()}, {dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+          </View>
+          <View style={{ alignItems: 'flex-end' }}>
+            <Text style={styles.label}>Request ID</Text>
+            <Text style={styles.value}>#{item.request_id}</Text>
+          </View>
         </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -48,13 +67,19 @@ const WithdrawalHistoryScreen = ({ navigation }: any) => {
         <Text style={styles.headerTitle}>Withdrawal History</Text>
       </View>
 
-      <FlatList
-        data={dummyHistory}
-        keyExtractor={item => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-      />
+      {loading ? (
+        <ActivityIndicator color="#F91970" size="large" style={{ marginTop: 50 }} />
+      ) : history.length === 0 ? (
+        <Text style={{ textAlign: 'center', color: '#8B7F98', marginTop: 50 }}>No withdrawals yet.</Text>
+      ) : (
+        <FlatList
+          data={history}
+          keyExtractor={item => String(item.request_id)}
+          renderItem={renderItem}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
     </SafeAreaView>
   );
 };

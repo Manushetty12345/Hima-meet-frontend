@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,9 +7,11 @@ import {
   Platform,
   TouchableOpacity,
   Modal,
+  Animated,
+  Easing,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { Mic, ArrowLeft } from 'lucide-react-native';
+import { Mic, ArrowLeft, Sparkles } from 'lucide-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../../navigation/AuthNavigator';
 import VoiceReader from '../components/VoiceReader';
@@ -35,16 +37,68 @@ const LILAC_WHITE = '#FBF7FF';
 const LILAC_PALE = '#EFDFFB';
 
 const VoiceVerificationScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { gender, avatar_id, language_id } = route.params || {};
+  const { gender, avatar_id, language_id, age, selectedInterests, bio } = route.params || {};
   const [showBottomSheet, setShowBottomSheet] = useState(false);
 
+  // ---- Purely visual animation refs ----
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const translateAnim = useRef(new Animated.Value(20)).current;
+  const glowPulse = useRef(new Animated.Value(1)).current;
+  const sparklePulse = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
-    // Show the bottom sheet after 2 seconds as requested
     const timer = setTimeout(() => {
       setShowBottomSheet(true);
-    }, 2000);
-
+    }, 1000);
     return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 420,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+      Animated.spring(translateAnim, {
+        toValue: 0,
+        friction: 8,
+        tension: 50,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    const glowLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowPulse, {
+          toValue: 1.15,
+          duration: 1400,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(glowPulse, {
+          toValue: 1,
+          duration: 1400,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    glowLoop.start();
+
+    const sparkleLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(sparklePulse, { toValue: 1, duration: 900, useNativeDriver: true }),
+        Animated.timing(sparklePulse, { toValue: 0, duration: 900, useNativeDriver: true }),
+      ]),
+    );
+    sparkleLoop.start();
+
+    return () => {
+      glowLoop.stop();
+      sparkleLoop.stop();
+    };
   }, []);
 
   return (
@@ -83,35 +137,67 @@ const VoiceVerificationScreen: React.FC<Props> = ({ route, navigation }) => {
         </View>
       </LinearGradient>
 
+      {/* Decorative background blobs */}
+      <View style={styles.bgBlobTop} pointerEvents="none" />
+      <View style={styles.bgBlobBottom} pointerEvents="none" />
+
       {/* Main Content Area */}
-      <View style={styles.content}>
-        <LinearGradient colors={[PLUM_ROYAL, PLUM_DEEP]} style={styles.micCircle}>
-          <Mic size={48} color="#FFFFFF" strokeWidth={1.5} />
-        </LinearGradient>
+      <Animated.View
+        style={[
+          styles.content,
+          { opacity: fadeAnim, transform: [{ translateY: translateAnim }] },
+        ]}
+      >
+        <View style={styles.micStack}>
+          <Animated.View style={[styles.micGlow, { transform: [{ scale: glowPulse }] }]} />
+          <LinearGradient colors={[PLUM_ROYAL, PLUM_DEEP]} style={styles.micCircle}>
+            <Mic size={44} color="#FFFFFF" strokeWidth={1.5} />
+          </LinearGradient>
+          <Animated.View
+            style={[
+              styles.sparkleBadge,
+              {
+                opacity: sparklePulse,
+                transform: [
+                  {
+                    scale: sparklePulse.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.7, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <Sparkles size={14} color="#2A1240" />
+          </Animated.View>
+        </View>
 
         <Text style={styles.title}>Voice identification</Text>
-        <View style={styles.divider} />
+        <LinearGradient
+          colors={[GOLD, GOLD_DEEP]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.divider}
+        />
         <Text style={styles.subtitle}>
           To confirm your identity, please record yourself saying the following sentence
         </Text>
-      </View>
+      </Animated.View>
 
-      {/* Overlay & Bottom Sheet */}
       <Modal
         visible={showBottomSheet}
         transparent={true}
         animationType="slide"
       >
-        <View style={styles.overlay}>
-          <View style={styles.bottomSheetContainer}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalContent}>
             <View style={styles.dragHandle} />
             <VoiceReader
-              onSubmit={() => {
-                // Handle submit logic here later
-                console.log('Submit voice recording');
+              onSubmit={(audioUri) => {
                 setShowBottomSheet(false);
                 setTimeout(() => {
-                  navigation.navigate('ProfileReview', { gender, avatar_id, language_id });
+                  navigation.navigate('ProfileReview', { gender, avatar_id, language_id, age, selectedInterests, bio, audioUri });
                 }, 150);
               }}
             />
@@ -129,6 +215,7 @@ const styles = StyleSheet.create({
   },
   headerGradient: {
     overflow: 'hidden',
+    zIndex: 2,
   },
   statusBarSpacer: {
     height: STATUSBAR_HEIGHT,
@@ -166,11 +253,41 @@ const styles = StyleSheet.create({
   progressSegmentActive: {
     backgroundColor: GOLD_DEEP,
   },
+  bgBlobTop: {
+    position: 'absolute',
+    top: -60,
+    right: -60,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(212, 175, 55, 0.08)',
+  },
+  bgBlobBottom: {
+    position: 'absolute',
+    bottom: 40,
+    left: -70,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(91, 14, 139, 0.05)',
+  },
   content: {
     flex: 1,
     alignItems: 'center',
     paddingHorizontal: 32,
     marginTop: 60,
+  },
+  micStack: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 40,
+  },
+  micGlow: {
+    position: 'absolute',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(91, 14, 139, 0.12)',
   },
   micCircle: {
     width: 100,
@@ -178,12 +295,24 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 40,
     shadowColor: PLUM_ROYAL,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
     elevation: 6,
+  },
+  sparkleBadge: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: GOLD,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: IVORY,
   },
   title: {
     fontSize: 24,
@@ -193,9 +322,9 @@ const styles = StyleSheet.create({
     fontFamily: 'PlayfairDisplay-Bold',
   },
   divider: {
-    width: 32,
-    height: 2,
-    backgroundColor: GOLD_DEEP,
+    width: 36,
+    height: 3,
+    borderRadius: 2,
     marginBottom: 20,
   },
   subtitle: {
@@ -203,6 +332,33 @@ const styles = StyleSheet.create({
     color: TEXT_MUTED,
     textAlign: 'center',
     lineHeight: 22,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(26, 7, 51, 0.45)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingTop: 12,
+    paddingHorizontal: 24,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    maxHeight: '85%',
+    shadowColor: '#3A0F63',
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 12,
+  },
+  dragHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: IVORY_LINE,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 20,
   },
   overlay: {
     flex: 1,
@@ -218,14 +374,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 12,
     paddingBottom: 40,
-  },
-  dragHandle: {
-    width: 40,
-    height: 4,
-    backgroundColor: IVORY_LINE,
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 24,
   },
 });
 

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+﻿import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -11,9 +11,11 @@ import {
   Platform,
   ScrollView,
   KeyboardAvoidingView,
+  Modal,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { ArrowLeft, User, Sparkles, Pencil, Info } from 'lucide-react-native';
+import { getInterests } from '../api/onboardingApi';
+import { ArrowLeft, User, Sparkles, Pencil, Info, ChevronDown, Check } from 'lucide-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../../navigation/AuthNavigator';
 
@@ -43,25 +45,31 @@ const TEXT_MUTED = '#8B7F98';
 const LILAC_WHITE = '#FBF7FF';
 const LILAC_PALE = '#EFDFFB';
 
-const INTERESTS = [
-  'Politics',
-  'Art',
-  'Sports',
-  'Movies',
-  'Music',
-  'Foodie',
-  'Travel',
-  'Photography',
-  'Love',
-  'Cooking',
-];
+
 
 const CreateProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
   const { gender, avatar_id } = route.params || {};
   const [age, setAge] = useState('');
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
+  const [availableInterests, setAvailableInterests] = useState<{id: number, name: string}[]>([]);
   const [bio, setBio] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
+  React.useEffect(() => {
+    const fetchInterests = async () => {
+      try {
+        const res = await getInterests();
+        if (res.data?.data) {
+          setAvailableInterests(res.data.data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch interests', err);
+      }
+    };
+    fetchInterests();
+  }, []);
+
+  const scrollRef = useRef<any>(null);
   const ctaOpacity = useRef(new Animated.Value(0)).current;
   const ctaTranslateY = useRef(new Animated.Value(24)).current;
 
@@ -152,6 +160,7 @@ const CreateProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
       </LinearGradient>
 
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -211,27 +220,52 @@ const CreateProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
           </View>
         </View>
 
-        <View style={styles.chipWrap}>
-          {INTERESTS.map(interest => {
-            const isSelected = selectedInterests.includes(interest);
-            return (
-              <TouchableOpacity
-                key={interest}
-                activeOpacity={0.8}
-                onPress={() => toggleInterest(interest)}
-                style={isSelected ? styles.chipSelectedWrap : styles.chip}
-              >
-                {isSelected ? (
-                  <LinearGradient colors={[GOLD, GOLD_DEEP]} style={styles.chipSelectedGrad}>
-                    <Text style={styles.chipTextSelected}>{interest}</Text>
-                  </LinearGradient>
-                ) : (
-                  <Text style={styles.chipText}>{interest}</Text>
-                )}
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+                <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => setIsDropdownOpen(true)}
+          style={styles.dropdownTrigger}
+        >
+          {selectedInterests.length === 0 ? (
+            <Text style={styles.dropdownPlaceholder}>Tap to select interests...</Text>
+          ) : (
+            <View style={styles.dropdownSelectedWrap}>
+              {selectedInterests.map(interest => (
+                <View key={interest} style={styles.dropdownSelectedChip}>
+                  <Text style={styles.dropdownSelectedChipText}>{interest}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+          <ChevronDown size={20} color="#7B6B92" />
+        </TouchableOpacity>
+
+        <Modal visible={isDropdownOpen} transparent={true} animationType="fade">
+          <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setIsDropdownOpen(false)}>
+            <TouchableOpacity activeOpacity={1} style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Select Interests (Max 4)</Text>
+                <TouchableOpacity onPress={() => setIsDropdownOpen(false)}>
+                  <Text style={styles.modalDone}>Done</Text>
+                </TouchableOpacity>
+              </View>
+              <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalContentScroll}>
+                {availableInterests.map(interestObj => {
+                  const interest = interestObj.name;
+                  const isSelected = selectedInterests.includes(interest);
+                  return (
+                                        <TouchableOpacity
+                      key={interestObj.id}
+                      style={[styles.dropdownOption, isSelected && styles.dropdownOptionSelected]}
+                      onPress={() => toggleInterest(interest)}
+                    >
+                      <Text style={[styles.dropdownOptionText, isSelected && styles.dropdownOptionTextSelected]}>{interest}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
 
         <View style={styles.infoRow}>
           <Info size={13} color={TEXT_MUTED} />
@@ -261,6 +295,12 @@ const CreateProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
             onChangeText={text => setBio(text.slice(0, MAX_BIO_LENGTH))}
             placeholder='Ex:"I like movie, my favourite one is DDLJ"'
             placeholderTextColor={TEXT_MUTED}
+            keyboardType="default"
+            onFocus={() => {
+              setTimeout(() => {
+                scrollRef.current?.scrollToEnd({ animated: true });
+              }, 150);
+            }}
             multiline
             textAlignVertical="top"
             style={styles.bioInput}
@@ -287,31 +327,31 @@ const CreateProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
         ]}
       >
         <TouchableOpacity
-          activeOpacity={0.85}
-          disabled={!isContinueEnabled}
-          onPress={handleContinue}
-          style={styles.ctaWrapper}
-        >
-          <LinearGradient
-            colors={
-              isContinueEnabled
-                ? [GOLD, GOLD_DEEP]
-                : [IVORY_LINE, IVORY_LINE]
-            }
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.ctaButton}
+            activeOpacity={0.85}
+            disabled={!isContinueEnabled}
+            onPress={handleContinue}
+            style={styles.ctaWrapper}
           >
-            <Text
-              style={[
-                styles.ctaText,
-                !isContinueEnabled && styles.ctaTextDisabled,
-              ]}
+            <LinearGradient
+              colors={
+                isContinueEnabled
+                  ? [GOLD, GOLD_DEEP]
+                  : [IVORY_LINE, IVORY_LINE]
+              }
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.ctaButton}
             >
-              Continue
-            </Text>
-          </LinearGradient>
-        </TouchableOpacity>
+              <Text
+                style={[
+                  styles.ctaText,
+                  !isContinueEnabled && styles.ctaTextDisabled,
+                ]}
+              >
+                Continue
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
       </Animated.View>
     </KeyboardAvoidingView>
   );
@@ -440,37 +480,121 @@ const styles = StyleSheet.create({
     color: TEXT_MUTED,
     flexShrink: 1,
   },
-  chipWrap: {
+  dropdownTrigger: {
+    borderWidth: 1.5,
+    borderColor: 'rgba(212, 175, 55, 0.4)',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+    minHeight: 64,
+    shadowColor: '#D4AF37',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  dropdownPlaceholder: {
+    fontSize: 16,
+    color: '#8B7F98',
+    fontWeight: '500',
+  },
+  dropdownSelectedWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: 14,
+    gap: 8,
+    flex: 1,
+    marginRight: 10,
   },
-  chip: {
-    borderWidth: 1.5,
-    borderColor: IVORY_LINE,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 9,
+  dropdownSelectedChip: {
+    backgroundColor: '#FBF7FF',
+    borderWidth: 1,
+    borderColor: '#EFDFFB',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
   },
-  chipSelectedWrap: {
-    borderRadius: 20,
-    overflow: 'hidden',
-  },
-  chipSelectedGrad: {
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-  },
-  chipText: {
-    fontSize: 13.5,
-    fontWeight: '600',
-    color: PLUM_ROYAL,
-  },
-  chipTextSelected: {
-    fontSize: 13.5,
+  dropdownSelectedChipText: {
+    fontSize: 13,
     fontWeight: '700',
+    color: '#5B0E8B',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(26, 7, 51, 0.55)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    maxHeight: '65%',
+    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+    shadowColor: '#1A0733',
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 22,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0E6D2',
+    backgroundColor: '#FBF6EC',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
     color: '#2A1240',
+    fontFamily: 'PlayfairDisplay-Bold',
+  },
+  modalDone: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#D4AF37',
+  },
+  modalScroll: {
+    paddingHorizontal: 24,
+    paddingTop: 24,
+  },
+  modalContentScroll: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    paddingBottom: 24,
+  },
+  dropdownOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderColor: '#EFEFEF',
+    backgroundColor: '#FFFFFF',
+  },
+  dropdownOptionSelected: {
+    borderColor: '#D4AF37',
+    backgroundColor: '#FFFBF0',
+  },
+  dropdownOptionText: {
+    fontSize: 15,
+    color: '#8B7F98',
+    fontWeight: '600',
+  },
+  dropdownOptionTextSelected: {
+    fontWeight: '700',
+    color: '#D4AF37',
   },
   bioBox: {
     borderWidth: 1.5,
@@ -502,12 +626,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   bottomSpacer: {
-    height: 90,
+    height: 200,
   },
   ctaContainer: {
     paddingHorizontal: 24,
     paddingTop: 12,
-    paddingBottom: 24,
+    paddingBottom: 48,
     backgroundColor: IVORY,
     shadowColor: '#3A0F63',
     shadowOffset: { width: 0, height: -4 },
@@ -516,7 +640,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   ctaWrapper: {
-    borderRadius: 28,
+    borderRadius: 0,
     overflow: 'hidden',
     shadowColor: GOLD_DEEP,
     shadowOffset: { width: 0, height: 8 },
@@ -541,3 +665,6 @@ const styles = StyleSheet.create({
 });
 
 export default CreateProfileSetupScreen;
+
+
+

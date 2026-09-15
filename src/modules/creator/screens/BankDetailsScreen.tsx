@@ -1,9 +1,112 @@
-import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { ArrowLeft, Building2, Plus, CheckCircle2 } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import apiClient from '../../../api/apiClient';
+
+import { launchImageLibrary, Asset } from 'react-native-image-picker';
 
 const BankDetailsScreen = ({ navigation }: any) => {
+  const [bankDetails, setBankDetails] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Form State
+  
+  const [name, setName] = useState('');
+  const [accNo, setAccNo] = useState('');
+  const [confirmAccNo, setConfirmAccNo] = useState('');
+  const [ifsc, setIfsc] = useState('');
+  const [bankName, setBankName] = useState('');
+  const [panNumber, setPanNumber] = useState('');
+  const [upiId, setUpiId] = useState('');
+  const [phone, setPhone] = useState('');
+  const [passbookFile, setPassbookFile] = useState<Asset | null>(null);
+  const [panPhotoFile, setPanPhotoFile] = useState<Asset | null>(null);
+
+  const fetchBankDetails = async () => {
+    try {
+      setLoading(true);
+      const res = await apiClient.get('/api/creator/bank-details');
+      if (res.data?.status === 'success' && res.data.data) {
+        setBankDetails(res.data.data);
+      }
+    } catch (error: any) {
+      if (error.response?.status !== 404) {
+        console.error('Failed to fetch bank details:', error);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePickFile = async (type: 'passbook' | 'pan') => {
+    const result = await launchImageLibrary({ mediaType: 'photo' });
+    if (result.assets && result.assets.length > 0) {
+      if (type === 'passbook') setPassbookFile(result.assets[0]);
+      if (type === 'pan') setPanPhotoFile(result.assets[0]);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!name || !accNo || !confirmAccNo || !ifsc || !panNumber || !phone) {
+      Alert.alert('Error', 'Please fill all required details (including PAN and Phone)');
+      return;
+    }
+    if (accNo !== confirmAccNo) {
+      Alert.alert('Error', 'Account Numbers do not match');
+      return;
+    }
+    try {
+      setSaving(true);
+      
+      const formData = new FormData();
+      formData.append('account_holder_name', name);
+      formData.append('account_number', accNo);
+      formData.append('ifsc_code', ifsc);
+      formData.append('bank_name', bankName);
+      formData.append('pan_number', panNumber);
+      formData.append('upi_id', upiId);
+      formData.append('phone_number', phone);
+      
+      if (passbookFile && passbookFile.uri) {
+        formData.append('passbook_photo', {
+          uri: passbookFile.uri,
+          type: passbookFile.type || 'image/jpeg',
+          name: passbookFile.fileName || 'passbook.jpg'
+        } as any);
+      }
+
+      if (panPhotoFile && panPhotoFile.uri) {
+        formData.append('pan_photo', {
+          uri: panPhotoFile.uri,
+          type: panPhotoFile.type || 'image/jpeg',
+          name: panPhotoFile.fileName || 'pan.jpg'
+        } as any);
+      }
+
+      const res = await apiClient.post('/api/creator/bank-details', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      if (res.data?.status === 'success') {
+        Alert.alert('Success', 'Bank details saved successfully');
+        fetchBankDetails();
+        setName(''); setAccNo(''); setConfirmAccNo(''); setIfsc(''); setBankName(''); setPanNumber(''); setUpiId(''); setPhone(''); setPassbookFile(null); setPanPhotoFile(null);
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.message || 'Failed to save bank details (DB error)');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBankDetails();
+  }, []);
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -14,52 +117,96 @@ const BankDetailsScreen = ({ navigation }: any) => {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.sectionTitle}>Saved Accounts</Text>
+        <Text style={styles.sectionTitle}>Saved Account</Text>
         
-        <TouchableOpacity style={styles.bankCardActive} activeOpacity={0.9}>
-          <View style={styles.bankIconContainer}>
-            <Building2 size={24} color="#EC1372" />
-          </View>
-          <View style={styles.bankInfo}>
-            <Text style={styles.bankName}>HDFC Bank</Text>
-            <Text style={styles.bankNumber}>**** **** 4582</Text>
-          </View>
-          <CheckCircle2 size={24} color="#F5C542" />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.bankCard} activeOpacity={0.7}>
-          <View style={styles.bankIconContainerInactive}>
-            <Building2 size={24} color="#8B7F98" />
-          </View>
-          <View style={styles.bankInfo}>
-            <Text style={styles.bankNameInactive}>State Bank of India</Text>
-            <Text style={styles.bankNumber}>**** **** 1120</Text>
-          </View>
-        </TouchableOpacity>
+        {loading ? (
+          <ActivityIndicator color="#F91970" size="small" />
+        ) : bankDetails ? (
+          <TouchableOpacity style={styles.bankCardActive} activeOpacity={0.9}>
+            <View style={styles.bankIconContainer}>
+              <Building2 size={24} color="#EC1372" />
+            </View>
+            <View style={styles.bankInfo}>
+              <Text style={styles.bankName}>{bankDetails.bank_name || 'Bank Account'}</Text>
+              <Text style={styles.bankNumber}>**** **** {bankDetails.account_number?.slice(-4) || 'XXXX'}</Text>
+              <Text style={{ fontSize: 12, color: '#8B7F98', marginTop: 2 }}>{bankDetails.account_holder_name}</Text>
+            </View>
+            <CheckCircle2 size={24} color="#F5C542" />
+          </TouchableOpacity>
+        ) : (
+          <Text style={{ color: '#8B7F98', marginBottom: 20 }}>No saved account found.</Text>
+        )}
 
         <View style={styles.divider} />
 
-        <Text style={styles.sectionTitle}>Add New Bank Account</Text>
+        <Text style={styles.sectionTitle}>{bankDetails ? 'Update Bank Account' : 'Add New Bank Account'}</Text>
         
         <View style={styles.inputContainer}>
           <Text style={styles.inputLabel}>Account Holder Name</Text>
-          <TextInput style={styles.input} placeholder="e.g. Rahul Sharma" placeholderTextColor="#8B7F98" />
+          <TextInput style={styles.input} placeholder="e.g. Rahul Sharma" placeholderTextColor="#8B7F98" value={name} onChangeText={setName} />
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.inputLabel}>Bank Name</Text>
+          <TextInput style={styles.input} placeholder="e.g. State Bank of India" placeholderTextColor="#8B7F98" value={bankName} onChangeText={setBankName} />
         </View>
 
         <View style={styles.inputContainer}>
           <Text style={styles.inputLabel}>Account Number</Text>
-          <TextInput style={styles.input} placeholder="Enter account number" placeholderTextColor="#8B7F98" keyboardType="numeric" />
+          <TextInput style={styles.input} placeholder="e.g. 1234567890" placeholderTextColor="#8B7F98" keyboardType="number-pad" value={accNo} onChangeText={setAccNo} />
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.inputLabel}>Confirm Account Number</Text>
+          <TextInput style={styles.input} placeholder="e.g. 1234567890" placeholderTextColor="#8B7F98" keyboardType="number-pad" value={confirmAccNo} onChangeText={setConfirmAccNo} />
         </View>
 
         <View style={styles.inputContainer}>
           <Text style={styles.inputLabel}>IFSC Code</Text>
-          <TextInput style={styles.input} placeholder="e.g. HDFC0001234" placeholderTextColor="#8B7F98" autoCapitalize="characters" />
+          <TextInput style={styles.input} placeholder="e.g. HDFC0001234" placeholderTextColor="#8B7F98" autoCapitalize="characters" value={ifsc} onChangeText={setIfsc} />
         </View>
 
-        <TouchableOpacity style={styles.submitBtn} activeOpacity={0.8}>
+        <View style={styles.inputContainer}>
+          <Text style={styles.inputLabel}>PAN Number</Text>
+          <TextInput style={styles.input} placeholder="e.g. ABCDE1234F" placeholderTextColor="#8B7F98" autoCapitalize="characters" value={panNumber} onChangeText={setPanNumber} />
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.inputLabel}>Upload PAN Card Photo</Text>
+          <TouchableOpacity style={[styles.input, { justifyContent: 'center' }]} onPress={() => handlePickFile('pan')} activeOpacity={0.8}>
+            <Text style={{ color: panPhotoFile ? '#2A1240' : '#8B7F98' }}>
+              {panPhotoFile ? panPhotoFile.fileName || 'Photo Selected' : 'Tap to upload PAN Card...'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.inputLabel}>Upload Cancelled Cheque / Passbook</Text>
+          <TouchableOpacity style={[styles.input, { justifyContent: 'center' }]} onPress={() => handlePickFile('passbook')} activeOpacity={0.8}>
+            <Text style={{ color: passbookFile ? '#2A1240' : '#8B7F98' }}>
+              {passbookFile ? passbookFile.fileName || 'Photo Selected' : 'Tap to upload Passbook...'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.inputLabel}>Phone Number</Text>
+          <TextInput style={styles.input} placeholder="e.g. 9876543210" placeholderTextColor="#8B7F98" keyboardType="phone-pad" value={phone} onChangeText={setPhone} />
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.inputLabel}>UPI ID (Alternative Fast Payout)</Text>
+          <TextInput style={styles.input} placeholder="e.g. username@upi" placeholderTextColor="#8B7F98" autoCapitalize="none" value={upiId} onChangeText={setUpiId} />
+        </View>
+
+        <TouchableOpacity style={[styles.submitBtn, saving && {opacity: 0.7}]} activeOpacity={0.8} onPress={handleSave} disabled={saving}>
           <LinearGradient colors={['#5B0E8B', '#3E0A5F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.submitGrad}>
-            <Plus size={20} color="#FFFFFF" />
-            <Text style={styles.submitBtnText}>Add Bank Account</Text>
+            {saving ? <ActivityIndicator color="#FFF" /> : (
+              <>
+                <Plus size={20} color="#FFFFFF" />
+                <Text style={styles.submitBtnText}>{bankDetails ? 'Update Bank Account' : 'Add Bank Account'}</Text>
+              </>
+            )}
           </LinearGradient>
         </TouchableOpacity>
       </ScrollView>

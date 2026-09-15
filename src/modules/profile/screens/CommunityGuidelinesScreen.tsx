@@ -222,7 +222,7 @@ const CommunityGuidelinesScreen: React.FC<Props> = ({ navigation }) => {
                 <Mail size={15} color={TEXT_PLUM} />
               </LinearGradient>
               <View style={styles.contactEmailBadge}>
-                <Text style={styles.contactEmail}>himaapp000@gmail.com</Text>
+                <Text style={styles.contactEmail}>info@hashtocolon.com</Text>
               </View>
             </View>
             <Text style={styles.contactAddressLabel}>Address</Text>
@@ -231,10 +231,9 @@ const CommunityGuidelinesScreen: React.FC<Props> = ({ navigation }) => {
                 <MapPin size={15} color="#FFFFFF" />
               </LinearGradient>
               <Text style={styles.contactAddressText}>
-                Innovfix Private Limited,{'\n'}
-                Indiique Ascent, Municipal No. 420, PID68-6-420,{'\n'}
-                IV Block, Koramangala, Bangalore South,{'\n'}
-                Bangalore – 560034 Karnataka, India.
+                HashToColon Systems Private Limited,{'\n'}
+                No.745, 10th Main, 3rd Block, 3rd Stage Basaveshwara Nagar,{'\n'}
+                Bangalore, Karnataka, India - 560079
               </Text>
             </View>
           </View>

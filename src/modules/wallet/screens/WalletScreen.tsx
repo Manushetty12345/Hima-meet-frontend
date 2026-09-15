@@ -18,6 +18,7 @@ import { ArrowLeft, Coins, CheckCircle2, XCircle } from 'lucide-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import apiClient from '../../../api/apiClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getSocket } from '../../../api/socketClient';
 
 // Component
 import CoinPackageCard, { CoinPackage } from '../components/CoinPackageCard';
@@ -55,18 +56,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Wallet'>;
 
 const formatCoins = (value: number) => value.toLocaleString('en-IN');
 
-// Fallback packages shown if API is unavailable
-const FALLBACK_PACKAGES: CoinPackage[] = [
-  { id: 'p40',    coins: 40,    price: 25,   savePercent: 30 },
-  { id: 'p90',    coins: 90,    price: 49 },
-  { id: 'p200',   coins: 200,   price: 64,   savePercent: 30 },
-  { id: 'p440',   coins: 440,   price: 129,  savePercent: 20 },
-  { id: 'p1200',  coins: 1200,  price: 299,  savePercent: 30 },
-  { id: 'p2500',  coins: 2500,  price: 699,  savePercent: 30, popular: true },
-  { id: 'p5500',  coins: 5500,  price: 1199, savePercent: 33 },
-  { id: 'p15000', coins: 15000, price: 2999, savePercent: 40 },
-  { id: 'p33000', coins: 33000, price: 6999, savePercent: 45 },
-];
+// (Removed FALLBACK_PACKAGES)
 
 const WalletScreen: React.FC<Props> = ({ navigation, route }) => {
   const [selectedPackageId, setSelectedPackageId] = useState<string>('');
@@ -99,7 +89,7 @@ const WalletScreen: React.FC<Props> = ({ navigation, route }) => {
         setCoinBalance(balance);
       }
 
-      // Packages — fallback to hardcoded if API fails
+      // Packages
       if (results[1].status === 'fulfilled') {
         const rawPackages: any[] = results[1].value.data?.data ?? [];
         if (rawPackages.length > 0) {
@@ -113,18 +103,14 @@ const WalletScreen: React.FC<Props> = ({ navigation, route }) => {
           setPackages(mapped);
           if (!selectedPackageId) setSelectedPackageId(String(mapped[0].id));
         } else {
-          setPackages(FALLBACK_PACKAGES);
-          if (!selectedPackageId) setSelectedPackageId(FALLBACK_PACKAGES[0].id);
+          setPackages([]);
         }
       } else {
-        // Use fallback if API fails
-        setPackages(FALLBACK_PACKAGES);
-        if (!selectedPackageId) setSelectedPackageId(FALLBACK_PACKAGES[0].id);
+        setPackages([]);
       }
     } catch (error) {
       console.error('Wallet fetch error:', error);
-      setPackages(FALLBACK_PACKAGES);
-      if (!selectedPackageId) setSelectedPackageId(FALLBACK_PACKAGES[0].id);
+      setPackages([]);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -176,6 +162,23 @@ const WalletScreen: React.FC<Props> = ({ navigation, route }) => {
    * If user was in PhonePe and killed the app, on next Wallet open
    * we check if there's an unverified transaction in AsyncStorage and auto-verify.
    */
+  // Setup WebSocket listener for real-time wallet updates
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+    
+    const handleWalletUpdate = (data: any) => {
+      console.log('Wallet updated via WebSocket:', data);
+      fetchWalletData(true); // Re-fetch balance
+    };
+
+    socket.on('wallet_update', handleWalletUpdate);
+
+    return () => {
+      socket.off('wallet_update', handleWalletUpdate);
+    };
+  }, [fetchWalletData]);
+
   const checkPendingPayment = async () => {
     try {
       const raw = await AsyncStorage.getItem('hima_pending_payment');
@@ -463,14 +466,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 14,
+    bottom: 30,
     paddingHorizontal: 24,
     paddingTop: 12,
     paddingBottom: 24,
     backgroundColor: IVORY,
   },
   ctaWrapper: {
-    borderRadius: 28,
+    borderRadius: 0,
     overflow: 'hidden',
     shadowColor: GOLD_DEEP,
     shadowOffset: { width: 0, height: 8 },

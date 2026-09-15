@@ -18,6 +18,8 @@ export type FriendRequestItem = {
   lastMessageTime?: string | Date;
   unreadCount?: number;
   conversationId?: string | number;
+  callAvailable?: boolean;
+  videoAvailable?: boolean;
   isOnline?: boolean;
 };
 
@@ -107,16 +109,16 @@ const FriendRequestCard: React.FC<FriendRequestCardProps> = ({ item, onRemove, o
     >
       {/* Avatar with purple/pink gradient ring */}
       <LinearGradient
-        colors={['#C850C0', '#FF1493']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.avatarRing}
-      >
-        <View style={styles.avatarInner}>
-          <Image source={{ uri: item.avatarUri }} style={styles.avatar} />
-          {item.isOnline && <View style={styles.onlineDot} />}
-        </View>
-      </LinearGradient>
+          colors={['#9C27B0', '#5B0E8B']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.avatarRing}
+        >
+          <View style={styles.avatarInner}>
+            <Image source={{ uri: item.avatarUri }} style={styles.avatar} />
+            {item.isOnline && <View style={styles.onlineDot} />}
+          </View>
+        </LinearGradient>
 
       {/* Name + Status/Message */}
       <View style={styles.textContainer}>
@@ -267,21 +269,26 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   rejectBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#FFE5E5',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+      width: 44,
+      height: 40,
+      borderRadius: 10,
+      backgroundColor: '#FFE5E5',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
   acceptBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#00D15C',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+      width: 44,
+      height: 40,
+      borderRadius: 10,
+      backgroundColor: '#00D15C',
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#00D15C',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
+      elevation: 2,
+    },
   onlineDot: {
     position: 'absolute',
     bottom: 2,

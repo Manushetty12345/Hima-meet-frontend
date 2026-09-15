@@ -49,7 +49,7 @@ const SECTIONS = [
     icon: FileText,
     iconBg: [PLUM_ROYAL, '#8E2DE2'] as string[],
     title: 'Introduction',
-    body: 'Welcome to Himameet ("Platform"). These Terms and Conditions outline the rules and regulations for the use of the application Himameet, owned and operated by Innovfix Private Limited. By accessing or using our app, you agree to be bound by these Terms and Conditions. If you do not agree with any part of these Terms, please refrain from using our app.',
+    body: 'Welcome to Himameet ("Platform"). These Terms and Conditions outline the rules and regulations for the use of the application Himameet, owned and operated by HashToColon Systems Private Limited. By accessing or using our app, you agree to be bound by these Terms and Conditions. If you do not agree with any part of these Terms, please refrain from using our app.',
   },
   {
     id: 2,
@@ -191,7 +191,7 @@ const TermsScreen: React.FC<Props> = ({ navigation }) => {
           </View>
           <Text style={styles.heroTitle}>Terms &amp; Conditions</Text>
           <Text style={styles.heroSubtitle}>
-            Welcome to Himameet, owned and operated by Innovfix Private Limited.
+            Welcome to Himameet, owned and operated by HashToColon Systems Private Limited.
             By using our app, you agree to be bound by these Terms.
           </Text>
           <View style={styles.lastUpdatedBadge}>
@@ -265,7 +265,7 @@ const TermsScreen: React.FC<Props> = ({ navigation }) => {
                 <Mail size={15} color={TEXT_PLUM} />
               </LinearGradient>
               <View style={styles.contactEmailBadge}>
-                <Text style={styles.contactEmail}>himaapp000@gmail.com</Text>
+                <Text style={styles.contactEmail}>info@hashtocolon.com</Text>
               </View>
             </View>
 
@@ -275,10 +275,9 @@ const TermsScreen: React.FC<Props> = ({ navigation }) => {
                 <MapPin size={15} color="#FFFFFF" />
               </LinearGradient>
               <Text style={styles.contactAddressText}>
-                Innovfix Private Limited,{'\n'}
-                Indiique Ascent, Municipal No. 420, PID68-6-420,{'\n'}
-                IV Block, Koramangala, Bangalore South,{'\n'}
-                Bangalore – 560034 Karnataka, India.
+                HashToColon Systems Private Limited,{'\n'}
+                No.745, 10th Main, 3rd Block, 3rd Stage Basaveshwara Nagar,{'\n'}
+                Bangalore, Karnataka, India - 560079
               </Text>
             </View>
           </View>

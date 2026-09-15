@@ -10,6 +10,7 @@ import {
   Alert,
   ScrollView,
   TextInput,
+  KeyboardAvoidingView,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { ArrowLeft, AlertTriangle } from 'lucide-react-native';
@@ -126,7 +127,8 @@ const DeleteAccountScreen: React.FC<Props> = ({ navigation }) => {
         </View>
       </LinearGradient>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets={true}>
 
         {/* Warning Card */}
         <View style={styles.warningCard}>
@@ -195,6 +197,7 @@ const DeleteAccountScreen: React.FC<Props> = ({ navigation }) => {
           return null;
         })()}
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Footer */}
       <View style={styles.footer}>
@@ -374,8 +377,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   submitButtonWrapper: {
-    borderRadius: 999,
+    borderRadius: 12,
     overflow: 'hidden',
+    marginBottom: 16,
   },
   submitButton: {
     paddingVertical: 16,

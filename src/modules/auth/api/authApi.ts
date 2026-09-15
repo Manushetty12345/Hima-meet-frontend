@@ -1,7 +1,5 @@
 import apiClient, { setAuthToken, clearAuthToken } from '../../../api/apiClient';
 
-// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 export interface SendOtpResponse {
   status: string;
   message: string;
@@ -21,6 +19,7 @@ export interface VerifyOtpResponse {
       name: string;
       phone_number: string;
     };
+    application_status?: string | null;
     // New user fields
     temp_token?: string;
   };
@@ -89,6 +88,7 @@ export interface CheckSessionResponse {
   data: {
     is_new_user: boolean;
     profile_setup_complete?: boolean;
+    application_status?: string | null;
     user?: {
       id: string;
       role: string;

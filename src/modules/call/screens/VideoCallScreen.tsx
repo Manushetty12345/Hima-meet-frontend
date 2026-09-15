@@ -51,6 +51,7 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
     callId,
     targetId,
     agoraToken = '',
+    callRate,
   } = route.params || {};
 
   // Coin & Timer
@@ -120,6 +121,10 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
       });
     }
 
+    const unsubscribeFocus = navigation.addListener('focus', () => {
+      fetchInitialData();
+    });
+
     return () => {
       engine.current?.leaveChannel();
       engine.current?.release();
@@ -129,8 +134,9 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
         socket.off('call_ended');
         socket.off('insufficient_coins');
       }
+      unsubscribeFocus();
     };
-  }, []);
+  }, [navigation]);
 
   const fetchInitialData = async () => {
     try {
@@ -144,6 +150,7 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
       if (giftsRes?.data?.data) setGifts(giftsRes.data.data);
 
       const cost =
+        callRate ??
         configRes?.data?.data?.videoCallCost ??
         configRes?.data?.data?.audioCallCost ??
         10;
@@ -343,12 +350,12 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
     let timer: ReturnType<typeof setInterval>;
     if (timeLeft !== null) {
       if (timeLeft <= 0) {
-        handleEndCall();
+        // Let the backend end the call when coins run out
         return;
       }
       if (timeLeft === 60) setShowLowBalance(true);
       timer = setInterval(() => {
-        setTimeLeft(prev => (prev !== null ? prev - 1 : null));
+        setTimeLeft(prev => (prev !== null && prev > 0 ? prev - 1 : 0));
       }, 1000);
     }
     return () => clearInterval(timer);
@@ -415,7 +422,7 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
       if (timeLeft && newMaxSeconds < timeLeft) setTimeLeft(newMaxSeconds);
       if (newMaxSeconds <= 60 && newMaxSeconds > 0) setShowLowBalance(true);
       else if (newMaxSeconds <= 0) handleEndCall();
-      await apiClient.post('/api/call/gift', { giftId: gift.id });
+      await apiClient.post('/api/call/gift', { giftId: gift.id, receiverId: targetId });
       showToast(`Sent ${gift.name} ${gift.icon}`);
     } catch (err) {
       console.log('Error sending gift', err);
@@ -438,6 +445,7 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
 
   return (
     <View style={styles.container}>
+      {/* @ts-ignore */}
       {/* @ts-ignore */}
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
@@ -539,7 +547,7 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
                 onPress={() => handleSendGift(gift)}
               >
                 <LinearGradient
-                  colors={['rgba(255,255,255,0.12)', 'rgba(255,255,255,0.04)']}
+                  colors={['#FFFFFF', '#FBF6EC']}
                   style={styles.giftCard}
                 >
                   <Text style={styles.giftIconText}>{gift.icon}</Text>
@@ -556,7 +564,7 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
         {/* Controls Pill */}
         <View style={styles.controlsDock}>
           <LinearGradient
-            colors={['rgba(40, 30, 60, 0.65)', 'rgba(20, 15, 30, 0.85)']}
+            colors={['#FFFFFF', '#FBF7FF']}
             style={styles.controlsPill}
           >
             <TouchableOpacity
@@ -564,9 +572,9 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
               onPress={handleMute}
             >
               {isMuted ? (
-                <MicOff size={24} color="#FFFFFF" />
+                <MicOff size={24} color="#5B0E8B" />
               ) : (
-                <Mic size={24} color="#B9AFC4" />
+                <Mic size={24} color="#8B7F98" />
               )}
             </TouchableOpacity>
 
@@ -585,9 +593,9 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
               onPress={handleVideoToggle}
             >
               {isVideoOff ? (
-                <VideoOff size={24} color="#FFFFFF" />
+                <VideoOff size={24} color="#5B0E8B" />
               ) : (
-                <VideoIcon size={24} color="#B9AFC4" />
+                <VideoIcon size={24} color="#8B7F98" />
               )}
             </TouchableOpacity>
           </LinearGradient>
@@ -674,19 +682,23 @@ const styles = StyleSheet.create({
   },
   timerGlassPill: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 18, paddingVertical: 9,
     borderRadius: 30, borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)', gap: 8,
+    borderColor: '#EBDFC4', gap: 8,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
   },
-  timerText: { color: '#FFF', fontSize: 15, fontWeight: '700', letterSpacing: 1 },
+  timerText: { color: '#5B0E8B', fontSize: 15, fontWeight: '700', letterSpacing: 1 },
   coinPill: {
-    backgroundColor: 'rgba(255,215,0,0.18)',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 16, paddingVertical: 9,
     borderRadius: 30, borderWidth: 1,
-    borderColor: 'rgba(255,215,0,0.35)',
+    borderColor: '#EBDFC4', flexDirection: 'row', alignItems: 'center', gap: 6,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
   },
-  coinText: { color: '#FFD700', fontSize: 14, fontWeight: '700' },
+  coinText: { color: '#2A1240', fontSize: 14, fontWeight: '700' },
   calleeBadge: {
     position: 'absolute', left: 18,
     flexDirection: 'row', alignItems: 'center', gap: 8, zIndex: 10,
@@ -706,13 +718,13 @@ const styles = StyleSheet.create({
     position: 'absolute', right: 16,
     width: 112, height: 162, borderRadius: 18,
     overflow: 'hidden', borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.25)',
+    borderColor: '#F5C542',
     backgroundColor: '#1A1025', elevation: 12,
     shadowColor: '#000', shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.5, shadowRadius: 8, zIndex: 10,
   },
   pipVideo: { width: '100%', height: '100%', resizeMode: 'cover' },
-  pipVideoOff: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2A1D3A' },
+  pipVideoOff: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FBF6EC' },
   pipNameBadge: {
     position: 'absolute', bottom: 6, left: 6,
     backgroundColor: 'rgba(0,0,0,0.55)',
@@ -720,7 +732,7 @@ const styles = StyleSheet.create({
   },
   pipName: { color: '#FFF', fontSize: 11, fontWeight: '700' },
   bottomSection: { position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10 },
-  giftDockWrapper: { marginBottom: 16, paddingHorizontal: 20 },
+  giftDockWrapper: { marginBottom: 26, paddingHorizontal: 20 },
   giftsHeader: {
     flexDirection: 'row', alignItems: 'center',
     gap: 8, marginBottom: 12, paddingHorizontal: 4,
@@ -730,49 +742,48 @@ const styles = StyleSheet.create({
   giftCard: {
     width: 80, height: 92, borderRadius: 18,
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', overflow: 'hidden',
+    borderWidth: 1, borderColor: '#EBDFC4', overflow: 'hidden',
   },
   giftIconText: {
     fontSize: 30, marginBottom: 8,
-    textShadowColor: 'rgba(0,0,0,0.3)',
-    textShadowOffset: { width: 0, height: 3 }, textShadowRadius: 5,
   },
   giftPriceRow: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: '#EFDFFB',
     paddingHorizontal: 7, paddingVertical: 3, borderRadius: 10,
   },
   coinDot: {
     width: 10, height: 10, borderRadius: 5,
-    backgroundColor: '#FFD700', borderWidth: 1, borderColor: '#FFF',
+    backgroundColor: '#F5C542', borderWidth: 1, borderColor: '#FFF',
   },
-  giftPriceText: { color: '#FFF', fontSize: 11, fontWeight: '800' },
+  giftPriceText: { color: '#5B0E8B', fontSize: 11, fontWeight: '800' },
   controlsDock: {
     paddingHorizontal: 24,
-    paddingBottom: Platform.OS === 'ios' ? 42 : 28,
+    paddingBottom: Platform.OS === 'ios' ? 62 : 48,
   },
   controlsPill: {
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20, paddingVertical: 10,
     borderRadius: 40, borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: '#EBDFC4',
   },
   controlBtn: {
     width: 54, height: 54, borderRadius: 27,
-    backgroundColor: 'rgba(255,255,255,0.07)',
+    backgroundColor: '#FBF6EC',
+    borderWidth: 1, borderColor: '#EBDFC4',
     alignItems: 'center', justifyContent: 'center',
   },
-  controlBtnActive: { backgroundColor: 'rgba(255,255,255,0.22)' },
+  controlBtnActive: { backgroundColor: 'rgba(91, 14, 139, 0.1)', borderColor: '#5B0E8B' },
   endCallBtnWrapper: {
-    shadowColor: '#FF4D4D',
+    shadowColor: '#EC1372',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.45, shadowRadius: 14, elevation: 10,
+    shadowOpacity: 0.3, shadowRadius: 14, elevation: 10,
   },
   endCallBtn: {
     width: 70, height: 70, borderRadius: 35,
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)',
+    borderWidth: 2, borderColor: '#FFFFFF',
   },
   toastContainer: {
     position: 'absolute', bottom: 130, left: 0, right: 0,

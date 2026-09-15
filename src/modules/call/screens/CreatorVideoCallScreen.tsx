@@ -296,6 +296,7 @@ const CreatorVideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
   return (
     <View style={styles.container}>
       {/* @ts-ignore */}
+      {/* @ts-ignore */}
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
       {/* Remote full-screen video */}

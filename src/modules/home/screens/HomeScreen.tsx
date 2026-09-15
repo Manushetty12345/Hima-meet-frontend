@@ -11,6 +11,7 @@ import {
   FlatList,
   ActivityIndicator,
   RefreshControl,
+  Animated,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {
@@ -25,7 +26,7 @@ import {
   Phone,
   Video,
   Coins,
-  Shuffle, X,
+  Shuffle, X, BellOff,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -195,6 +196,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const randomMatchTypeRef = React.useRef<'audio' | 'video'>('audio');
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const toastAnim = React.useRef(new Animated.Value(0)).current;
   const callTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearCallTimeout = () => {
@@ -206,7 +208,11 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+    Animated.sequence([
+      Animated.timing(toastAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
+      Animated.delay(2500),
+      Animated.timing(toastAnim, { toValue: 0, duration: 300, useNativeDriver: true })
+    ]).start(() => setToastMessage(null));
   };
 
   React.useEffect(() => {
@@ -221,7 +227,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
       const handleCallBusy = (data: { message: string }) => {
         clearCallTimeout();
         setShowRandomMatch(false);
-        showToast(data.message || 'The user is currently on another call. Please try again later.');
+        showToast(data.message || 'The user is currently on another call. Please try again.');
       };
 
       const handleCallDeclined = () => {
@@ -230,7 +236,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         showToast('User is not available right now.');
       };
 
-      const handleCallAccepted = (data: { callId: number, agoraToken?: string }) => {
+      const handleCallAccepted = (data: { callId: number, agoraToken?: string, rate?: number }) => {
         clearCallTimeout();
         setShowRandomMatch(false);
         // Use refs (not state) to avoid stale closure bug
@@ -242,6 +248,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
           calleeName: callTarget?.name,
           calleeAvatar: callTarget?.avatarUri,
           agoraToken: data.agoraToken || '',
+          callRate: data.rate || (callType === 'audio' ? 20 : 40),
         } as any);
       };
 
@@ -261,6 +268,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         ));
       };
 
+
       socket.off('call_busy').on('call_busy', handleCallBusy);
       socket.off('call_declined').on('call_declined', handleCallDeclined);
       socket.off('call_accepted').on('call_accepted', handleCallAccepted);
@@ -272,7 +280,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
     return () => {
       if (socket) {
-        socket.off('call_busy');
+          socket.off('call_busy');
         socket.off('call_declined');
         socket.off('call_accepted');
         socket.off('user_offline');
@@ -280,6 +288,19 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
       }
     };
   }, [navigation, randomMatchType, randomMatchTarget]);
+
+  const executeSocketCall = async () => {
+    const creator = randomMatchTargetRef.current;
+    const type = randomMatchTypeRef.current;
+    if (!creator) return;
+    const rate = type === 'audio' ? creator.callRate : creator.videoRate;
+    const requiredCoins = rate || (type === 'audio' ? 20 : 40);
+    let socket = getSocket();
+    if (!socket) socket = await initSocket();
+    if (socket) {
+      socket.emit('initiate_call', { targetId: creator.id, type, rate: requiredCoins });
+    }
+  };
 
   const initiateCallWithChecks = async (creator: CreatorItem, type: 'audio' | 'video') => {
     const rate = type === 'audio' ? creator.callRate : creator.videoRate;
@@ -557,6 +578,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         }}
         mode={randomMatchType}
         targetUser={randomMatchTarget}
+        onProceedWithDirectCall={executeSocketCall}
         onMatchFound={(creator) => {
           // Construct a partial CreatorItem for the checks
           const mockCreator = {
@@ -619,6 +641,25 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.fabText}>Random</Text>
           </LinearGradient>
         </TouchableOpacity>
+      )}
+
+      {/* Animated Toast */}
+      {toastMessage && (
+        <Animated.View style={[
+          styles.toastContainer,
+          {
+            opacity: toastAnim,
+            transform: [{
+              translateY: toastAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [50, 0]
+              })
+            }]
+          }
+        ]}>
+          <Image source={require('../../../assets/images/logo1.png')} style={styles.toastIcon} />
+          <Text style={styles.toastText}>{toastMessage}</Text>
+        </Animated.View>
       )}
     </View>
   );
@@ -890,7 +931,34 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 5,
   },
-
+  toastContainer: {
+    position: 'absolute',
+    bottom: 90,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2A1240',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 8,
+    zIndex: 9999,
+  },
+  toastIcon: {
+    width: 20,
+    height: 20,
+    marginRight: 12,
+    resizeMode: 'contain',
+  },
+  toastText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+  },
 });
 
 export default HomeScreen;

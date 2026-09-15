@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -206,12 +206,12 @@ const VerifyOtpScreen: React.FC<Props> = ({ navigation, route }) => {
     try {
       // Backend verifies OTP against its in-memory store (bhashsms flow)
       const result = await verifyOtp(mobileNumber, otpValue, '+91');
-      const { is_new_user, user } = result.data;
+      const { is_new_user, user, application_status } = result.data;
 
       if (is_new_user) {
         navigation.navigate('GenderSelect');
       } else {
-        if (user && user.role === 'creator') {
+        if (application_status === 'pending_review') { navigation.replace('ProfileReview'); } else if (user && user.role === 'creator') {
           navigation.replace('CreatorDashboard');
         } else {
           navigation.replace('MainTabs');
@@ -313,7 +313,7 @@ const VerifyOtpScreen: React.FC<Props> = ({ navigation, route }) => {
           </View>
 
           <Text style={styles.wordmark}>
-            <Text style={styles.wordmarkAccent}>Hima</Text>meet
+            Himameet
           </Text>
           <View style={styles.taglineDivider}>
             <View style={styles.taglineLine} />
@@ -541,8 +541,9 @@ const styles = StyleSheet.create({
   wordmark: {
     marginTop: 16,
     fontSize: 24,
-    fontWeight: '300',
-    color: TEXT_PLUM,
+    fontWeight: '800',
+    fontStyle: 'italic',
+    color: '#D4AF37',
     letterSpacing: 1,
   },
   wordmarkAccent: {
@@ -686,7 +687,7 @@ const styles = StyleSheet.create({
   },
 
   ctaWrapper: {
-    borderRadius: 999,
+    borderRadius: 0,
     overflow: 'hidden',
     shadowColor: GOLD_DEEP,
     shadowOffset: { width: 0, height: 6 },
@@ -748,3 +749,7 @@ const styles = StyleSheet.create({
 });
 
 export default VerifyOtpScreen;
+
+
+
+

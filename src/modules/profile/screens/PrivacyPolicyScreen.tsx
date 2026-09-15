@@ -232,14 +232,13 @@ const PrivacyPolicyScreen: React.FC<Props> = ({ navigation }) => {
                 {section.isContact && (
                   <View style={styles.contactWrap}>
                     <TouchableOpacity style={styles.emailPill} activeOpacity={0.8}>
-                      <Text style={styles.emailText}>Himaapp000@gmail.com</Text>
+                      <Text style={styles.emailText}>info@hashtocolon.com</Text>
                     </TouchableOpacity>
                     <Text style={styles.addressTitle}>Address</Text>
                     <Text style={styles.addressText}>
-                      Innovfix Private Limited,{"\n"}
-                      Indiqube Ascent, Municipal No. 420, PID68-6-420,{"\n"}
-                      IV Block, Koramangala, Bangalore South,{"\n"}
-                      Bangalore - 560034, Karnataka, India.
+                      HashToColon Systems Private Limited,{"\n"}
+                      No.745, 10th Main, 3rd Block, 3rd Stage Basaveshwara Nagar,{"\n"}
+                      Bangalore, Karnataka, India - 560079
                     </Text>
                   </View>
                 )}

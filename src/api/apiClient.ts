@@ -1,3 +1,4 @@
+import { Alert } from 'react-native';
 import axios from 'axios';
 import Config from 'react-native-config';
 import * as Keychain from 'react-native-keychain';
@@ -66,7 +67,15 @@ apiClient.interceptors.response.use(
   async error => {
     if (error.response?.status === 401) {
       await clearAuthToken();
-      // TODO: You can dispatch a logout action or navigate to LoginScreen here
+    }
+    // Handle specific ACCOUNT_BANNED 403 error
+    if (error.response?.status === 403 && error.response?.data?.message === 'ACCOUNT_BANNED') {
+      await clearAuthToken();
+      Alert.alert(
+        'Account Banned',
+        'Your account has been banned by an administrator due to severe violations of our community guidelines. You have been automatically logged out.',
+        [{ text: 'OK' }]
+      );
     }
     return Promise.reject(error);
   },

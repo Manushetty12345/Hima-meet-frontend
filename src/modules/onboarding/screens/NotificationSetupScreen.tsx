@@ -16,6 +16,8 @@ import { MessageCircle, Bell } from 'lucide-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { saveProfileSetup } from '../api/onboardingApi';
 import { setAuthToken } from '../../../api/apiClient';
+// @ts-ignore - Firebase types sometimes don't resolve the default export correctly
+import messaging from '@react-native-firebase/messaging';
 
 const STATUSBAR_HEIGHT =
   Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 0;
@@ -146,22 +148,29 @@ const NotificationSetupScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   };
 
-  const handleEnableNotifications = async () => {
-    if (Platform.OS === 'android') {
+      const handleEnableNotifications = () => {
+    // Navigate to Home screen first
+    completeSetup();
+
+    // Wait for the navigation transition to finish, then show the native OS prompt over the HomeScreen
+    setTimeout(async () => {
       try {
-        // Android 13+ requires POST_NOTIFICATIONS permission
-        if (Platform.Version >= 33) {
-          await PermissionsAndroid.request(
-            PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
-          );
+        if (Platform.OS === 'ios') {
+          await messaging().requestPermission();
+        } else if (Platform.OS === 'android') {
+          if (Platform.Version >= 33) {
+            await PermissionsAndroid.request(
+              PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+            );
+          }
         }
+        
+        // Fetch the token (this will also be handled by socketClient/CreatorHome)
+        await messaging().getToken();
       } catch (e) {
         console.log('Notification permission error', e);
       }
-    }
-    // iOS: handled natively by the OS when you call requestPermission
-    // For now just complete setup — integrate PushNotification lib later
-    completeSetup();
+    }, 1200); // 1.2 second delay ensures the Home Screen is fully loaded
   };
 
   const handleMaybeLater = () => {
@@ -416,3 +425,4 @@ const styles = StyleSheet.create({
 });
 
 export default NotificationSetupScreen;
+
