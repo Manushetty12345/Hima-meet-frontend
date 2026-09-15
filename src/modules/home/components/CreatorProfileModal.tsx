@@ -453,7 +453,7 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
               <MoreVertical size={24} color={TEXT_MUTED} />
             </TouchableOpacity>
           </View>
-        </View>
+        </LinearGradient>
 
         {/* Dropdown Overlay */}
         {menuVisible && (
