@@ -666,9 +666,9 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
           ) : (
             <View style={styles.chatFooterContainer}>
               <TouchableOpacity style={styles.emojiBtnGradientWrap} activeOpacity={0.8} onPress={() => setShowEmojiPicker(!showEmojiPicker)}>
-                  <LinearGradient colors={['#FFB6C1', '#FF69B4']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.emojiBtnInner}>
-                    <Smile size={24} color="#FFFFFF" />
-                  </LinearGradient>
+                  <View style={styles.emojiBtnInner}>
+                    <Smile size={18} color="#9C27B0" />
+                  </View>
                 </TouchableOpacity>
 
                 <View style={styles.chatInputWrapper}>
@@ -684,14 +684,9 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
               </View>
               
               <TouchableOpacity style={styles.sendBtnGradientWrap} activeOpacity={0.8} onPress={handleSendMessage}>
-                <LinearGradient
-                  colors={[PINK, '#C90E62']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.sendBtnInner}
-                >
-                  <Send size={20} color="#FFFFFF" style={{ marginLeft: 2 }} />
-                </LinearGradient>
+                <View style={styles.sendBtnInner}>
+                    <Send size={16} color="#9C27B0" style={{ marginLeft: 2 }} />
+                  </View>
               </TouchableOpacity>
             </View>
           )}
@@ -1120,7 +1115,7 @@ const styles = StyleSheet.create({
       backgroundColor: 'transparent',
       paddingHorizontal: 12,
       paddingTop: 12,
-      paddingBottom: Platform.OS === 'ios' ? 44 : 24,
+      paddingBottom: Platform.OS === 'ios' ? 56 : 36,
       borderTopWidth: 1,
       borderTopColor: 'rgba(235, 229, 242, 0.4)',
       gap: 10,
@@ -1131,7 +1126,7 @@ const styles = StyleSheet.create({
       alignItems: 'center',
       backgroundColor: '#FFFFFF',
       borderRadius: 24,
-      minHeight: 48,
+      minHeight: 40,
       maxHeight: 120,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
@@ -1147,11 +1142,11 @@ const styles = StyleSheet.create({
   },
   chatInput: {
       flex: 1,
-      minHeight: 48,
+      minHeight: 40,
       paddingHorizontal: 16,
-      paddingTop: Platform.OS === 'ios' ? 14 : 12,
-      paddingBottom: Platform.OS === 'ios' ? 14 : 12,
-      fontSize: 16,
+      paddingTop: Platform.OS === 'ios' ? 10 : 8,
+      paddingBottom: Platform.OS === 'ios' ? 10 : 8,
+      fontSize: 15,
       color: '#2A1240',
     },
   chatInputActions: {
@@ -1166,34 +1161,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emojiBtnGradientWrap: {
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      shadowColor: '#C90E62',
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: '#FFFFFF',
+      shadowColor: '#000',
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.2,
       shadowRadius: 6,
-      elevation: 4,
+      elevation: 2,
     },
     emojiBtnInner: {
       flex: 1,
-      borderRadius: 22,
+      borderRadius: 18,
       alignItems: 'center',
       justifyContent: 'center',
     },
     sendBtnGradientWrap: {
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      shadowColor: '#C90E62',
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: '#FFFFFF',
+      shadowColor: '#000',
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.2,
       shadowRadius: 6,
-      elevation: 4,
+      elevation: 2,
     },
   sendBtnInner: {
       flex: 1,
-      borderRadius: 22,
+      borderRadius: 18,
       alignItems: 'center',
       justifyContent: 'center',
     },
