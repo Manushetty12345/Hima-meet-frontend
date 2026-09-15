@@ -380,7 +380,12 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
         <StatusBar barStyle="dark-content" />
 
         {/* Header */}
-        <View style={styles.header}>
+        <LinearGradient 
+          colors={['#FBF7FF', '#EFDFFB']} 
+          start={{ x: 0.15, y: 0 }} 
+          end={{ x: 0.85, y: 1 }} 
+          style={styles.header}
+        >
           <TouchableOpacity style={styles.backBtn} onPress={handleClose} activeOpacity={0.8}>
             <ArrowLeft size={20} color={PINK} />
           </TouchableOpacity>
@@ -735,15 +740,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: Platform.OS === 'android' ? 45 : 20,
     paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0EAF6',
-    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 0,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.03,
+      shadowRadius: 8,
+      elevation: 3,
+      // backgroundColor removed for gradient
   },
   backBtn: {
     width: 42,
     height: 42,
     borderRadius: 12,
-    backgroundColor: '#F9EBF2',
+    backgroundColor: '#FFFFFF',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 4,
+      elevation: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
