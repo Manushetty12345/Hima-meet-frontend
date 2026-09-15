@@ -415,7 +415,14 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
               >
                 <Phone size={16} color={(isOnline && creator.callAvailable) ? '#9C27B0' : '#D1D5DB'} fill={(isOnline && creator.callAvailable) ? '#9C27B0' : 'transparent'} />
               </TouchableOpacity>
-              {(isOnline && creator.callAvailable) ? null : (
+              {(isOnline && creator.callAvailable) ? (
+                <View style={styles.rateContainer}>
+                  <View style={styles.coinBadge}>
+                    <Text style={styles.coinBadgeText}>H</Text>
+                  </View>
+                  <Text style={styles.rateText}>{Math.round(Number(creator.callRate)) || 20}/min</Text>
+                </View>
+              ) : (
                   <Text style={styles.offlineText}>{isOnline ? 'Busy' : 'Offline'}</Text>
                 )}
             </View>
@@ -430,7 +437,14 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
               >
                 <Video size={16} color={(isOnline && creator.videoAvailable) ? '#9C27B0' : '#D1D5DB'} fill={(isOnline && creator.videoAvailable) ? '#9C27B0' : '#D1D5DB'} />
               </TouchableOpacity>
-              {(isOnline && creator.videoAvailable) ? null : (
+              {(isOnline && creator.videoAvailable) ? (
+                <View style={styles.rateContainer}>
+                  <View style={styles.coinBadge}>
+                    <Text style={styles.coinBadgeText}>H</Text>
+                  </View>
+                  <Text style={styles.rateText}>{Math.round(Number(creator.videoRate)) || 40}/min</Text>
+                </View>
+              ) : (
                   <Text style={styles.offlineText}>{isOnline ? 'Busy' : 'Offline'}</Text>
                 )}
             </View>
@@ -827,7 +841,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 2,
   },
-  rateText: {
+  
+    rateContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    coinBadge: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      backgroundColor: '#FBC02D',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    coinBadgeText: {
+      fontSize: 7,
+      color: '#FFFFFF',
+      fontWeight: 'bold',
+    },
+
+    rateText: {
     fontSize: 9.5,
     color: GOLD_DEEP,
     fontWeight: '600',
