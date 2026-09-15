@@ -493,7 +493,8 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
         )}
 
         {/* Body — Chat area with subtle Whatsapp-like background */}
-        <LinearGradient colors={['#F4EDFB', '#FFFFFF']} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.body}>
+        <LinearGradient colors={['#F9F5FD', '#FFFFFF']} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={{ flex: 1 }}>
+          <View style={styles.body}>
           {friendStatus === 'friends' ? (
             <ScrollView 
               style={styles.chatScrollView}
@@ -575,12 +576,11 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
               </View>
             </View>
           )}
-        </LinearGradient>
-
+        </View>
         {/* Bottom CTA / Input */}
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={{ backgroundColor: friendStatus === 'friends' ? '#F5F0FA' : '#FFFFFF' }}
+          style={{ backgroundColor: 'transparent' }}
         >
           {isLoadingStatus ? (
             <View style={[styles.footer, { paddingVertical: 40 }]}>
@@ -665,11 +665,14 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
               </View>
           ) : (
             <View style={styles.chatFooterContainer}>
-              <View style={styles.chatInputWrapper}>
-                <TouchableOpacity style={styles.iconBtnLeft} onPress={() => setShowEmojiPicker(!showEmojiPicker)}>
-                  <Smile size={30} color={showEmojiPicker ? PINK : "#8B7F98"} />
+              <TouchableOpacity style={styles.emojiBtnGradientWrap} activeOpacity={0.8} onPress={() => setShowEmojiPicker(!showEmojiPicker)}>
+                  <LinearGradient colors={['#FFB6C1', '#FF69B4']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.emojiBtnInner}>
+                    <Smile size={24} color="#FFFFFF" />
+                  </LinearGradient>
                 </TouchableOpacity>
-                <TextInput
+
+                <View style={styles.chatInputWrapper}>
+                  <TextInput
                   style={styles.chatInput}
                   placeholder="Type a message..."
                   placeholderTextColor="#A499B0"
@@ -703,6 +706,7 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
             </View>
           )}
         </KeyboardAvoidingView>
+        </LinearGradient>
 
         {/* Animated Toast */}
         <Animated.View
@@ -1113,12 +1117,12 @@ const styles = StyleSheet.create({
   chatFooterContainer: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: '#F5F0FA',
+      backgroundColor: 'transparent',
       paddingHorizontal: 12,
       paddingTop: 12,
       paddingBottom: Platform.OS === 'ios' ? 44 : 24,
       borderTopWidth: 1,
-      borderTopColor: '#EBE5F2',
+      borderTopColor: 'rgba(235, 229, 242, 0.4)',
       gap: 10,
     },
   chatInputWrapper: {
