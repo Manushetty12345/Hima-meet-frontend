@@ -495,7 +495,7 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
         {/* Body — Chat area with subtle Whatsapp-like background */}
         <KeyboardAvoidingView 
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+            keyboardVerticalOffset={0}
             style={{ flex: 1, backgroundColor: '#F4EDFB' }}
           >
           <View style={styles.body}>
@@ -731,8 +731,8 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
+      flex: 1,
+      backgroundColor: '#F4EDFB',
   },
   header: {
     flexDirection: 'row',
@@ -922,7 +922,7 @@ const styles = StyleSheet.create({
   },
   body: {
     flex: 1,
-    backgroundColor: '#E5DDD5', // Whatsapp-like default color
+    backgroundColor: 'transparent',
   },
   emptyAreaContainer: {
     flex: 1,
