@@ -86,15 +86,13 @@ const PhonePeWebViewScreen: React.FC<Props> = ({ navigation, route }) => {
         
         try {
           const params = JSON.parse(savedParamsStr);
-          // Show alert but navigate with all original parameters
-          Alert.alert('Payment Successful', `Added ${coinsAdded} coins! Returning to call.`, [
-            {
-              text: 'OK',
-              onPress: () => {
-                navigation.navigate(shouldReturn as any, params);
-              }
-            }
-          ]);
+          // Show non-blocking toast
+          if (Platform.OS === 'android') {
+            import('react-native').then(({ ToastAndroid }) => {
+              ToastAndroid.show(`Payment Successful! Added ${coinsAdded} coins.`, ToastAndroid.LONG);
+            });
+          }
+          // Navigate immediately with all original parameters
           navigation.navigate(shouldReturn as any, params);
           return;
         } catch (e) {
