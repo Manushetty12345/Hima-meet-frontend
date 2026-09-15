@@ -336,7 +336,7 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
   const handleBlockUser = async () => {
     setMenuVisible(false);
     try {
-      await apiClient.post(`/api/friends/block`, { target_user_id: creator.id });
+      await apiClient.post(`/api/creator/${creator.id}/block`, { deleteChat: false });
       setFriendStatus('blocked');
       disconnectSocket();
       showToast('User blocked');
