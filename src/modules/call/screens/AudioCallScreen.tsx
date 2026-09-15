@@ -423,6 +423,8 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
         onClose={() => setShowLowBalance(false)}
         onRecharge={() => {
           setShowLowBalance(false);
+          const socket = getSocket();
+          if (socket) socket.emit('recharging_call', { callId: route.params?.callId });
           import('@react-native-async-storage/async-storage').then(({ default: AsyncStorage }) => {
             AsyncStorage.setItem('hima_returnToScreen', 'AudioCallScreen');
             AsyncStorage.setItem('hima_call_params', JSON.stringify(route.params || {}));
