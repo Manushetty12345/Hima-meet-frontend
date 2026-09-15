@@ -394,7 +394,7 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
             <View style={styles.avatarWrap}>
               <Image source={{ uri: creator.avatarUri }} style={styles.avatar} />
             </View>
-            <View style={{ alignItems: 'center' }}>
+            <View style={{ alignItems: 'flex-start' }}>
               <Text style={styles.headerName}>{creator.name}</Text>
               {friendStatus === 'friends' && (
                 <Text style={[styles.headerStatusText, !isOnline && { color: '#8B7F98' }]}>
@@ -413,7 +413,7 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
                 disabled={!isOnline || !creator.callAvailable}
                 onPress={() => onCall?.(creator)}
               >
-                <Phone size={20} color={(isOnline && creator.callAvailable) ? PINK : '#B9AFC4'} fill={(isOnline && creator.callAvailable) ? PINK : 'transparent'} />
+                <Phone size={16} color={(isOnline && creator.callAvailable) ? PINK : '#B9AFC4'} fill={(isOnline && creator.callAvailable) ? PINK : 'transparent'} />
               </TouchableOpacity>
               {(isOnline && creator.callAvailable) ? (
                 <View style={styles.rateRow}>
@@ -433,7 +433,7 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
                 disabled={!isOnline || !creator.videoAvailable}
                 onPress={() => onVideoCall?.(creator)}
               >
-                <Video size={20} color={(isOnline && creator.videoAvailable) ? PLUM_ROYAL : '#B9AFC4'} fill={(isOnline && creator.videoAvailable) ? PLUM_ROYAL : '#B9AFC4'} />
+                <Video size={16} color={(isOnline && creator.videoAvailable) ? PLUM_ROYAL : '#B9AFC4'} fill={(isOnline && creator.videoAvailable) ? PLUM_ROYAL : '#B9AFC4'} />
               </TouchableOpacity>
               {(isOnline && creator.videoAvailable) ? (
                 <View style={styles.rateRow}>
@@ -765,19 +765,19 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: 12,
-    gap: 10,
+      marginLeft: 12,
+      gap: 10,
   },
   avatarWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 40,
+      height: 40,
+      borderRadius: 20,
     overflow: 'visible',
   },
   avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 40,
+      height: 40,
+      borderRadius: 20,
     borderWidth: 2,
     borderColor: '#9C27B0',
   },
@@ -793,13 +793,13 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF',
   },
   headerName: {
-    fontSize: 18,
+      fontSize: 15.5,
     fontWeight: '700',
     color: TEXT_PLUM,
     letterSpacing: -0.2,
   },
   headerStatusText: {
-    fontSize: 12,
+      fontSize: 10.5,
     color: '#34B7F1',
     marginTop: 2,
   },
@@ -814,9 +814,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   actionCircle: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 36,
+      height: 36,
+      borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
