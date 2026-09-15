@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View, ScrollView,
   Text,
@@ -13,7 +13,7 @@ import {
  Alert, Image } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {  UserPlus, Search, Bell } from 'lucide-react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -121,18 +121,20 @@ const FriendsScreen: React.FC<Props> = () => {
   const [randomMatchTarget, setRandomMatchTarget] = useState<any>(undefined);
   const [coinBalance, setCoinBalance] = useState(0);
 
-  React.useEffect(() => {
-    const fetchBalance = async () => {
-      try {
-        const res = await apiClient.get('/api/wallet/balance');
-        const balance = res.data?.data?.coin_balance ?? 0;
-        setCoinBalance(balance);
-      } catch (error) {
-        console.log('FriendsScreen fetch balance error:', error);
-      }
-    };
-    fetchBalance();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      const fetchBalance = async () => {
+        try {
+          const res = await apiClient.get('/api/wallet/balance');
+          const balance = res.data?.data?.coin_balance ?? 0;
+          setCoinBalance(balance);
+        } catch (error) {
+          console.log('FriendsScreen fetch balance error:', error);
+        }
+      };
+      fetchBalance();
+    }, [])
+  );
 
   React.useEffect(() => {
     let socket = getSocket();
@@ -153,6 +155,19 @@ const FriendsScreen: React.FC<Props> = () => {
         showToast('User is not available right now.', 'error', true);
       };
 
+      const handleInsufficientCoins = () => {
+        setShowRandomMatch(false);
+        const type = randomMatchType;
+        const creator = randomMatchTarget;
+        const rate = type === 'audio' ? creator?.callRate : creator?.videoRate;
+        const requiredCoins = rate || (type === 'audio' ? 20 : 40);
+        navigation.navigate('Wallet', { 
+          showWarning: 'insufficient_coins',
+          requiredCoins,
+          callType: type
+        } as any);
+      };
+
       const handleCallAccepted = (data: { callId: number, agoraToken?: string, rate?: number }) => {
         setShowRandomMatch(false);
         navigation.navigate(randomMatchType === 'audio' ? 'AudioCallScreen' : 'VideoCallScreen', {
@@ -167,6 +182,7 @@ const FriendsScreen: React.FC<Props> = () => {
 
       socket.off('call_busy').on('call_busy', handleCallBusy);
       socket.off('call_declined').on('call_declined', handleCallDeclined);
+      socket.off('call_blocked_insufficient_coins').on('call_blocked_insufficient_coins', handleInsufficientCoins);
       socket.off('call_accepted').on('call_accepted', handleCallAccepted);
     };
 
@@ -176,6 +192,7 @@ const FriendsScreen: React.FC<Props> = () => {
       if (socket) {
         socket.off('call_busy');
         socket.off('call_declined');
+        socket.off('call_blocked_insufficient_coins');
         socket.off('call_accepted');
       }
     };

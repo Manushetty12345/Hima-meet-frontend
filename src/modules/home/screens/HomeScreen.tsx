@@ -236,6 +236,20 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         showToast('User is not available right now.');
       };
 
+      const handleInsufficientCoins = () => {
+        clearCallTimeout();
+        setShowRandomMatch(false);
+        const type = randomMatchTypeRef.current;
+        const creator = randomMatchTargetRef.current;
+        const rate = type === 'audio' ? creator?.callRate : creator?.videoRate;
+        const requiredCoins = rate || (type === 'audio' ? 20 : 40);
+        navigation.navigate('Wallet', { 
+          showWarning: 'insufficient_coins',
+          requiredCoins,
+          callType: type
+        } as any);
+      };
+
       const handleCallAccepted = (data: { callId: number, agoraToken?: string, rate?: number }) => {
         clearCallTimeout();
         setShowRandomMatch(false);
@@ -271,6 +285,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
       socket.off('call_busy').on('call_busy', handleCallBusy);
       socket.off('call_declined').on('call_declined', handleCallDeclined);
+      socket.off('call_blocked_insufficient_coins').on('call_blocked_insufficient_coins', handleInsufficientCoins);
       socket.off('call_accepted').on('call_accepted', handleCallAccepted);
       socket.off('user_offline').on('user_offline', handleUserOffline);
       socket.off('creator_availability_changed').on('creator_availability_changed', handleCreatorAvailability);
@@ -282,6 +297,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
       if (socket) {
           socket.off('call_busy');
         socket.off('call_declined');
+        socket.off('call_blocked_insufficient_coins');
         socket.off('call_accepted');
         socket.off('user_offline');
         socket.off('creator_availability_changed');
