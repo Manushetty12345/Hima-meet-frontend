@@ -493,7 +493,11 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
         )}
 
         {/* Body — Chat area with subtle Whatsapp-like background */}
-        <View style={{ flex: 1, backgroundColor: '#F4EDFB' }}>
+        <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+            style={{ flex: 1, backgroundColor: '#F4EDFB' }}
+          >
           <View style={styles.body}>
           {friendStatus === 'friends' ? (
             <ScrollView 
@@ -578,11 +582,7 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
           )}
         </View>
         {/* Bottom CTA / Input */}
-        <KeyboardAvoidingView 
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-            style={{ backgroundColor: 'transparent' }}
-          >
+        <View style={{ backgroundColor: 'transparent' }}>
           {isLoadingStatus ? (
             <View style={[styles.footer, { paddingVertical: 40 }]}>
               <ActivityIndicator size="small" color={PINK} />
@@ -701,8 +701,8 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
               />
             </View>
           )}
-        </KeyboardAvoidingView>
         </View>
+          </KeyboardAvoidingView>
 
         {/* Animated Toast */}
         <Animated.View
