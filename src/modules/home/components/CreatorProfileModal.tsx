@@ -493,7 +493,7 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
         )}
 
         {/* Body — Chat area with subtle Whatsapp-like background */}
-        <LinearGradient colors={['#F9F5FD', '#FFFFFF']} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={{ flex: 1 }}>
+        <View style={{ flex: 1, backgroundColor: '#F4EDFB' }}>
           <View style={styles.body}>
           {friendStatus === 'friends' ? (
             <ScrollView 
@@ -706,7 +706,7 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
             </View>
           )}
         </KeyboardAvoidingView>
-        </LinearGradient>
+        </View>
 
         {/* Animated Toast */}
         <Animated.View
