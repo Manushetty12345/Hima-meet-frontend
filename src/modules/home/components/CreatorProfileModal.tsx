@@ -387,7 +387,7 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
           style={styles.header}
         >
           <TouchableOpacity style={styles.backBtn} onPress={handleClose} activeOpacity={0.8}>
-            <ArrowLeft size={16} color={PINK} />
+            <ArrowLeft size={16} color="#2A1240" />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.headerCenter} onPress={() => onViewProfile(creator)} activeOpacity={0.8}>
@@ -454,7 +454,7 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
               activeOpacity={0.8}
               onPress={() => setMenuVisible(true)}
             >
-              <MoreVertical size={24} color={TEXT_MUTED} />
+              <MoreVertical size={16} color="#2A1240" />
             </TouchableOpacity>
           </View>
         </LinearGradient>
@@ -476,14 +476,14 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
               <Text style={styles.dropdownText}>Block user</Text>
             </TouchableOpacity>
             
-            <View style={styles.dropdownDivider} />
+            
             
             <TouchableOpacity style={styles.dropdownItemRow} activeOpacity={0.7} onPress={handleClearChat}>
               <Eraser size={18} color="#2A1240" />
               <Text style={styles.dropdownText}>Clear chat</Text>
             </TouchableOpacity>
             
-            <View style={styles.dropdownDivider} />
+            
             
             <TouchableOpacity style={styles.dropdownItemRow} activeOpacity={0.7} onPress={handleDeleteChat}>
               <Trash2 size={18} color="#E74C3C" />
@@ -804,7 +804,7 @@ const styles = StyleSheet.create({
   },
   headerStatusText: {
       fontSize: 10.5,
-    color: '#34B7F1',
+      color: '#10B981',
     marginTop: 2,
   },
   headerActions: {
@@ -872,8 +872,19 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   moreBtn: {
-    paddingLeft: 4,
-  },
+      width: 32,
+      height: 32,
+      borderRadius: 10,
+      backgroundColor: '#FFFFFF',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 4,
+      elevation: 2,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginLeft: 4,
+    },
   dropdownMenu: {
     position: 'absolute',
     top: Platform.OS === 'android' ? 85 : 75,
