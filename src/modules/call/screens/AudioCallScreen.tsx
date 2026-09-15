@@ -112,6 +112,8 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
 
     const unsubscribeFocus = navigation.addListener('focus', () => {
       fetchInitialData();
+      const s = getSocket();
+      if (s) s.emit('cancel_recharging_call', { callId });
     });
 
     return () => {
