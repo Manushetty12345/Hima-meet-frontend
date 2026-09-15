@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 4,
     gap: 8,
   },
   name: {
@@ -227,18 +227,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   chatNowBtn: {
-    borderWidth: 1.5,
-    borderColor: '#EC4899',
-    borderRadius: 20,
-    paddingVertical: 6,
-    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: '#E91E63',
+    borderRadius: 14,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
     alignSelf: 'flex-start',
     backgroundColor: '#FFFFFF',
   },
   chatNowText: {
-    color: '#EC4899',
+    color: '#E91E63',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   
   rightColumn: {
