@@ -648,10 +648,12 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             style={[styles.fabActionCircle, { backgroundColor: '#D4AF37' }]}
             activeOpacity={0.8}
             onPress={() => {
-              setRandomMatchType('audio');
-              setShowRandomMatch(true);
-              setIsFabExpanded(false);
-            }}
+                setRandomMatchTarget(undefined);
+                randomMatchTargetRef.current = undefined;
+                setRandomMatchType('audio');
+                setShowRandomMatch(true);
+                setIsFabExpanded(false);
+              }}
           >
             <Phone size={24} color="#FFFFFF" fill="#FFFFFF" />
           </TouchableOpacity>
@@ -660,10 +662,12 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             style={[styles.fabActionCircle, { backgroundColor: '#3A0F63' }]}
             activeOpacity={0.8}
             onPress={() => {
-              setRandomMatchType('video');
-              setShowRandomMatch(true);
-              setIsFabExpanded(false);
-            }}
+                setRandomMatchTarget(undefined);
+                randomMatchTargetRef.current = undefined;
+                setRandomMatchType('video');
+                setShowRandomMatch(true);
+                setIsFabExpanded(false);
+              }}
           >
             <Video size={24} color="#FFFFFF" fill="#FFFFFF" />
           </TouchableOpacity>
