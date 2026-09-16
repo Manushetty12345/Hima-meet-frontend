@@ -158,7 +158,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         try {
           const res = await apiClient.get('/api/config/call-rates');
           const audioRate = res.data?.data?.audioCallCost ?? 10;
-          const videoRate = res.data?.data?.videoCallCost ?? (res.data?.data?.audioCallCost ?? 20); // Fallback to audio if video not separated, but assume it exists
+          const videoRate = res.data?.data?.videoCallCost ?? res.data?.data?.audioCallCost ?? 0;
           setGlobalAudioRate(audioRate);
           setGlobalVideoRate(videoRate);
           globalAudioRateRef.current = audioRate;
@@ -299,7 +299,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             calleeName: data.receiverName || callTarget?.name,
             calleeAvatar: data.receiverAvatar || callTarget?.avatarUri,
             agoraToken: data.agoraToken || '',
-            callRate: data.rate || (callType === 'audio' ? 20 : 40),
+            callRate: data.rate ?? 0,
           } as any);
         }, 300);
       };
@@ -372,7 +372,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     if (creator && creator.id !== 'random-broadcast-dummy') {
       // 1-ON-1 DIRECT CALL (Normal Flow)
       const rate = type === 'audio' ? creator.callRate : creator.videoRate;
-      const requiredCoins = rate || (type === 'audio' ? 20 : 40);
+      const requiredCoins = rate ?? 0;
       socket.emit('initiate_call', { targetId: creator.id, type, rate: requiredCoins });
     } else {
       // BROADCAST RANDOM CALL
@@ -388,7 +388,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   const initiateCallWithChecks = async (creator: CreatorItem, type: 'audio' | 'video') => {
     const rate = type === 'audio' ? creator.callRate : creator.videoRate;
-    const requiredCoins = rate || (type === 'audio' ? 20 : 40);
+    const requiredCoins = rate ?? 0;
 
     if (coinBalance < requiredCoins) {
       navigation.navigate('Wallet', { 
@@ -491,7 +491,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
               <View style={styles.coinBadge}>
                 <Text style={styles.coinBadgeText}>H</Text>
               </View>
-              <Text style={styles.rateText}>{Math.round(Number(item.callRate)) || 20}/min</Text>
+              <Text style={styles.rateText}>{Math.round(Number(item.callRate)) || 0}/min</Text>
             </View>
           ) : (
             <Text style={styles.offlineText}>Offline</Text>
@@ -514,7 +514,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
               <View style={styles.coinBadge}>
                 <Text style={styles.coinBadgeText}>H</Text>
               </View>
-              <Text style={styles.rateText}>{Math.round(Number(item.videoRate)) || 40}/min</Text>
+              <Text style={styles.rateText}>{Math.round(Number(item.videoRate)) || 0}/min</Text>
             </View>
           ) : (
             <Text style={styles.offlineText}>Offline</Text>
@@ -687,8 +687,8 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
               avatarUri: creator.avatarUri,
               callAvailable: true,
               videoAvailable: true,
-              callRate: creator.callRate || 20,
-              videoRate: creator.videoRate || 40,
+              callRate: creator.callRate ?? 0,
+              videoRate: creator.videoRate ?? 0,
             } as any;
           initiateCallWithChecks(mockCreator, randomMatchType);
         }}
