@@ -328,6 +328,12 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     if (!socket) socket = await initSocket();
     if (socket) {
       socket.emit('initiate_call', { targetId: creator.id, type, rate: requiredCoins });
+
+      clearCallTimeout();
+      callTimeoutRef.current = setTimeout(() => {
+        setShowRandomMatch(false);
+        showToast('User is not available right now.');
+      }, 35000);
     }
   };
 
@@ -350,25 +356,6 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     randomMatchTargetRef.current = creator;
     randomMatchTypeRef.current = type;
     setShowRandomMatch(true);
-
-    let socket = getSocket();
-    if (!socket) {
-      socket = await initSocket();
-    }
-    
-    if (socket) {
-      socket.emit('initiate_call', {
-        targetId: creator.id,
-        type,
-        rate: requiredCoins
-      });
-
-      clearCallTimeout();
-      callTimeoutRef.current = setTimeout(() => {
-        setShowRandomMatch(false);
-        showToast('User is not available right now.');
-      }, 35000);
-    }
   };
 
   const handleCall = (creator: CreatorItem) => {
