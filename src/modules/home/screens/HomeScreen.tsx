@@ -237,11 +237,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   React.useEffect(() => {
     let socket = getSocket();
     
-    const setupListeners = async () => {
-      if (!socket) {
-        socket = await initSocket();
-      }
-      if (!socket) return;
+    
 
       const handleCallBusy = (data: { message: string }) => {
         clearCallTimeout();
@@ -328,6 +324,13 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
           return c;
         }));
       };
+
+
+      const setupListeners = async () => {
+      if (!socket) {
+        socket = await initSocket();
+      }
+      if (!socket) return;
 
 
       socket.on('call_busy', handleCallBusy);

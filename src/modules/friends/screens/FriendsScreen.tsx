@@ -139,11 +139,7 @@ const FriendsScreen: React.FC<Props> = () => {
   React.useEffect(() => {
     let socket = getSocket();
     
-    const setupListeners = async () => {
-      if (!socket) {
-        socket = await initSocket();
-      }
-      if (!socket) return;
+    
 
       const handleCallBusy = (data: { message: string }) => {
         setShowRandomMatch(false);
@@ -179,6 +175,12 @@ const FriendsScreen: React.FC<Props> = () => {
           callRate: data.rate || (randomMatchType === 'audio' ? 20 : 40),
         } as any);
       };
+
+      const setupListeners = async () => {
+      if (!socket) {
+        socket = await initSocket();
+      }
+      if (!socket) return;
 
       socket.on('call_busy', handleCallBusy);
       socket.on('call_declined', handleCallDeclined);
