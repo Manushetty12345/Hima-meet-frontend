@@ -613,17 +613,17 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         mode={randomMatchType}
         targetUser={randomMatchTarget}
         onProceedWithDirectCall={executeSocketCall}
-        onMatchFound={(creator) => {
-          // Construct a partial CreatorItem for the checks
-          const mockCreator = {
-            id: creator.id,
-            name: creator.name,
-            avatarUri: creator.avatarUri,
-            callAvailable: true,
-            videoAvailable: true,
-            callRate: 20,
-            videoRate: 40,
-          } as any;
+        onMatchFound={(creator: any) => {
+            // Construct a partial CreatorItem for the checks
+            const mockCreator = {
+              id: creator.id,
+              name: creator.name,
+              avatarUri: creator.avatarUri,
+              callAvailable: true,
+              videoAvailable: true,
+              callRate: creator.callRate || 20,
+              videoRate: creator.videoRate || 40,
+            } as any;
           initiateCallWithChecks(mockCreator, randomMatchType);
         }}
       />

@@ -33,7 +33,7 @@ interface RandomMatchModalProps {
   onClose: () => void;
   mode?: 'audio' | 'video';
   targetUser?: { id: string; name: string; avatarUri: string };
-  onMatchFound?: (creator: { id: string; name: string; avatarUri: string }) => void;
+  onMatchFound?: (creator: { id: string; name: string; avatarUri: string; callRate?: number; videoRate?: number }) => void;
   onProceedWithDirectCall?: () => void;
 }
 
@@ -196,10 +196,12 @@ const RandomMatchModal: React.FC<RandomMatchModalProps> = ({
 
         if (onMatchFound) {
           onMatchFound({
-            id: String(matchedData.matched_creator_id),
-            name: matchedData.name || 'Random Match',
-            avatarUri: finalAvatar
-          });
+              id: String(matchedData.matched_creator_id),
+              name: matchedData.name || 'Random Match',
+              avatarUri: finalAvatar,
+              callRate: matchedData.call_rate,
+              videoRate: matchedData.video_rate
+            });
         }
       } else {
         throw new Error('No match found');
