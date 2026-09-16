@@ -242,10 +242,18 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
           const type = randomMatchTypeRef.current;
           const creator = randomMatchTargetRef.current;
           const rate = type === 'audio' ? creator?.callRate : creator?.videoRate;
-          const requiredCoins = data?.requiredCoins || rate || (type === 'audio' ? 20 : 40);
+          
+          // STRICT PARSING: ALWAYS prefer data.requiredCoins if it exists.
+          let finalCoins = (type === 'audio' ? 20 : 40);
+          if (data && data.requiredCoins !== undefined) {
+            finalCoins = data.requiredCoins;
+          } else if (rate !== undefined) {
+            finalCoins = rate;
+          }
+          
           navigation.navigate('Wallet', { 
             showWarning: 'insufficient_coins',
-            requiredCoins,
+            requiredCoins: finalCoins,
             callType: type
           } as any);
         };
