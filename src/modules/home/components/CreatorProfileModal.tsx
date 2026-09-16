@@ -1223,7 +1223,7 @@ const styles = StyleSheet.create({
   },
   toastContainer: {
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 40 : 20,
+    bottom: Platform.OS === 'ios' ? 100 : 80,
     alignSelf: 'center',
     backgroundColor: '#2A1240',
     borderRadius: 24,
