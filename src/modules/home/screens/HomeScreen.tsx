@@ -330,33 +330,35 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
       };
 
 
-      socket.off('call_busy').on('call_busy', handleCallBusy);
-      socket.off('call_declined').on('call_declined', handleCallDeclined);
-      socket.off('call_blocked_insufficient_coins').on('call_blocked_insufficient_coins', handleInsufficientCoins);
-      socket.off('call_accepted').on('call_accepted', handleCallAccepted);
-      socket.off('user_offline').on('user_offline', handleUserOffline);
-      socket.off('user_online').on('user_online', handleUserOnline);
-      socket.off('availability_changed').on('availability_changed', handleAvailabilityChanged);
-      socket.off('cancel_incoming_call').on('cancel_incoming_call', (data) => {
+      socket.on('call_busy', handleCallBusy);
+      socket.on('call_declined', handleCallDeclined);
+      socket.on('call_blocked_insufficient_coins', handleInsufficientCoins);
+      socket.on('call_accepted', handleCallAccepted);
+      socket.on('user_offline', handleUserOffline);
+      socket.on('user_online', handleUserOnline);
+      socket.on('availability_changed', handleAvailabilityChanged);
+      const handleCancelIncoming = (data) => {
         // If we are showing the random match modal, close it
         // Or if we are in an incoming call screen... wait, this is for the RECEIVER.
         // The receiver's incoming call modal is usually in a global provider or App.tsx.
         // However, if the receiver is on the HomeScreen, we should emit an event or close their modal.
         // Actually, where is the receiver's IncomingCallModal?
-      });
+      };
+      socket.on('cancel_incoming_call', handleCancelIncoming);
     };
 
     setupListeners();
 
       return () => {
         if (socket) {
-          socket.off('call_busy');
-          socket.off('call_declined');
-          socket.off('call_blocked_insufficient_coins');
-          socket.off('call_accepted');
-          socket.off('user_offline');
-          socket.off('user_online');
-          socket.off('availability_changed');
+          socket.off('call_busy', handleCallBusy);
+          socket.off('call_declined', handleCallDeclined);
+          socket.off('call_blocked_insufficient_coins', handleInsufficientCoins);
+          socket.off('call_accepted', handleCallAccepted);
+          socket.off('user_offline', handleUserOffline);
+          socket.off('user_online', handleUserOnline);
+          socket.off('availability_changed', handleAvailabilityChanged);
+          socket.off('cancel_incoming_call', handleCancelIncoming);
         }
       };
   }, [navigation, randomMatchType, randomMatchTarget]);

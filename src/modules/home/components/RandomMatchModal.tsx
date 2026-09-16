@@ -225,7 +225,7 @@ const RandomMatchModal: React.FC<RandomMatchModalProps> = ({
   if (!visible) return null;
 
   return (
-    <Modal visible={visible} animationType="fade" transparent>
+    <Modal visible={visible} animationType="fade" transparent onRequestClose={handleCancel}>
       <View style={styles.container}>
         {/* Background Gradients */}
         <LinearGradient colors={['#0F0817', '#1A0B2E', '#0B0514']} style={StyleSheet.absoluteFill} />

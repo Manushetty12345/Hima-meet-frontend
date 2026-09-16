@@ -180,20 +180,20 @@ const FriendsScreen: React.FC<Props> = () => {
         } as any);
       };
 
-      socket.off('call_busy').on('call_busy', handleCallBusy);
-      socket.off('call_declined').on('call_declined', handleCallDeclined);
-      socket.off('call_blocked_insufficient_coins').on('call_blocked_insufficient_coins', handleInsufficientCoins);
-      socket.off('call_accepted').on('call_accepted', handleCallAccepted);
+      socket.on('call_busy', handleCallBusy);
+      socket.on('call_declined', handleCallDeclined);
+      socket.on('call_blocked_insufficient_coins', handleInsufficientCoins);
+      socket.on('call_accepted', handleCallAccepted);
     };
 
     setupListeners();
 
     return () => {
       if (socket) {
-        socket.off('call_busy');
-        socket.off('call_declined');
-        socket.off('call_blocked_insufficient_coins');
-        socket.off('call_accepted');
+        socket.off('call_busy', handleCallBusy);
+          socket.off('call_declined', handleCallDeclined);
+          socket.off('call_blocked_insufficient_coins', handleInsufficientCoins);
+          socket.off('call_accepted', handleCallAccepted);
       }
     };
   }, [navigation, randomMatchType, randomMatchTarget]);
