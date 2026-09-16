@@ -102,6 +102,16 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
   // New features state
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
+  // Sync state when creator prop changes
+  useEffect(() => {
+    if (creator) {
+      setIsOnline(creator.isOnline || false);
+      setCallAvailable(creator.callAvailable !== false);
+      setVideoAvailable(creator.videoAvailable !== false);
+      setLastSeen((creator as any).lastSeen || null);
+    }
+  }, [creator]);
+
   // Fetch status
   const fetchStatus = async () => {
       if (creator) {
