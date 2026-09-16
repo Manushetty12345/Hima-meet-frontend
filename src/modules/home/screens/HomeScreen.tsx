@@ -680,7 +680,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         targetUser={randomMatchTarget}
         onProceedWithDirectCall={executeSocketCall}
         onMatchFound={(creator: any) => {
-            // Construct a partial CreatorItem for the checks
+            // Store the matched creator in ref so socket handlers have it
             const mockCreator = {
               id: creator.id,
               name: creator.name,
@@ -690,7 +690,10 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
               callRate: creator.callRate ?? 0,
               videoRate: creator.videoRate ?? 0,
             } as any;
-          initiateCallWithChecks(mockCreator, randomMatchType);
+            randomMatchTargetRef.current = mockCreator;
+            randomMatchTypeRef.current = randomMatchType;
+            // Directly emit the socket broadcast - modal is already open, don't re-open it
+            executeSocketCall();
         }}
       />
 
