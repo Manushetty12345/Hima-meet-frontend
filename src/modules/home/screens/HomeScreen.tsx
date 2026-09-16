@@ -1021,8 +1021,8 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   toastContainer: {
-    position: 'absolute',
-    bottom: 90,
+      position: 'absolute',
+      bottom: 120,
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
