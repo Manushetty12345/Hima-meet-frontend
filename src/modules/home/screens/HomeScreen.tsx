@@ -149,9 +149,26 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     fetchCreators(activeFilterRef.current);
   }, [fetchCreators]);
   const [coinBalance, setCoinBalance] = useState(0);
+  const [globalAudioRate, setGlobalAudioRate] = useState(10);
+  const [globalVideoRate, setGlobalVideoRate] = useState(20);
 
   useFocusEffect(
     useCallback(() => {
+      const fetchRates = async () => {
+        try {
+          const res = await apiClient.get('/api/config/call-rates');
+          const audioRate = res.data?.data?.audioCallCost ?? 10;
+          const videoRate = res.data?.data?.videoCallCost ?? (res.data?.data?.audioCallCost ?? 20); // Fallback to audio if video not separated, but assume it exists
+          setGlobalAudioRate(audioRate);
+          setGlobalVideoRate(videoRate);
+          globalAudioRateRef.current = audioRate;
+          globalVideoRateRef.current = videoRate;
+        } catch (error) {
+          console.log('HomeScreen fetch rates error:', error);
+        }
+      };
+      fetchRates();
+      
       const fetchInterests = async () => {
         try {
           const res = await apiClient.get('/api/onboarding/interests');
@@ -194,6 +211,8 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // Refs to avoid stale closures in socket event handlers
   const randomMatchTargetRef = React.useRef<CreatorItem | undefined>(undefined);
   const randomMatchTypeRef = React.useRef<'audio' | 'video'>('audio');
+  const globalAudioRateRef = React.useRef<number>(10);
+  const globalVideoRateRef = React.useRef<number>(20);
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastAnim = React.useRef(new Animated.Value(0)).current;
@@ -247,7 +266,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
           console.log('?? type:', type, 'creator:', creator, 'rate:', rate);
           
           // STRICT PARSING: ALWAYS prefer data.requiredCoins if it exists.
-          let finalCoins = (type === 'audio' ? 20 : 40);
+          let finalCoins = (type === 'audio' ? globalAudioRateRef.current : globalVideoRateRef.current);
           if (data && data.requiredCoins !== undefined) {
             console.log('?? Using data.requiredCoins from backend:', data.requiredCoins);
             finalCoins = data.requiredCoins;
@@ -398,10 +417,27 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     initiateCallWithChecks(creator, 'video');
   };
 
-  const handleRandom = () => {
+  const handleRandomClick = (type: 'audio' | 'video') => {
+    const requiredCoins = type === 'audio' ? globalAudioRate : globalVideoRate;
+    if (coinBalance < requiredCoins) {
+      navigation.navigate('Wallet', { 
+        showWarning: 'insufficient_coins',
+        requiredCoins,
+        callType: type
+      } as any);
+      setIsFabExpanded(false);
+      return;
+    }
+
     setRandomMatchTarget(undefined);
-    setRandomMatchType(Math.random() > 0.5 ? 'audio' : 'video');
+    randomMatchTargetRef.current = undefined;
+    setRandomMatchType(type);
     setShowRandomMatch(true);
+    setIsFabExpanded(false);
+  };
+
+  const handleRandom = () => {
+    handleRandomClick(Math.random() > 0.5 ? 'audio' : 'video');
   };
 
   const renderCreator = ({ item }: { item: CreatorItem }) => (
@@ -664,13 +700,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
           <TouchableOpacity
             style={[styles.fabActionCircle, { backgroundColor: '#D4AF37' }]}
             activeOpacity={0.8}
-            onPress={() => {
-                setRandomMatchTarget(undefined);
-                randomMatchTargetRef.current = undefined;
-                setRandomMatchType('audio');
-                setShowRandomMatch(true);
-                setIsFabExpanded(false);
-              }}
+            onPress={() => handleRandomClick('audio')}
           >
             <Phone size={24} color="#FFFFFF" fill="#FFFFFF" />
           </TouchableOpacity>
@@ -678,13 +708,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
           <TouchableOpacity
             style={[styles.fabActionCircle, { backgroundColor: '#3A0F63' }]}
             activeOpacity={0.8}
-            onPress={() => {
-                setRandomMatchTarget(undefined);
-                randomMatchTargetRef.current = undefined;
-                setRandomMatchType('video');
-                setShowRandomMatch(true);
-                setIsFabExpanded(false);
-              }}
+            onPress={() => handleRandomClick('video')}
           >
             <Video size={24} color="#FFFFFF" fill="#FFFFFF" />
           </TouchableOpacity>
