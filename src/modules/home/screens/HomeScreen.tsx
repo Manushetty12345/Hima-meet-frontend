@@ -256,14 +256,16 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         // Use refs (not state) to avoid stale closure bug
         const callType = randomMatchTypeRef.current;
         const callTarget = randomMatchTargetRef.current;
-        navigation.navigate(callType === 'audio' ? 'AudioCallScreen' : 'VideoCallScreen', {
-          callId: data.callId,
-          targetId: callTarget?.id,
-          calleeName: callTarget?.name,
-          calleeAvatar: callTarget?.avatarUri,
-          agoraToken: data.agoraToken || '',
-          callRate: data.rate || (callType === 'audio' ? 20 : 40),
-        } as any);
+        setTimeout(() => {
+          navigation.navigate(callType === 'audio' ? 'AudioCallScreen' : 'VideoCallScreen', {
+            callId: data.callId,
+            targetId: callTarget?.id,
+            calleeName: callTarget?.name,
+            calleeAvatar: callTarget?.avatarUri,
+            agoraToken: data.agoraToken || '',
+            callRate: data.rate || (callType === 'audio' ? 20 : 40),
+          } as any);
+        }, 300);
       };
 
       const handleUserOffline = (data: { userId: string | number }) => {
@@ -272,14 +274,23 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         ));
       };
 
-      const handleCreatorAvailability = (data: { userId: string | number; voiceAvailable: boolean; videoAvailable: boolean }) => {
+      const handleUserOnline = (data: { userId: string | number }) => {
         setCreators(prev => prev.map(c => 
-          c.id === String(data.userId) ? { 
-            ...c, 
-            callAvailable: data.voiceAvailable,
-            videoAvailable: data.videoAvailable
-          } : c
+          c.id === String(data.userId) ? { ...c, isOnline: true } : c
         ));
+      };
+
+      const handleAvailabilityChanged = (payload: any) => {
+        setCreators(prev => prev.map(c => {
+          if (c.id === payload.userId?.toString()) {
+            return {
+              ...c,
+              callAvailable: payload.call_type === 'voice' ? payload.is_online : c.callAvailable,
+              videoAvailable: payload.call_type === 'video' ? payload.is_online : c.videoAvailable
+            };
+          }
+          return c;
+        }));
       };
 
 
@@ -288,21 +299,23 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
       socket.off('call_blocked_insufficient_coins').on('call_blocked_insufficient_coins', handleInsufficientCoins);
       socket.off('call_accepted').on('call_accepted', handleCallAccepted);
       socket.off('user_offline').on('user_offline', handleUserOffline);
-      socket.off('creator_availability_changed').on('creator_availability_changed', handleCreatorAvailability);
+      socket.off('user_online').on('user_online', handleUserOnline);
+      socket.off('availability_changed').on('availability_changed', handleAvailabilityChanged);
     };
 
     setupListeners();
 
-    return () => {
-      if (socket) {
+      return () => {
+        if (socket) {
           socket.off('call_busy');
-        socket.off('call_declined');
-        socket.off('call_blocked_insufficient_coins');
-        socket.off('call_accepted');
-        socket.off('user_offline');
-        socket.off('creator_availability_changed');
-      }
-    };
+          socket.off('call_declined');
+          socket.off('call_blocked_insufficient_coins');
+          socket.off('call_accepted');
+          socket.off('user_offline');
+          socket.off('user_online');
+          socket.off('availability_changed');
+        }
+      };
   }, [navigation, randomMatchType, randomMatchTarget]);
 
   const executeSocketCall = async () => {
@@ -381,9 +394,16 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         onPress={() => setSelectedCreator(item)}
         style={styles.avatarContainer}
       >
-        <View style={styles.avatarWrap}>
-          <Image source={{ uri: item.avatarUri }} style={styles.avatarImage} />
-        </View>
+        <LinearGradient
+          colors={['#5B0E8B', '#3A0F63']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.avatarRing}
+        >
+          <View style={styles.avatarInner}>
+            <Image source={{ uri: item.avatarUri }} style={styles.avatarImage} />
+          </View>
+        </LinearGradient>
         {(item.callAvailable || item.videoAvailable) && (
           <View style={styles.liveIndicator}>
             <View style={styles.liveDot} />
@@ -403,65 +423,49 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         </View>
       </View>
 
-      <View style={styles.actionsRow}>
-        <View style={styles.actionCol}>
+      <View style={styles.actionsContainer}>
+        <View style={styles.callAction}>
           <TouchableOpacity
             activeOpacity={0.8}
-            disabled={!item.callAvailable}
+            disabled={!(item.isOnline && item.callAvailable)}
             onPress={() => handleCall(item)}
-            style={[
-              styles.actionCircle,
-              item.callAvailable
-                ? styles.actionCircleActive
-                : styles.actionCircleDisabled,
-            ]}
+            style={[styles.callBtn, (item.isOnline && item.callAvailable) && styles.callBtnOnline]}
           >
-            <Phone
-              size={18}
-              color={item.callAvailable ? '#EC1372' : '#B9AFC4'}
-              fill={item.callAvailable ? '#EC1372' : 'transparent'}
-            />
+            <Phone size={14} color={(item.isOnline && item.callAvailable) ? '#9C27B0' : '#D1D5DB'} fill={(item.isOnline && item.callAvailable) ? '#9C27B0' : '#D1D5DB'} />
           </TouchableOpacity>
-          <View style={styles.actionTextContainer}>
-            {item.callAvailable ? (
-              <View style={styles.rateRow}>
-                <Coins size={10} color="#C8860A" />
-                <Text style={styles.rateText}>{item.callRate}/min</Text>
+          {(item.isOnline && item.callAvailable) ? (
+            <View style={styles.rateContainer}>
+              <View style={styles.coinBadge}>
+                <Text style={styles.coinBadgeText}>H</Text>
               </View>
-            ) : (
-              <Text style={styles.offlineText}>Offline</Text>
-            )}
-          </View>
+              <Text style={styles.rateText}>{Math.round(Number(item.callRate)) || 20}/min</Text>
+            </View>
+          ) : (
+            <Text style={styles.offlineText}>Offline</Text>
+          )}
         </View>
 
-        <View style={styles.actionCol}>
+        <View style={styles.verticalDivider} />
+
+        <View style={styles.callAction}>
           <TouchableOpacity
             activeOpacity={0.8}
-            disabled={!item.videoAvailable}
+            disabled={!(item.isOnline && item.videoAvailable)}
             onPress={() => handleVideoCall(item)}
-            style={[
-              styles.actionCircle,
-              item.videoAvailable
-                ? styles.actionCircleActive
-                : styles.actionCircleDisabled,
-            ]}
+            style={[styles.callBtn, (item.isOnline && item.videoAvailable) && styles.callBtnOnline]}
           >
-            <Video
-              size={18}
-              color={item.videoAvailable ? '#8E2DE2' : '#B9AFC4'}
-              fill={item.videoAvailable ? '#8E2DE2' : '#B9AFC4'}
-            />
+            <Video size={14} color={(item.isOnline && item.videoAvailable) ? '#9C27B0' : '#D1D5DB'} fill={(item.isOnline && item.videoAvailable) ? '#9C27B0' : '#D1D5DB'} />
           </TouchableOpacity>
-          <View style={styles.actionTextContainer}>
-            {item.videoAvailable ? (
-              <View style={styles.rateRow}>
-                <Coins size={10} color="#C8860A" />
-                <Text style={styles.rateText}>{item.videoRate}/min</Text>
+          {(item.isOnline && item.videoAvailable) ? (
+            <View style={styles.rateContainer}>
+              <View style={styles.coinBadge}>
+                <Text style={styles.coinBadgeText}>H</Text>
               </View>
-            ) : (
-              <Text style={styles.offlineText}>Offline</Text>
-            )}
-          </View>
+              <Text style={styles.rateText}>{Math.round(Number(item.videoRate)) || 40}/min</Text>
+            </View>
+          ) : (
+            <Text style={styles.offlineText}>Offline</Text>
+          )}
         </View>
       </View>
     </View>
@@ -470,9 +474,15 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <View style={styles.flex}>
       <StatusBar barStyle="dark-content" />
-      <View style={styles.statusBarSpacer} />
+      <LinearGradient
+        colors={['#FBF7FF', '#EFDFFB']}
+        start={{ x: 0.15, y: 0 }}
+        end={{ x: 0.85, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.statusBarSpacer} />
 
-      <View style={styles.headerRow}>
+        <View style={styles.headerRow}>
         <Image
           source={require('../../../assets/images/logo1.png')}
           style={styles.brandIcon}
@@ -483,16 +493,23 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.brandSubtitle}>Where Feelings Connect</Text>
         </View>
 
-        <TouchableOpacity
-          style={styles.balancePill}
-          onPress={() => navigation.navigate('Wallet')}
-          activeOpacity={0.8}
-        >
-          <View style={styles.balanceCoinDot}>
-            <Coins size={18} color="#F4C430" fill="#F4C430" />
-          </View>
-          <Text style={styles.balanceText}>{coinBalance}</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.balancePillWrapper}
+            onPress={() => navigation.navigate('Wallet')}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={['#D4AF37', '#F5C542']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.balancePillGrad}
+            >
+              <View style={styles.balanceCoinDot}>
+                <Coins size={14} color="#D4AF37" fill="#F4C430" />
+              </View>
+              <Text style={styles.balanceText}>{coinBalance}</Text>
+            </LinearGradient>
+          </TouchableOpacity>
       </View>
 
       <View style={styles.filterContainer}>
@@ -504,10 +521,37 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
           {filters.map(filter => {
             const isActive = filter.key === activeFilter;
             const FilterIcon = filter.icon;
+            if (isActive) {
+              return (
+                <TouchableOpacity
+                  key={filter.key}
+                  activeOpacity={0.85}
+                  style={styles.filterPillActiveContainer}
+                  onPress={() => {
+                    const label = filter.label;
+                    setActiveFilter(filter.key);
+                    activeFilterRef.current = filter.key === 'all' ? 'all' : label;
+                    fetchCreators(filter.key === 'all' ? 'all' : label);
+                  }}
+                >
+                  <LinearGradient
+                    colors={['#D4AF37', '#F5C542']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.filterPillActiveGrad}
+                  >
+                    <FilterIcon size={14} color="#2A1240" />
+                    <Text style={styles.filterTextActive}>{filter.label.toUpperCase()}</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              );
+            }
+
             return (
               <TouchableOpacity
                 key={filter.key}
-                activeOpacity={0.85}
+                activeOpacity={0.7}
+                style={styles.filterPill}
                 onPress={() => {
                   const label = filter.label;
                   setActiveFilter(filter.key);
@@ -515,27 +559,14 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                   fetchCreators(filter.key === 'all' ? 'all' : label);
                 }}
               >
-                {isActive ? (
-                  <LinearGradient
-                    colors={['#9C27B0', '#FF1493']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.filterPillActive}
-                  >
-                    <FilterIcon size={13} color="#FFFFFF" />
-                    <Text style={styles.filterTextActive}>{filter.label}</Text>
-                  </LinearGradient>
-                ) : (
-                  <View style={styles.filterPill}>
-                    <FilterIcon size={13} color="#8A7A9C" />
-                    <Text style={styles.filterText}>{filter.label}</Text>
-                  </View>
-                )}
+                <FilterIcon size={14} color="#5B0E8B" />
+                <Text style={styles.filterText}>{filter.label.toUpperCase()}</Text>
               </TouchableOpacity>
             );
           })}
         </ScrollView>
       </View>
+      </LinearGradient>
 
       <FlatList
         data={creators}
@@ -614,7 +645,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
       {isFabExpanded ? (
         <View style={styles.expandedFabContainer}>
           <TouchableOpacity
-            style={[styles.fabActionCircle, { backgroundColor: '#FF1493' }]}
+            style={[styles.fabActionCircle, { backgroundColor: '#D4AF37' }]}
             activeOpacity={0.8}
             onPress={() => {
               setRandomMatchType('audio');
@@ -626,7 +657,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.fabActionCircle, { backgroundColor: '#9C27B0' }]}
+            style={[styles.fabActionCircle, { backgroundColor: '#3A0F63' }]}
             activeOpacity={0.8}
             onPress={() => {
               setRandomMatchType('video');
@@ -648,7 +679,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
       ) : (
         <TouchableOpacity style={styles.fab} activeOpacity={0.9} onPress={() => setIsFabExpanded(true)}>
           <LinearGradient
-            colors={['#FF1493', '#FF1493']}
+            colors={['#3A0F63', '#6A2A9A']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.fabGradient}
@@ -686,9 +717,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F6F3FA',
   },
+  headerGradient: {
+    overflow: 'hidden',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    paddingBottom: 12,
+    shadowColor: '#3A0F63',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 4,
+  },
   statusBarSpacer: {
     height: STATUSBAR_HEIGHT,
-    backgroundColor: '#FFFFFF',
   },
   headerRow: {
     flexDirection: 'row',
@@ -696,7 +737,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
   },
   brandIcon: {
     width: 42,
@@ -717,32 +757,39 @@ const styles = StyleSheet.create({
     color: '#8A7A9C',
     marginTop: 2,
   },
-  balancePill: {
+  balancePillWrapper: {
+    borderRadius: 18,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+    shadowColor: '#D4AF37',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  balancePillGrad: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FF1493',
-    borderRadius: 28,
-    paddingLeft: 6,
-    paddingRight: 20,
+    paddingHorizontal: 12,
     paddingVertical: 6,
+    gap: 6,
   },
   balanceCoinDot: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10,
   },
   balanceText: {
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: 14,
+    fontWeight: '700',
     color: '#FFFFFF',
   },
   filterContainer: {
     height: 58,
-    backgroundColor: '#FFFFFF',
   },
   filterRow: {
     paddingHorizontal: 16,
@@ -754,31 +801,48 @@ const styles = StyleSheet.create({
   filterPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    borderRadius: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 9,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: '#EBDFC4',
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#EFEFEF',
+    shadowColor: '#3A0F63',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
+    gap: 6,
   },
-  filterPillActive: {
+  filterPillActiveContainer: {
+    borderRadius: 18,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+    shadowColor: '#3A0F63',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  filterPillActiveGrad: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     gap: 6,
-    borderRadius: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 9,
   },
   filterText: {
-    fontSize: 13.5,
-    fontWeight: '600',
-    color: '#8A7A9C',
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#5B0E8B',
+    letterSpacing: 0.5,
   },
   filterTextActive: {
-    fontSize: 13.5,
+    fontSize: 12,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#2A1240',
+    letterSpacing: 0.5,
   },
   listContent: {
     paddingHorizontal: 16,
@@ -800,21 +864,29 @@ const styles = StyleSheet.create({
   },
   avatarContainer: {
     alignItems: 'center',
-    marginRight: 14,
-    width: 60,
+    marginRight: 10,
+    width: 52,
   },
-  avatarWrap: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    borderWidth: 2,
-    borderColor: '#9C27B0',
+  avatarRing: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInner: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
     padding: 2,
   },
   avatarImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 30,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
   },
   liveIndicator: {
     flexDirection: 'row',
@@ -826,12 +898,12 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#2ECC71',
+    backgroundColor: '#9C27B0',
   },
   liveText: {
     fontSize: 8.5,
     fontWeight: '700',
-    color: '#2ECC71',
+    color: '#9C27B0',
   },
   creatorNameBlock: {
     flex: 1,
@@ -844,12 +916,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   creatorName: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#333333',
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1A1A2E',
   },
   newBadge: {
-    backgroundColor: '#EC1372',
+    backgroundColor: '#9C27B0',
     borderRadius: 8,
     paddingHorizontal: 7,
     paddingVertical: 2,
@@ -859,54 +931,68 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-  actionsRow: {
+  actionsContainer: {
     flexDirection: 'row',
-    gap: 14,
-  },
-  actionCol: {
     alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 8,
   },
-  actionCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  callAction: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 44,
+  },
+  verticalDivider: {
+    width: 1,
+    height: 36,
+    backgroundColor: '#E5E7EB',
+    marginHorizontal: 6,
+  },
+  callBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 6,
   },
-  actionCircleActive: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  actionCircleDisabled: {
-    backgroundColor: '#F0EBF5',
-  },
-  actionTextContainer: {
-    height: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  rateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
-  rateText: {
-    fontSize: 10.5,
-    fontWeight: '700',
-    color: '#C8860A',
+  callBtnOnline: {
+    borderColor: '#F3E5F5',
   },
   offlineText: {
-    fontSize: 10.5,
-    color: '#B4A6BE',
+    fontSize: 9,
+    color: '#9CA3AF',
+    fontWeight: '500',
+  },
+  rateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  coinBadge: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#FBC02D',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  coinBadgeText: {
+    fontSize: 7,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  rateText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#374151',
   },
   fab: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 120,
     right: 20,
     borderRadius: 36,
     shadowColor: '#FF1493',
@@ -930,7 +1016,7 @@ const styles = StyleSheet.create({
   },
   expandedFabContainer: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 120,
     right: 20,
     alignItems: 'center',
     gap: 16,
