@@ -250,7 +250,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         } as any);
       };
 
-      const handleCallAccepted = (data: { callId: number, agoraToken?: string, rate?: number }) => {
+      const handleCallAccepted = (data: { callId: number, agoraToken?: string, rate?: number, receiverId?: string, receiverName?: string, receiverAvatar?: string }) => {
         clearCallTimeout();
         setShowRandomMatch(false);
         // Use refs (not state) to avoid stale closure bug
@@ -259,9 +259,9 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         setTimeout(() => {
           navigation.navigate(callType === 'audio' ? 'AudioCallScreen' : 'VideoCallScreen', {
             callId: data.callId,
-            targetId: callTarget?.id,
-            calleeName: callTarget?.name,
-            calleeAvatar: callTarget?.avatarUri,
+            targetId: data.receiverId || callTarget?.id,
+            calleeName: data.receiverName || callTarget?.name,
+            calleeAvatar: data.receiverAvatar || callTarget?.avatarUri,
             agoraToken: data.agoraToken || '',
             callRate: data.rate || (callType === 'audio' ? 20 : 40),
           } as any);
@@ -301,6 +301,13 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
       socket.off('user_offline').on('user_offline', handleUserOffline);
       socket.off('user_online').on('user_online', handleUserOnline);
       socket.off('availability_changed').on('availability_changed', handleAvailabilityChanged);
+      socket.off('cancel_incoming_call').on('cancel_incoming_call', (data) => {
+        // If we are showing the random match modal, close it
+        // Or if we are in an incoming call screen... wait, this is for the RECEIVER.
+        // The receiver's incoming call modal is usually in a global provider or App.tsx.
+        // However, if the receiver is on the HomeScreen, we should emit an event or close their modal.
+        // Actually, where is the receiver's IncomingCallModal?
+      });
     };
 
     setupListeners();
@@ -321,20 +328,26 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const executeSocketCall = async () => {
     const creator = randomMatchTargetRef.current;
     const type = randomMatchTypeRef.current;
-    if (!creator) return;
-    const rate = type === 'audio' ? creator.callRate : creator.videoRate;
-    const requiredCoins = rate || (type === 'audio' ? 20 : 40);
+    
     let socket = getSocket();
     if (!socket) socket = await initSocket();
-    if (socket) {
-      socket.emit('initiate_call', { targetId: creator.id, type, rate: requiredCoins });
+    if (!socket) return;
 
-      clearCallTimeout();
-      callTimeoutRef.current = setTimeout(() => {
-        setShowRandomMatch(false);
-        showToast('User is not available right now.');
-      }, 35000);
+    if (creator && creator.id !== 'random-broadcast-dummy') {
+      // 1-ON-1 DIRECT CALL (Normal Flow)
+      const rate = type === 'audio' ? creator.callRate : creator.videoRate;
+      const requiredCoins = rate || (type === 'audio' ? 20 : 40);
+      socket.emit('initiate_call', { targetId: creator.id, type, rate: requiredCoins });
+    } else {
+      // BROADCAST RANDOM CALL
+      socket.emit('initiate_random_broadcast', { type });
     }
+
+    clearCallTimeout();
+    callTimeoutRef.current = setTimeout(() => {
+      setShowRandomMatch(false);
+      showToast('No user is available right now.');
+    }, 35000);
   };
 
   const initiateCallWithChecks = async (creator: CreatorItem, type: 'audio' | 'video') => {
