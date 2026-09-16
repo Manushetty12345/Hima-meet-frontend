@@ -236,19 +236,19 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         showToast('User is not available right now.');
       };
 
-      const handleInsufficientCoins = () => {
-        clearCallTimeout();
-        setShowRandomMatch(false);
-        const type = randomMatchTypeRef.current;
-        const creator = randomMatchTargetRef.current;
-        const rate = type === 'audio' ? creator?.callRate : creator?.videoRate;
-        const requiredCoins = rate || (type === 'audio' ? 20 : 40);
-        navigation.navigate('Wallet', { 
-          showWarning: 'insufficient_coins',
-          requiredCoins,
-          callType: type
-        } as any);
-      };
+      const handleInsufficientCoins = (data?: { requiredCoins?: number }) => {
+          clearCallTimeout();
+          setShowRandomMatch(false);
+          const type = randomMatchTypeRef.current;
+          const creator = randomMatchTargetRef.current;
+          const rate = type === 'audio' ? creator?.callRate : creator?.videoRate;
+          const requiredCoins = data?.requiredCoins || rate || (type === 'audio' ? 20 : 40);
+          navigation.navigate('Wallet', { 
+            showWarning: 'insufficient_coins',
+            requiredCoins,
+            callType: type
+          } as any);
+        };
 
       const handleCallAccepted = (data: { callId: number, agoraToken?: string, rate?: number, receiverId?: string, receiverName?: string, receiverAvatar?: string }) => {
         clearCallTimeout();
