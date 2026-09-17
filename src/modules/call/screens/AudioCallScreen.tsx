@@ -76,6 +76,9 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
     ]).start(() => setToastMessage(null));
   };
 
+  const isCallJoinedRef = useRef<boolean>(false);
+  const previousCoinsRef = useRef<number | null>(null);
+
   useEffect(() => {
     // Start pulse animation
     Animated.loop(
@@ -93,21 +96,23 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
       ])
     ).start();
 
-    // Fetch configs & coins
-    fetchInitialData();
+    // Fetch configs & coins FIRST
+    fetchInitialData().then(() => {
+      if (!engine.current) {
+        setupAgoraEngine();
+      }
+      
+      const socket = getSocket();
+      if (socket && !isCallJoinedRef.current) {
+        socket.emit('join_call', { callId });
+        isCallJoinedRef.current = true;
+      }
+    });
 
-    // Setup Agora
-    setupAgoraEngine();
-    
     const socket = getSocket();
     if (socket) {
-      socket.emit('join_call', { callId });
-      socket.on('call_ended', () => {
-        handleEndCall();
-      });
-      socket.on('insufficient_coins', () => {
-        handleEndCall();
-      });
+      socket.on('call_ended', handleEndCall);
+      socket.on('insufficient_coins', handleEndCall);
     }
 
     const unsubscribeFocus = navigation.addListener('focus', () => {
@@ -121,8 +126,8 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
       engine.current?.leaveChannel();
       engine.current?.release();
       if (socket) {
-        socket.off('call_ended');
-        socket.off('insufficient_coins');
+        socket.off('call_ended', handleEndCall);
+        socket.off('insufficient_coins', handleEndCall);
       }
       unsubscribeFocus();
     };
@@ -152,8 +157,15 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
       const fetchedCoins = walletRes?.data?.data?.coin_balance ?? 0;
       setCoins(fetchedCoins);
       
-      const maxSeconds = Math.floor(fetchedCoins / cost) * 60;
-      setTimeLeft(maxSeconds);
+      if (previousCoinsRef.current === null) {
+        setTimeLeft(Math.floor(fetchedCoins / cost) * 60);
+      } else {
+        const addedCoins = fetchedCoins - previousCoinsRef.current;
+        if (addedCoins > 0) {
+          setTimeLeft(prev => prev !== null ? prev + Math.floor(addedCoins / cost) * 60 : Math.floor(addedCoins / cost) * 60);
+        }
+      }
+      previousCoinsRef.current = fetchedCoins;
     } catch (err) {
       console.log('Error fetching initial data:', err);
       setCoins(0);
@@ -205,7 +217,7 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
     let timer: ReturnType<typeof setInterval>;
     if (timeLeft !== null) {
       if (timeLeft <= 0) {
-        // Do not handleEndCall() here. Let backend emit 'insufficient_coins' when actually out of balance.
+        handleEndCall(); // FORCE END CALL IMMEDIATELY AT 00:00
         return;
       }
       if (timeLeft === 60) {
@@ -217,24 +229,6 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
     }
     return () => clearInterval(timer);
   }, [timeLeft]);
-
-  // Heartbeat timer (Per-minute coin deduction)
-  useEffect(() => {
-    // Only run heartbeat if we have time left
-    if (timeLeft === null || timeLeft <= 0) return;
-
-    const heartbeatTimer = setInterval(() => {
-      setCoins(prevCoins => {
-        const newCoins = prevCoins - callCostPerMinute;
-        return newCoins > 0 ? newCoins : 0;
-      });
-      if (callId) {
-        apiClient.post('/api/call/heartbeat', { callId }).catch(e => console.log('Heartbeat failed:', e));
-      }
-    }, 60000);
-
-    return () => clearInterval(heartbeatTimer);
-  }, [callCostPerMinute, callId, timeLeft === null || timeLeft <= 0]);
 
   const handleMute = () => {
     const nextMuteState = !isMuted;

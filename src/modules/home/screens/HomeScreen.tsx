@@ -325,6 +325,10 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         }));
       };
 
+      const handleCancelIncoming = (data: any) => {
+        // Handle cancel
+      };
+
 
       const setupListeners = async () => {
       if (!socket) {
@@ -340,13 +344,6 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
       socket.on('user_offline', handleUserOffline);
       socket.on('user_online', handleUserOnline);
       socket.on('availability_changed', handleAvailabilityChanged);
-      const handleCancelIncoming = (data) => {
-        // If we are showing the random match modal, close it
-        // Or if we are in an incoming call screen... wait, this is for the RECEIVER.
-        // The receiver's incoming call modal is usually in a global provider or App.tsx.
-        // However, if the receiver is on the HomeScreen, we should emit an event or close their modal.
-        // Actually, where is the receiver's IncomingCallModal?
-      };
       socket.on('cancel_incoming_call', handleCancelIncoming);
     };
 

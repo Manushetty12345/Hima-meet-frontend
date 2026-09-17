@@ -662,7 +662,7 @@ const styles = StyleSheet.create({
     transform: [{ scaleX: 0.9 }, { scaleY: 0.9 }],
   },
   bottomSpacer: {
-    height: 30,
+    height: 140,
   },
   bottomNav: {
     flexDirection: 'row',
