@@ -41,8 +41,9 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
   } = route.params || {};
 
   // Coin & Timer State
+  const initialMaxSeconds = route.params?.maxSeconds;
   const [coins, setCoins] = useState<number>(0);
-  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [timeLeft, setTimeLeft] = useState<number | null>(initialMaxSeconds !== undefined ? initialMaxSeconds : null);
   const [showLowBalance, setShowLowBalance] = useState(false);
   
   // Fetched Caller Profile State (Fallback)
@@ -158,7 +159,10 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
       setCoins(fetchedCoins);
       
       if (previousCoinsRef.current === null) {
-        setTimeLeft(Math.floor(fetchedCoins / cost) * 60);
+        // If we didn't receive maxSeconds from the route, calculate it now
+        if (initialMaxSeconds === undefined) {
+          setTimeLeft(Math.floor(fetchedCoins / cost) * 60);
+        }
       } else {
         const addedCoins = fetchedCoins - previousCoinsRef.current;
         if (addedCoins > 0) {

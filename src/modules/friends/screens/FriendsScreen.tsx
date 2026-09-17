@@ -178,7 +178,7 @@ const FriendsScreen: React.FC<Props> = () => {
         } as any);
       };
 
-      const handleCallAccepted = (data: { callId: number, agoraToken?: string, rate?: number }) => {
+      const handleCallAccepted = (data: { callId: number, agoraToken?: string, rate?: number, maxSeconds?: number }) => {
         setShowRandomMatch(false);
         navigation.navigate(randomMatchType === 'audio' ? 'AudioCallScreen' : 'VideoCallScreen', {
           callId: data.callId,
@@ -187,6 +187,7 @@ const FriendsScreen: React.FC<Props> = () => {
           calleeAvatar: randomMatchTarget?.avatarUri,
           agoraToken: data.agoraToken || '',
           callRate: data.rate || (randomMatchType === 'audio' ? globalAudioRate : globalVideoRate),
+          maxSeconds: data.maxSeconds,
         } as any);
       };
 
