@@ -121,6 +121,9 @@ const FriendsScreen: React.FC<Props> = () => {
   const [randomMatchTarget, setRandomMatchTarget] = useState<any>(undefined);
   const [coinBalance, setCoinBalance] = useState(0);
 
+  const [globalAudioRate, setGlobalAudioRate] = useState(20);
+  const [globalVideoRate, setGlobalVideoRate] = useState(40);
+
   useFocusEffect(
     useCallback(() => {
       const fetchBalance = async () => {
@@ -133,6 +136,17 @@ const FriendsScreen: React.FC<Props> = () => {
         }
       };
       fetchBalance();
+
+      const fetchRates = async () => {
+        try {
+          const res = await apiClient.get('/api/config/call-rates');
+          setGlobalAudioRate(res.data?.data?.audioCallCost ?? 20);
+          setGlobalVideoRate(res.data?.data?.videoCallCost ?? res.data?.data?.audioCallCost ?? 40);
+        } catch (error) {
+          console.log('FriendsScreen fetch rates error:', error);
+        }
+      };
+      fetchRates();
     }, [])
   );
 
@@ -156,7 +170,7 @@ const FriendsScreen: React.FC<Props> = () => {
         const type = randomMatchType;
         const creator = randomMatchTarget;
         const rate = type === 'audio' ? creator?.callRate : creator?.videoRate;
-        const requiredCoins = rate || (type === 'audio' ? 20 : 40);
+        const requiredCoins = rate || (type === 'audio' ? globalAudioRate : globalVideoRate);
         navigation.navigate('Wallet', { 
           showWarning: 'insufficient_coins',
           requiredCoins,
@@ -172,7 +186,7 @@ const FriendsScreen: React.FC<Props> = () => {
           calleeName: randomMatchTarget?.name,
           calleeAvatar: randomMatchTarget?.avatarUri,
           agoraToken: data.agoraToken || '',
-          callRate: data.rate || (randomMatchType === 'audio' ? 20 : 40),
+          callRate: data.rate || (randomMatchType === 'audio' ? globalAudioRate : globalVideoRate),
         } as any);
       };
 
@@ -206,7 +220,7 @@ const FriendsScreen: React.FC<Props> = () => {
       return;
     }
     const rate = type === 'audio' ? creator.callRate : creator.videoRate;
-    const requiredCoins = rate || (type === 'audio' ? 20 : 40);
+    const requiredCoins = rate || (type === 'audio' ? globalAudioRate : globalVideoRate);
 
     if (coinBalance < requiredCoins) {
       navigation.navigate('Wallet', { 
