@@ -173,7 +173,7 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
           }
         });
 
-        if (friendStatus === 'friends') {
+        if (friendStatus === 'friends' || friendStatus === 'blocked_by_them') {
           const convRes = await apiClient.get(`/api/chat/conversation/${creator.id}`);
           const convId = convRes.data?.data?.conversation_id;
           
@@ -687,11 +687,6 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
                   </LinearGradient>
                 </TouchableOpacity>
               </View>
-          ) : friendStatus === 'blocked_by_them' ? (
-            <View style={styles.footer}>
-              <Text style={[styles.footerTitle, { color: '#E74C3C' }]}>User Unavailable</Text>
-              <Text style={styles.footerSubtitle}>You cannot interact with this user.</Text>
-            </View>
           ) : (
             <View style={styles.chatFooterContainer}>
               <TouchableOpacity style={styles.emojiBtnGradientWrap} activeOpacity={0.8} onPress={() => setShowEmojiPicker(!showEmojiPicker)}>
