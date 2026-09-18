@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
-import { StatusBar, useColorScheme, Linking, DeviceEventEmitter } from 'react-native';
+import { StatusBar, useColorScheme, Linking, DeviceEventEmitter, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 // @ts-ignore - react-native-firebase typings sometimes miss default export in newer TS versions
@@ -165,34 +165,50 @@ async function handlePaymentDeepLink() {
     });
     const data = res.data?.data;
     const isSuccess = data?.success === true;
+    const coinsAdded = data?.coins_added ?? coins ?? 0;
 
-    // Navigate to Wallet with result
-    navigationRef.current?.reset({
-      index: 1,
-      routes: [
-        { name: 'MainTabs' },
-        {
-          name: 'Wallet',
-          params: {
-            paymentResult: {
-              success: isSuccess,
-              coinsAdded: data?.coins_added ?? coins ?? 0,
-              newBalance: data?.new_balance ?? 0,
-              transactionId,
-            },
-          },
+    const shouldReturn = await AsyncStorage.getItem('hima_returnToScreen');
+    const savedParamsStr = await AsyncStorage.getItem('hima_call_params');
+
+    if (isSuccess && shouldReturn && savedParamsStr) {
+      await AsyncStorage.removeItem('hima_returnToScreen');
+      await AsyncStorage.removeItem('hima_call_params');
+      try {
+        const params = JSON.parse(savedParamsStr);
+        if (Platform.OS === 'android') {
+          import('react-native').then(({ ToastAndroid }) => {
+            ToastAndroid.show(`Payment Successful! Added ${coinsAdded} coins.`, ToastAndroid.LONG);
+          });
+        }
+        // Safely navigate back to the call screen WITHOUT resetting the stack
+        if (navigationRef.current) {
+          (navigationRef.current.navigate as any)(shouldReturn, params);
+        }
+        return;
+      } catch (e) {
+        console.error("Failed to parse saved call params", e);
+      }
+    }
+
+    // Navigate to Wallet with result, but don't reset stack (just navigate)
+    if (navigationRef.current) {
+      (navigationRef.current.navigate as any)('Wallet', {
+        paymentResult: {
+          success: isSuccess,
+          coinsAdded,
+          newBalance: data?.new_balance ?? 0,
+          transactionId,
         },
-      ],
-    });
+      });
+    }
   } catch (err: any) {
     if (err.response?.status !== 404) {
       console.error('Deep link payment verify error:', err.message);
     }
     // Navigate to Wallet anyway so user can see their balance
-    navigationRef.current?.reset({
-      index: 1,
-      routes: [{ name: 'MainTabs' }, { name: 'Wallet' }],
-    });
+    if (navigationRef.current) {
+      (navigationRef.current.navigate as any)('Wallet');
+    }
   }
 }
 

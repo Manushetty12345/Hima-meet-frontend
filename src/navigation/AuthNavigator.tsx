@@ -31,10 +31,12 @@ import AccountPrivacyScreen from '../modules/profile/screens/AccountPrivacyScree
 import DeleteAccountScreen from '../modules/profile/screens/DeleteAccountScreen';
 import TransactionsScreen from '../modules/profile/screens/TransactionsScreen';
 import ReferralScreen from '../modules/profile/screens/ReferralScreen';
+import BlockedUsersScreen from '../modules/profile/screens/BlockedUsersScreen';
 import PhonePeWebViewScreen from '../modules/wallet/screens/PhonePeWebViewScreen';
 import CreatorFullProfileScreen from '../modules/home/screens/CreatorFullProfileScreen';
 import AudioCallScreen from '../modules/call/screens/AudioCallScreen';
 import CreatorAudioCallScreen from '../modules/call/screens/CreatorAudioCallScreen';
+import CreatorCallSummaryScreen from '../modules/call/screens/CreatorCallSummaryScreen';
 import CallFeedbackScreen from '../modules/call/screens/CallFeedbackScreen';
 import VideoCallScreen from '../modules/call/screens/VideoCallScreen';
 import CreatorVideoCallScreen from '../modules/call/screens/CreatorVideoCallScreen';
@@ -78,13 +80,15 @@ export type AuthStackParamList = {
   DeleteAccount: undefined;
   Transactions: undefined;
   Refer: undefined;
+  BlockedUsers: undefined;
   PhonePeWebView: { paymentUrl: string; transactionId: string; coins: number };
   CreatorFullProfile: { creator: any };
-  AudioCallScreen: { callerName?: string; calleeName?: string; callerAvatar?: string; calleeAvatar?: string; channelId?: string; callId?: string | number; targetId?: string | number; agoraToken?: string; callRate?: number; };
-  CreatorAudioCallScreen: { callerName?: string; callerAvatar?: string; callId?: string | number; rate?: string | number; agoraToken?: string; };
+  AudioCallScreen: { callerName?: string; calleeName?: string; callerAvatar?: string; calleeAvatar?: string; channelId?: string; callId?: string | number; targetId?: string | number; agoraToken?: string; callRate?: number; maxSeconds?: number; };
+  CreatorAudioCallScreen: { callerName?: string; callerAvatar?: string; callId?: string | number; targetId?: string | number; rate?: string | number; agoraToken?: string; };
+  CreatorCallSummaryScreen: { callerId?: number | string; callerName?: string; callerAvatar?: string; coinsEarned: number; callDurationSeconds: number; };
   CallFeedbackScreen: { creatorName?: string; creatorId?: string | number; callId?: string | number };
-  VideoCallScreen: { callerName?: string; calleeName?: string; callerAvatar?: string; calleeAvatar?: string; channelId?: string; callId?: string; targetId?: string; agoraToken?: string; callRate?: number; };
-  CreatorVideoCallScreen: { callerName?: string; callerAvatar?: string; callId?: string | number; rate?: string | number; agoraToken?: string; };
+  VideoCallScreen: { callerName?: string; calleeName?: string; callerAvatar?: string; calleeAvatar?: string; channelId?: string; callId?: string; targetId?: string; agoraToken?: string; callRate?: number; maxSeconds?: number; };
+  CreatorVideoCallScreen: { callerName?: string; callerAvatar?: string; callId?: string | number; targetId?: string | number; rate?: string | number; agoraToken?: string; };
   ChatScreen: { targetId: string | number; targetName: string; targetAvatar: string };
 };
 
@@ -129,10 +133,12 @@ const AuthNavigator = () => {
       <Stack.Screen name="DeleteAccount" component={DeleteAccountScreen} />
       <Stack.Screen name="Transactions" component={TransactionsScreen} />
       <Stack.Screen name="Refer" component={ReferralScreen} />
+      <Stack.Screen name="BlockedUsers" component={BlockedUsersScreen} />
       <Stack.Screen name="PhonePeWebView" component={PhonePeWebViewScreen} options={{ presentation: 'fullScreenModal' }} />
       <Stack.Screen name="CreatorFullProfile" component={CreatorFullProfileScreen} />
       <Stack.Screen name="AudioCallScreen" component={AudioCallScreen} />
       <Stack.Screen name="CreatorAudioCallScreen" component={CreatorAudioCallScreen} />
+      <Stack.Screen name="CreatorCallSummaryScreen" component={CreatorCallSummaryScreen} />
       <Stack.Screen name="CallFeedbackScreen" component={CallFeedbackScreen} />
       <Stack.Screen name="VideoCallScreen" component={VideoCallScreen} />
       <Stack.Screen name="CreatorVideoCallScreen" component={CreatorVideoCallScreen} />

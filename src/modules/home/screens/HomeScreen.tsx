@@ -168,7 +168,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         }
       };
       fetchRates();
-      
+
       const fetchInterests = async () => {
         try {
           const res = await apiClient.get('/api/onboarding/interests');
@@ -236,101 +236,101 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   React.useEffect(() => {
     let socket = getSocket();
-    
-    
-
-      const handleCallBusy = (data: { message: string }) => {
-        clearCallTimeout();
-        setShowRandomMatch(false);
-        showToast(data.message || 'The user is currently on another call. Please try again.');
-      };
-
-      const handleCallDeclined = () => {
-        clearCallTimeout();
-        setShowRandomMatch(false);
-        showToast('User is not available right now.');
-      };
-
-      const handleInsufficientCoins = (data?: { requiredCoins?: number }) => {
-          console.log('?? handleInsufficientCoins triggered! payload:', data);
-          clearCallTimeout();
-          setShowRandomMatch(false);
-          const type = randomMatchTypeRef.current;
-          const creator = randomMatchTargetRef.current;
-          const rate = type === 'audio' ? creator?.callRate : creator?.videoRate;
-          
-          console.log('?? type:', type, 'creator:', creator, 'rate:', rate);
-          
-          // STRICT PARSING: ALWAYS prefer data.requiredCoins if it exists.
-          let finalCoins = (type === 'audio' ? globalAudioRateRef.current : globalVideoRateRef.current);
-          if (data && data.requiredCoins !== undefined) {
-            console.log('?? Using data.requiredCoins from backend:', data.requiredCoins);
-            finalCoins = data.requiredCoins;
-          } else if (rate !== undefined) {
-            console.log('?? Using creator rate:', rate);
-            finalCoins = rate;
-          } else {
-            console.log('?? Falling back to default:', finalCoins);
-          }
-          
-          console.log('?? finalCoins calculated:', finalCoins);
-          
-          navigation.navigate('Wallet', { 
-            showWarning: 'insufficient_coins',
-            requiredCoins: finalCoins,
-            callType: type
-          } as any);
-        };
-
-      const handleCallAccepted = (data: { callId: number, agoraToken?: string, rate?: number, receiverId?: string, receiverName?: string, receiverAvatar?: string }) => {
-        clearCallTimeout();
-        setShowRandomMatch(false);
-        // Use refs (not state) to avoid stale closure bug
-        const callType = randomMatchTypeRef.current;
-        const callTarget = randomMatchTargetRef.current;
-        setTimeout(() => {
-          navigation.navigate(callType === 'audio' ? 'AudioCallScreen' : 'VideoCallScreen', {
-            callId: data.callId,
-            targetId: data.receiverId || callTarget?.id,
-            calleeName: data.receiverName || callTarget?.name,
-            calleeAvatar: data.receiverAvatar || callTarget?.avatarUri,
-            agoraToken: data.agoraToken || '',
-            callRate: data.rate ?? 0,
-          } as any);
-        }, 300);
-      };
-
-      const handleUserOffline = (data: { userId: string | number }) => {
-        setCreators(prev => prev.map(c => 
-          c.id === String(data.userId) ? { ...c, isOnline: false } : c
-        ));
-      };
-
-      const handleUserOnline = (data: { userId: string | number }) => {
-        setCreators(prev => prev.map(c => 
-          c.id === String(data.userId) ? { ...c, isOnline: true } : c
-        ));
-      };
-
-      const handleAvailabilityChanged = (payload: any) => {
-        setCreators(prev => prev.map(c => {
-          if (c.id === payload.userId?.toString()) {
-            return {
-              ...c,
-              callAvailable: payload.call_type === 'voice' ? payload.is_online : c.callAvailable,
-              videoAvailable: payload.call_type === 'video' ? payload.is_online : c.videoAvailable
-            };
-          }
-          return c;
-        }));
-      };
-
-      const handleCancelIncoming = (data: any) => {
-        // Handle cancel
-      };
 
 
-      const setupListeners = async () => {
+
+    const handleCallBusy = (data: { message: string }) => {
+      clearCallTimeout();
+      setShowRandomMatch(false);
+      showToast(data.message || 'The user is currently on another call. Please try again.');
+    };
+
+    const handleCallDeclined = () => {
+      clearCallTimeout();
+      setShowRandomMatch(false);
+      showToast('User is not available right now.');
+    };
+
+    const handleInsufficientCoins = (data?: { requiredCoins?: number }) => {
+      console.log('?? handleInsufficientCoins triggered! payload:', data);
+      clearCallTimeout();
+      setShowRandomMatch(false);
+      const type = randomMatchTypeRef.current;
+      const creator = randomMatchTargetRef.current;
+      const rate = type === 'audio' ? creator?.callRate : creator?.videoRate;
+
+      console.log('?? type:', type, 'creator:', creator, 'rate:', rate);
+
+      let finalCoins = (type === 'audio' ? globalAudioRateRef.current : globalVideoRateRef.current);
+      if (data && data.requiredCoins !== undefined) {
+        console.log('?? Using data.requiredCoins from backend:', data.requiredCoins);
+        finalCoins = data.requiredCoins;
+      } else if (rate !== undefined) {
+        console.log('?? Using creator rate:', rate);
+        finalCoins = rate;
+      } else {
+        console.log('?? Falling back to default:', finalCoins);
+      }
+
+      console.log('?? finalCoins calculated:', finalCoins);
+
+      navigation.navigate('Wallet', {
+        showWarning: 'insufficient_coins',
+        requiredCoins: finalCoins,
+        callType: type
+      } as any);
+    };
+
+    const handleCallAccepted = (data: { callId: number, agoraToken?: string, rate?: number, maxSeconds?: number, receiverId?: string, receiverName?: string, receiverAvatar?: string, callType?: 'audio' | 'video' }) => {
+      clearCallTimeout();
+      setShowRandomMatch(false);
+      // Use refs (not state) to avoid stale closure bug
+      const callType = data.callType || randomMatchTypeRef.current;
+      const callTarget = randomMatchTargetRef.current;
+      setTimeout(() => {
+        navigation.navigate(callType === 'audio' ? 'AudioCallScreen' : 'VideoCallScreen', {
+          callId: data.callId,
+          targetId: data.receiverId || callTarget?.id,
+          calleeName: data.receiverName || callTarget?.name,
+          calleeAvatar: data.receiverAvatar || callTarget?.avatarUri,
+          agoraToken: data.agoraToken || '',
+          callRate: data.rate ?? 0,
+          maxSeconds: data.maxSeconds,
+        } as any);
+      }, 300);
+    };
+
+    const handleUserOffline = (data: { userId: string | number }) => {
+      setCreators(prev => prev.map(c =>
+        c.id === String(data.userId) ? { ...c, isOnline: false } : c
+      ));
+    };
+
+    const handleUserOnline = (data: { userId: string | number }) => {
+      setCreators(prev => prev.map(c =>
+        c.id === String(data.userId) ? { ...c, isOnline: true } : c
+      ));
+    };
+
+    const handleAvailabilityChanged = (payload: any) => {
+      setCreators(prev => prev.map(c => {
+        if (c.id === payload.userId?.toString()) {
+          return {
+            ...c,
+            callAvailable: payload.call_type === 'voice' ? payload.is_online : c.callAvailable,
+            videoAvailable: payload.call_type === 'video' ? payload.is_online : c.videoAvailable
+          };
+        }
+        return c;
+      }));
+    };
+
+    const handleCancelIncoming = (data: any) => {
+      // Handle cancel
+    };
+
+
+    const setupListeners = async () => {
       if (!socket) {
         socket = await initSocket();
       }
@@ -349,24 +349,24 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
     setupListeners();
 
-      return () => {
-        if (socket) {
-          socket.off('call_busy', handleCallBusy);
-          socket.off('call_declined', handleCallDeclined);
-          socket.off('call_blocked_insufficient_coins', handleInsufficientCoins);
-          socket.off('call_accepted', handleCallAccepted);
-          socket.off('user_offline', handleUserOffline);
-          socket.off('user_online', handleUserOnline);
-          socket.off('availability_changed', handleAvailabilityChanged);
-          socket.off('cancel_incoming_call', handleCancelIncoming);
-        }
-      };
+    return () => {
+      if (socket) {
+        socket.off('call_busy', handleCallBusy);
+        socket.off('call_declined', handleCallDeclined);
+        socket.off('call_blocked_insufficient_coins', handleInsufficientCoins);
+        socket.off('call_accepted', handleCallAccepted);
+        socket.off('user_offline', handleUserOffline);
+        socket.off('user_online', handleUserOnline);
+        socket.off('availability_changed', handleAvailabilityChanged);
+        socket.off('cancel_incoming_call', handleCancelIncoming);
+      }
+    };
   }, [navigation, randomMatchType, randomMatchTarget]);
 
   const executeSocketCall = async () => {
     const creator = randomMatchTargetRef.current;
     const type = randomMatchTypeRef.current;
-    
+
     let socket = getSocket();
     if (!socket) socket = await initSocket();
     if (!socket) return;
@@ -393,7 +393,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     const requiredCoins = rate ?? 0;
 
     if (coinBalance < requiredCoins) {
-      navigation.navigate('Wallet', { 
+      navigation.navigate('Wallet', {
         showWarning: 'insufficient_coins',
         requiredCoins,
         callType: type
@@ -422,7 +422,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const handleRandomClick = (type: 'audio' | 'video') => {
     const requiredCoins = type === 'audio' ? globalAudioRate : globalVideoRate;
     if (coinBalance < requiredCoins) {
-      navigation.navigate('Wallet', { 
+      navigation.navigate('Wallet', {
         showWarning: 'insufficient_coins',
         requiredCoins,
         callType: type
@@ -538,15 +538,15 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.statusBarSpacer} />
 
         <View style={styles.headerRow}>
-        <Image
-          source={require('../../../assets/images/logo1.png')}
-          style={styles.brandIcon}
-          resizeMode="contain"
-        />
-        <View style={styles.brandTextBlock}>
-          <Text style={styles.brandTitle}>Himameet</Text>
-          <Text style={styles.brandSubtitle}>Where Feelings Connect</Text>
-        </View>
+          <Image
+            source={require('../../../assets/images/logo1.png')}
+            style={styles.brandIcon}
+            resizeMode="contain"
+          />
+          <View style={styles.brandTextBlock}>
+            <Text style={styles.brandTitle}>Himameet</Text>
+            <Text style={styles.brandSubtitle}>Where Feelings Connect</Text>
+          </View>
 
           <TouchableOpacity
             style={styles.balancePillWrapper}
@@ -565,23 +565,48 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={styles.balanceText}>{coinBalance}</Text>
             </LinearGradient>
           </TouchableOpacity>
-      </View>
+        </View>
 
-      <View style={styles.filterContainer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterRow}
-        >
-          {filters.map(filter => {
-            const isActive = filter.key === activeFilter;
-            const FilterIcon = filter.icon;
-            if (isActive) {
+        <View style={styles.filterContainer}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterRow}
+          >
+            {filters.map(filter => {
+              const isActive = filter.key === activeFilter;
+              const FilterIcon = filter.icon;
+              if (isActive) {
+                return (
+                  <TouchableOpacity
+                    key={filter.key}
+                    activeOpacity={0.85}
+                    style={styles.filterPillActiveContainer}
+                    onPress={() => {
+                      const label = filter.label;
+                      setActiveFilter(filter.key);
+                      activeFilterRef.current = filter.key === 'all' ? 'all' : label;
+                      fetchCreators(filter.key === 'all' ? 'all' : label);
+                    }}
+                  >
+                    <LinearGradient
+                      colors={['#D4AF37', '#F5C542']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.filterPillActiveGrad}
+                    >
+                      <FilterIcon size={14} color="#2A1240" />
+                      <Text style={styles.filterTextActive}>{filter.label.toUpperCase()}</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                );
+              }
+
               return (
                 <TouchableOpacity
                   key={filter.key}
-                  activeOpacity={0.85}
-                  style={styles.filterPillActiveContainer}
+                  activeOpacity={0.7}
+                  style={styles.filterPill}
                   onPress={() => {
                     const label = filter.label;
                     setActiveFilter(filter.key);
@@ -589,38 +614,13 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                     fetchCreators(filter.key === 'all' ? 'all' : label);
                   }}
                 >
-                  <LinearGradient
-                    colors={['#D4AF37', '#F5C542']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.filterPillActiveGrad}
-                  >
-                    <FilterIcon size={14} color="#2A1240" />
-                    <Text style={styles.filterTextActive}>{filter.label.toUpperCase()}</Text>
-                  </LinearGradient>
+                  <FilterIcon size={14} color="#5B0E8B" />
+                  <Text style={styles.filterText}>{filter.label.toUpperCase()}</Text>
                 </TouchableOpacity>
               );
-            }
-
-            return (
-              <TouchableOpacity
-                key={filter.key}
-                activeOpacity={0.7}
-                style={styles.filterPill}
-                onPress={() => {
-                  const label = filter.label;
-                  setActiveFilter(filter.key);
-                  activeFilterRef.current = filter.key === 'all' ? 'all' : label;
-                  fetchCreators(filter.key === 'all' ? 'all' : label);
-                }}
-              >
-                <FilterIcon size={14} color="#5B0E8B" />
-                <Text style={styles.filterText}>{filter.label.toUpperCase()}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
+            })}
+          </ScrollView>
+        </View>
       </LinearGradient>
 
       <FlatList
@@ -682,20 +682,20 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         targetUser={randomMatchTarget}
         onProceedWithDirectCall={executeSocketCall}
         onMatchFound={(creator: any) => {
-            // Store the matched creator in ref so socket handlers have it
-            const mockCreator = {
-              id: creator.id,
-              name: creator.name,
-              avatarUri: creator.avatarUri,
-              callAvailable: true,
-              videoAvailable: true,
-              callRate: creator.callRate ?? 0,
-              videoRate: creator.videoRate ?? 0,
-            } as any;
-            randomMatchTargetRef.current = mockCreator;
-            randomMatchTypeRef.current = randomMatchType;
-            // Directly emit the socket broadcast - modal is already open, don't re-open it
-            executeSocketCall();
+          // Store the matched creator in ref so socket handlers have it
+          const mockCreator = {
+            id: creator.id,
+            name: creator.name,
+            avatarUri: creator.avatarUri,
+            callAvailable: true,
+            videoAvailable: true,
+            callRate: creator.callRate ?? 0,
+            videoRate: creator.videoRate ?? 0,
+          } as any;
+          randomMatchTargetRef.current = mockCreator;
+          randomMatchTypeRef.current = randomMatchType;
+          // Directly emit the socket broadcast - modal is already open, don't re-open it
+          executeSocketCall();
         }}
       />
 
@@ -1084,8 +1084,8 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   toastContainer: {
-      position: 'absolute',
-      bottom: 120,
+    position: 'absolute',
+    bottom: 120,
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',

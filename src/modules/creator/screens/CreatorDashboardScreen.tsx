@@ -38,7 +38,8 @@ import {
   BellRing,
   BadgeCheck,
   AlertCircle,
-  Pencil,
+  History,
+  Ban,
 } from 'lucide-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -125,6 +126,14 @@ const SETTINGS_ITEMS = [
     icon: AlertCircle,
     iconColor: PLUM_ROYAL,
     iconBg: 'rgba(91, 14, 139, 0.10)',
+  },
+  {
+    id: 'blocked_users',
+    title: 'Blocked Users',
+    subtitle: 'Manage people you have blocked',
+    icon: Ban,
+    iconColor: '#E74C3C',
+    iconBg: 'rgba(231, 76, 60, 0.1)',
   },
   {
     id: 'help',

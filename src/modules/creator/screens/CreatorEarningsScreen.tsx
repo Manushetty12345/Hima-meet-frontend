@@ -1,16 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, StatusBar, Platform, RefreshControl } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
-import { ClipboardList, Building2, History, ChevronRight, TrendingUp, BarChart3 } from 'lucide-react-native';
+import { ClipboardList, Building2, History, ChevronRight, TrendingUp, BarChart3, ArrowLeft, Coins, Wallet } from 'lucide-react-native';
 import apiClient from '../../../api/apiClient';
+
+const STATUSBAR_HEIGHT = Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 0;
+
+const LILAC_WHITE = '#FBF7FF';
+const LILAC_PALE = '#EFDFFB';
+const PLUM_ROYAL = '#5B0E8B';
+const TEXT_PLUM = '#2A1240';
+const TEXT_MUTED = '#8B7F98';
 
 const CreatorEarningsScreen = ({ navigation }: any) => {
   const [earningsSummary, setEarningsSummary] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const fetchEarnings = async () => {
+  const fetchEarnings = async (isManualRefresh = false) => {
     try {
-      setLoading(true);
+      if (isManualRefresh) {
+        setIsRefreshing(true);
+      } else if (!earningsSummary) {
+        setLoading(true);
+      }
       const res = await apiClient.get('/api/creator/earnings/summary');
       if (res.data?.status === 'success') {
         setEarningsSummary(res.data.data);
@@ -19,12 +33,20 @@ const CreatorEarningsScreen = ({ navigation }: any) => {
       console.error('Failed to fetch earnings summary:', error);
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   };
 
-  useEffect(() => {
-    fetchEarnings();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchEarnings();
+      // Auto refresh every 10 seconds while focused
+      const interval = setInterval(() => {
+        fetchEarnings();
+      }, 10000);
+      return () => clearInterval(interval);
+    }, [])
+  );
 
   const totalEarned = earningsSummary?.lifetime_earnings_inr || 0;
   const totalCoins = earningsSummary?.lifetime_earnings_coins || 0;
@@ -38,276 +60,322 @@ const CreatorEarningsScreen = ({ navigation }: any) => {
   const today = earningsSummary?.today_earnings_inr || 0;
 
   return (
-    <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Header Row */}
-      <View style={styles.headerRow}>
-        <Text style={styles.pageTitle}>Wallet & Earnings</Text>
-        <View style={styles.titleDivRow}>
-          <View style={styles.titleDivLine} />
-          <Text style={styles.titleDivStar}>✨</Text>
-          <View style={styles.titleDivLine} />
-        </View>
-      </View>
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" />
 
-      {loading && !earningsSummary ? (
-        <View style={{ paddingVertical: 40, alignItems: 'center' }}>
-          <ActivityIndicator size="large" color="#F91970" />
-        </View>
-      ) : (
-        <>
-          {/* Hero Balance Card Breakdown */}
-          <LinearGradient colors={['#2A1240', '#1A0B2E']} style={styles.heroCard}>
-            <View style={styles.heroGlow} />
-            
-            <View style={styles.breakdownRow}>
-              <View style={styles.breakdownCol}>
-                <Text style={styles.breakdownLabel}>TOTAL EARNED</Text>
-                <Text style={styles.breakdownValue}>₹{totalEarned.toFixed(2)}</Text>
-                <Text style={styles.breakdownCoins}>{totalCoins} coins</Text>
-              </View>
-              
-              <View style={styles.divider} />
-              
-              <View style={styles.breakdownCol}>
-                <Text style={styles.breakdownLabel}>WITHDRAWN</Text>
-                <Text style={styles.breakdownValue}>₹{withdrawn.toFixed(2)}</Text>
-                <Text style={styles.breakdownCoins}>{withdrawnCoins} coins</Text>
-              </View>
-            </View>
-
-            <View style={styles.horizontalDivider} />
-
-            <View style={styles.heroLabelRow}>
-              <Text style={styles.heroStarSmall}>✨</Text>
-              <Text style={styles.heroLabel}>AVAILABLE BALANCE</Text>
-              <Text style={styles.heroStarSmall}>✨</Text>
-            </View>
-            
-            <Text style={styles.heroAmount}>₹{currentBalance.toFixed(2)}</Text>
-            <View style={styles.coinPill}>
-              <Text style={styles.coinPillText}>{currentBalanceCoins} coins</Text>
-            </View>
-
-            {/* Withdraw Button inside Hero */}
-            <TouchableOpacity style={styles.withdrawBtnHero} activeOpacity={0.85} onPress={() => navigation.navigate('WithdrawalRequest')}>
-              <LinearGradient colors={['#F91970', '#FF4D8D']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.withdrawGradHero}>
-                <TrendingUp size={18} color="#FFFFFF" />
-                <Text style={styles.withdrawBtnTextHero}>Withdraw Now</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </LinearGradient>
-
-          {/* Stats Grid */}
-          <View style={styles.statsGrid}>
-            {[
-              { label: 'Lifetime', value: `₹${totalEarned.toLocaleString('en-IN')}` },
-              { label: 'This Month', value: `₹${thisMonth.toLocaleString('en-IN')}` },
-              { label: 'This Week', value: `₹${thisWeek.toLocaleString('en-IN')}` },
-              { label: 'Today', value: `₹${today.toLocaleString('en-IN')}` },
-            ].map((item, idx) => (
-              <View key={item.label} style={styles.statGridCard}>
-                <LinearGradient colors={['#FBF7FF', '#EFDFFB']} style={styles.statIconBox}>
-                  <TrendingUp size={16} color="#5B0E8B" />
-                </LinearGradient>
-                <Text style={styles.statGridValue}>{item.value}</Text>
-                <Text style={styles.statGridLabel}>{item.label}</Text>
-              </View>
-            ))}
+      {/* Premium Header */}
+      <LinearGradient
+        colors={[LILAC_WHITE, LILAC_PALE]}
+        start={{ x: 0.15, y: 0 }}
+        end={{ x: 0.85, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.statusBarSpacer} />
+        <View style={styles.headerRow}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <ArrowLeft size={24} color={TEXT_PLUM} />
+          </TouchableOpacity>
+          <View>
+            <Text style={styles.title}>Wallet & Earnings</Text>
+            <Text style={styles.subtitle}>Manage your payouts and history</Text>
           </View>
-        </>
-      )}
-
-      {/* Chart Placeholder */}
-      <View style={styles.chartCard}>
-        <View style={styles.chartHeader}>
-          <Text style={styles.chartTitle}>Earnings Breakdown</Text>
-          <BarChart3 size={20} color="#8B7F98" />
         </View>
-        <View style={styles.chartPlaceholder}>
-          <Text style={styles.chartPlaceholderText}>Chart data will appear here</Text>
-        </View>
-      </View>
+      </LinearGradient>
 
-      {/* Quick Actions */}
-      <View style={styles.sectionDivRow}>
-        <View style={styles.sectionDivLine} />
-        <Text style={styles.sectionDivStar}>✨</Text>
-        <View style={styles.sectionDivLine} />
-      </View>
-
-      <View style={styles.card}>
-        {[
-          { label: 'Session Earnings', subtitle: 'View per-session breakdown', icon: ClipboardList, route: 'EarningsDetail' },
-          { label: 'Bank Details', subtitle: 'Manage payout accounts', icon: Building2, route: 'BankDetails' },
-          { label: 'Withdrawal History', subtitle: 'Track your past payouts', icon: History, route: 'WithdrawalHistory' },
-        ].map((a, i) => {
-          const Icon = a.icon;
-          return (
-            <TouchableOpacity key={a.label} style={[styles.actionRow, i < 2 && styles.actionRowBorder]} activeOpacity={0.7} onPress={() => navigation.navigate(a.route)}>
-              <View style={styles.actionRowLeft}>
-                <View style={styles.actionIcon}>
-                  <Icon size={18} color="#EC1372" />
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => fetchEarnings(true)}
+            colors={['#5B0E8B']}
+            tintColor="#5B0E8B"
+          />
+        }
+      >
+        {loading && !earningsSummary ? (
+          <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+            <ActivityIndicator size="large" color="#F91970" />
+          </View>
+        ) : (
+          <>
+            {/* Extraordinary Glassmorphic Hero Balance Card */}
+            <LinearGradient colors={['#5B0E8B', '#9C27B0']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.heroCard}>
+              {/* Decorative elements */}
+              <View style={styles.glassOverlay} />
+              <View style={styles.heroGlow} />
+              <View style={styles.heroGlowBottom} />
+              
+              <View style={styles.heroTopRow}>
+                <View style={styles.heroLabelBox}>
+                  <Text style={styles.heroLabel}>AVAILABLE BALANCE</Text>
                 </View>
-                <View>
-                  <Text style={styles.actionLabel}>{a.label}</Text>
-                  <Text style={styles.actionSubLabel}>{a.subtitle}</Text>
+                <Wallet size={20} color="#FFFFFF" opacity={0.8} />
+              </View>
+              
+              <Text style={styles.heroAmount}>₹{currentBalance.toFixed(2)}</Text>
+              
+              <View style={styles.coinPill}>
+                <Coins size={14} color="#F5C542" />
+                <Text style={styles.coinPillText}>{currentBalanceCoins} coins</Text>
+              </View>
+
+              <View style={styles.heroDivider} />
+
+              <View style={styles.breakdownRow}>
+                <View style={styles.breakdownCol}>
+                  <Text style={styles.breakdownLabel}>TOTAL EARNED</Text>
+                  <Text style={styles.breakdownValue}>₹{totalEarned.toFixed(2)}</Text>
+                </View>
+                
+                <View style={styles.dividerVertical} />
+                
+                <View style={styles.breakdownCol}>
+                  <Text style={styles.breakdownLabel}>WITHDRAWN</Text>
+                  <Text style={styles.breakdownValue}>₹{withdrawn.toFixed(2)}</Text>
                 </View>
               </View>
-              <ChevronRight size={18} color="#9CA3AF" />
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-    </ScrollView>
+
+              {/* Enhanced Withdraw Button */}
+              <TouchableOpacity style={styles.withdrawBtnHero} activeOpacity={0.85} onPress={() => navigation.navigate('WithdrawalRequest')}>
+                <LinearGradient colors={['#FFD700', '#F5C542']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.withdrawGradHero}>
+                  <Text style={styles.withdrawBtnTextHero}>Withdraw Funds</Text>
+                  <ChevronRight size={18} color="#2A1240" />
+                </LinearGradient>
+              </TouchableOpacity>
+            </LinearGradient>
+
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Earnings Overview</Text>
+            </View>
+
+            {/* Redesigned Stats Grid */}
+            <View style={styles.statsGrid}>
+              {[
+                { label: 'Lifetime', value: `₹${totalEarned.toLocaleString('en-IN')}`, icon: TrendingUp },
+                { label: 'This Month', value: `₹${thisMonth.toLocaleString('en-IN')}`, icon: BarChart3 },
+                { label: 'This Week', value: `₹${thisWeek.toLocaleString('en-IN')}`, icon: BarChart3 },
+                { label: 'Today', value: `₹${today.toLocaleString('en-IN')}`, icon: TrendingUp },
+              ].map((item, idx) => {
+                const Icon = item.icon;
+                return (
+                  <View key={item.label} style={styles.statGridCard}>
+                    <View style={styles.statTopRow}>
+                      <View style={styles.statIconBox}>
+                        <Icon size={14} color="#9C27B0" />
+                      </View>
+                      <Text style={styles.statGridLabel}>{item.label}</Text>
+                    </View>
+                    <Text style={styles.statGridValue}>{item.value}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          </>
+        )}
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+        </View>
+
+        {/* Premium Quick Actions */}
+        <View style={styles.card}>
+          {[
+            { label: 'Bank Details', subtitle: 'Manage payout accounts', icon: Building2, route: 'BankDetails' },
+            { label: 'Withdrawal History', subtitle: 'Track your past payouts', icon: History, route: 'WithdrawalHistory' },
+          ].map((a, i) => {
+            const Icon = a.icon;
+            return (
+              <TouchableOpacity key={a.label} style={[styles.actionRow, i < 1 && styles.actionRowBorder]} activeOpacity={0.7} onPress={() => navigation.navigate(a.route)}>
+                <View style={styles.actionRowLeft}>
+                  <LinearGradient colors={['#FBF7FF', '#EFDFFB']} style={styles.actionIconBg}>
+                    <Icon size={20} color="#5B0E8B" />
+                  </LinearGradient>
+                  <View>
+                    <Text style={styles.actionLabel}>{a.label}</Text>
+                    <Text style={styles.actionSubLabel}>{a.subtitle}</Text>
+                  </View>
+                </View>
+                <ChevronRight size={20} color="#D1D5DB" />
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flexGrow: 1,
-    backgroundColor: '#FBF6EC', // IVORY
-    padding: 20,
-    paddingTop: 60,
+    flex: 1,
+    backgroundColor: '#F9F5FF',
+  },
+  headerGradient: {
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EBDFC4',
+  },
+  statusBarSpacer: {
+    height: STATUSBAR_HEIGHT,
   },
   headerRow: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  pageTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#2A1240',
-    fontFamily: 'PlayfairDisplay-Bold',
-  },
-  titleDivRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 6,
+    paddingHorizontal: 20,
+    paddingTop: 12,
   },
-  titleDivLine: {
-    height: 1,
-    width: 30,
-    backgroundColor: 'rgba(91, 14, 139, 0.2)', // PLUM light
+  backButton: {
+    marginRight: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#EBDFC4',
+    shadowColor: '#5B0E8B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  titleDivStar: {
-    fontSize: 10,
-    color: '#F5C542',
-    marginHorizontal: 8,
+  title: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: TEXT_PLUM,
+    marginBottom: 2,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: TEXT_MUTED,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    padding: 20,
+    paddingBottom: 160, // Increased more to prevent bottom bar overlap
   },
   heroCard: {
     borderRadius: 24,
     padding: 24,
-    alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 28,
     overflow: 'hidden',
     position: 'relative',
     shadowColor: '#5B0E8B',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  glassOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   heroGlow: {
     position: 'absolute',
-    top: -50,
-    left: -50,
+    top: -60,
+    right: -40,
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: 'rgba(245, 197, 66, 0.1)', // GOLD glow
+    backgroundColor: 'rgba(212, 175, 55, 0.15)', // Gold glow
   },
-  heroLabelRow: {
+  heroGlowBottom: {
+    position: 'absolute',
+    bottom: -60,
+    left: -40,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  heroTopRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
-  heroStarSmall: {
-    fontSize: 10,
-    color: '#F5C542',
+  heroLabelBox: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   heroLabel: {
-    color: '#F91970',
-    fontSize: 14,
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+  },
+  heroAmount: {
+    fontSize: 42,
     fontWeight: '800',
-    letterSpacing: 1.5,
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  coinPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  coinPillText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+    marginLeft: 6,
+  },
+  heroDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    marginVertical: 20,
+    width: '100%',
   },
   breakdownRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
-    paddingHorizontal: 10,
-    marginBottom: 20,
+    marginBottom: 24,
   },
   breakdownCol: {
-    alignItems: 'center',
     flex: 1,
   },
-  divider: {
+  dividerVertical: {
     width: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     height: '100%',
-  },
-  horizontalDivider: {
-    width: '100%',
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    marginBottom: 20,
+    marginHorizontal: 16,
   },
   breakdownLabel: {
-    color: '#8B7F98',
+    color: 'rgba(255, 255, 255, 0.7)',
     fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1,
+    fontWeight: '600',
+    letterSpacing: 0.5,
     marginBottom: 4,
   },
   breakdownValue: {
-    color: '#FFF',
-    fontSize: 20,
+    color: '#FFFFFF',
+    fontSize: 18,
     fontWeight: '700',
-    fontFamily: 'Courier',
-  },
-  breakdownCoins: {
-    color: '#F5C542',
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  heroAmount: {
-    color: '#FFF',
-    fontSize: 48,
-    fontWeight: '800',
-    marginVertical: 10,
-    textShadowColor: 'rgba(249, 25, 112, 0.5)',
-    textShadowOffset: { width: 0, height: 4 },
-    textShadowRadius: 15,
-  },
-  coinPill: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    marginBottom: 20,
-  },
-  coinPillText: {
-    color: '#F5C542',
-    fontSize: 14,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  heroSubRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  heroSub: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.7)',
-    fontWeight: '500',
   },
   withdrawBtnHero: {
-    width: '100%',
     borderRadius: 16,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
   withdrawGradHero: {
     flexDirection: 'row',
@@ -316,10 +384,19 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   withdrawBtnTextHero: {
-    color: '#FFFFFF',
+    color: '#2A1240',
     fontSize: 16,
+    fontWeight: '800',
+    marginRight: 6,
+  },
+  sectionHeader: {
+    marginBottom: 16,
+    marginTop: 8,
+  },
+  sectionTitle: {
+    fontSize: 18,
     fontWeight: '700',
-    marginLeft: 8,
+    color: TEXT_PLUM,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -330,98 +407,48 @@ const styles = StyleSheet.create({
   statGridCard: {
     width: '48%',
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 16,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#EBDFC4', // IVORY_LINE
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: '#5B0E8B',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  statTopRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 12,
   },
   statIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#F3E8FF',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginRight: 8,
+  },
+  statGridLabel: {
+    fontSize: 13,
+    color: TEXT_MUTED,
+    fontWeight: '500',
   },
   statGridValue: {
     fontSize: 18,
     fontWeight: '700',
     color: '#2A1240',
-    marginBottom: 4,
-  },
-  statGridLabel: {
-    fontSize: 12,
-    color: '#8B7F98',
-    fontWeight: '500',
-  },
-  chartCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#EBDFC4',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  chartHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  chartTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#2A1240',
-  },
-  chartPlaceholder: {
-    height: 180,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: '#D1D5DB',
-  },
-  chartPlaceholderText: {
-    color: '#9CA3AF',
-    fontSize: 14,
-  },
-  sectionDivRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  sectionDivLine: {
-    height: 1,
-    flex: 1,
-    backgroundColor: '#EBDFC4', // IVORY_LINE
-  },
-  sectionDivStar: {
-    fontSize: 12,
-    color: '#F5C542', // GOLD
-    marginHorizontal: 12,
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#EBDFC4', // IVORY_LINE
-    overflow: 'hidden',
-    marginBottom: 40,
+    borderRadius: 24,
+    padding: 8,
+    shadowColor: '#5B0E8B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 3,
   },
   actionRow: {
     flexDirection: 'row',
@@ -431,30 +458,29 @@ const styles = StyleSheet.create({
   },
   actionRowBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: '#EBDFC4', // IVORY_LINE
+    borderBottomColor: '#F3F4F6',
   },
   actionRowLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  actionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: 'rgba(236, 19, 114, 0.1)',
+  actionIconBg: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
   },
   actionLabel: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#2A1240',
+    fontWeight: '700',
+    color: '#1F2937',
     marginBottom: 2,
   },
   actionSubLabel: {
     fontSize: 13,
-    color: '#8B7F98',
+    color: '#6B7280',
   },
 });
 

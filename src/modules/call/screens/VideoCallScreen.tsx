@@ -10,6 +10,7 @@ import {
   Animated,
   Dimensions,
   Platform,
+  Alert,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
@@ -58,8 +59,9 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
   const initialMaxSeconds = route.params?.maxSeconds;
   const [coins, setCoins] = useState<number>(0);
   const [timeLeft, setTimeLeft] = useState<number | null>(initialMaxSeconds !== undefined ? initialMaxSeconds : null);
-  const [showLowBalance, setShowLowBalance] = useState(false);
   const [callCostPerMinute, setCallCostPerMinute] = useState<number>(0);
+  const [showLowBalance, setShowLowBalance] = useState(false);
+  const [isRecharging, setIsRecharging] = useState(false);
 
   // Gifts
   const [gifts, setGifts] = useState<
@@ -127,10 +129,18 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
     if (socket) {
       socket.on('call_ended', handleEndCall);
       socket.on('insufficient_coins', handleEndCall);
+      socket.on('call_coins_deducted', (data: any) => {
+        setCoins(prev => Math.max(0, prev - data.coins_deducted));
+      });
     }
 
     const unsubscribeFocus = navigation.addListener('focus', () => {
-      fetchInitialData();
+      setIsRecharging(false);
+      fetchInitialData().then(() => {
+        if (!engine.current) {
+          setupAgoraEngine();
+        }
+      });
       const s = getSocket();
       if (s) s.emit('cancel_recharging_call', { callId });
     });
@@ -143,6 +153,7 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
       if (socket) {
         socket.off('call_ended', handleEndCall);
         socket.off('insufficient_coins', handleEndCall);
+        socket.off('call_coins_deducted');
       }
       unsubscribeFocus();
     };
@@ -370,7 +381,7 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
   // Countdown timer
   useEffect(() => {
     let timer: ReturnType<typeof setInterval>;
-    if (timeLeft !== null) {
+    if (timeLeft !== null && !isRecharging) {
       if (timeLeft <= 0) {
         handleEndCall(); // FORCE END CALL IMMEDIATELY AT 00:00
         return;
@@ -381,7 +392,7 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
       }, 1000);
     }
     return () => clearInterval(timer);
-  }, [timeLeft]);
+  }, [timeLeft, isRecharging]);
 
   const handleMute = () => {
     const next = !isMuted;
@@ -420,20 +431,42 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
       showToast('Not enough coins to send this gift.');
       return;
     }
-    try {
-      const newCoins = coins - gift.price;
-      setCoins(newCoins);
-      const newMaxSeconds = Math.floor(newCoins / callCostPerMinute) * 60;
-      if (timeLeft && newMaxSeconds < timeLeft) setTimeLeft(newMaxSeconds);
-      if (newMaxSeconds <= 60 && newMaxSeconds > 0) setShowLowBalance(true);
-      else if (newMaxSeconds <= 0) handleEndCall();
-      await apiClient.post('/api/call/gift', { giftId: gift.id, receiverId: targetId });
-      showToast(`Sent ${gift.name} ${gift.icon}`);
-    } catch (err) {
-      console.log('Error sending gift', err);
-      setCoins(coins);
-      showToast('Failed to send gift');
-    }
+
+    Alert.alert(
+      'Send Gift',
+      `Are you sure you want to send ${gift.name} ${gift.icon} for ${gift.price} coins?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Send', 
+          style: 'default',
+          onPress: async () => {
+            try {
+              const newCoins = coins - gift.price;
+              setCoins(newCoins);
+              
+              if (callCostPerMinute > 0 && timeLeft !== null) {
+                const secondsToDeduct = Math.floor((gift.price / callCostPerMinute) * 60);
+                const newMaxSeconds = Math.max(0, timeLeft - secondsToDeduct);
+                setTimeLeft(newMaxSeconds);
+
+                if (newMaxSeconds <= 60 && newMaxSeconds > 0) {
+                  setShowLowBalance(true);
+                } else if (newMaxSeconds <= 0) {
+                  handleEndCall();
+                }
+              }
+              await apiClient.post('/api/call/gift', { giftId: gift.id, receiverId: targetId });
+              showToast(`Sent ${gift.name} ${gift.icon}`);
+            } catch (err) {
+              console.log('Error sending gift', err);
+              setCoins(coins);
+              showToast('Failed to send gift');
+            }
+          }
+        }
+      ]
+    );
   };
 
   const formatTime = (totalSeconds: number) => {
@@ -592,17 +625,9 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
                 <PhoneOff size={28} color="#FFFFFF" fill="#FFFFFF" />
               </LinearGradient>
             </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.controlBtn, isVideoOff && styles.controlBtnActive]}
-              onPress={handleVideoToggle}
-            >
-              {isVideoOff ? (
-                <VideoOff size={24} color="#5B0E8B" />
-              ) : (
-                <VideoIcon size={24} color="#8B7F98" />
-              )}
-            </TouchableOpacity>
+            
+            {/* Empty placeholder to keep the UI centered if needed, or just let space-between handle it */}
+            <View style={{ width: 54, height: 54 }} />
           </LinearGradient>
         </View>
       </View>
@@ -617,6 +642,18 @@ const VideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
         onClose={() => setShowLowBalance(false)}
           onRecharge={() => {
             setShowLowBalance(false);
+            setIsRecharging(true);
+            
+            // CRITICAL: Leave channel and release engine before navigating to Wallet
+            // This prevents duplicate engines and camera lock issues when returning or pushing a new call screen
+            if (engine.current) {
+              engine.current.leaveChannel();
+              engine.current.release();
+              engine.current = null;
+            }
+            if (snapshotInterval.current) clearInterval(snapshotInterval.current);
+            if (faceWarningTimer.current) clearInterval(faceWarningTimer.current);
+
             const socket = getSocket();
             if (socket) socket.emit('recharging_call', { callId: route.params?.callId });
             import('@react-native-async-storage/async-storage').then(({ default: AsyncStorage }) => {

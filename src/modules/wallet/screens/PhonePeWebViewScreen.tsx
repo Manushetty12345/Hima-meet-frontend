@@ -67,6 +67,13 @@ const PhonePeWebViewScreen: React.FC<Props> = ({ navigation, route }) => {
 
     setIsVerifying(true);
     try {
+      // Check if App.tsx deep link handler already processed this payment
+      const pendingRaw = await AsyncStorage.getItem('hima_pending_payment');
+      if (!pendingRaw) {
+        // Already processed!
+        return;
+      }
+
       const res = await apiClient.post('/api/wallet/recharge/verify', {
         merchant_transaction_id: transactionId,
       });
@@ -80,7 +87,7 @@ const PhonePeWebViewScreen: React.FC<Props> = ({ navigation, route }) => {
 
       const shouldReturn = await AsyncStorage.getItem('hima_returnToScreen');
       const savedParamsStr = await AsyncStorage.getItem('hima_call_params');
-      if (isSuccess && shouldReturn && savedParamsStr) {
+      if (shouldReturn && savedParamsStr) {
         await AsyncStorage.removeItem('hima_returnToScreen');
         await AsyncStorage.removeItem('hima_call_params');
         
@@ -89,7 +96,11 @@ const PhonePeWebViewScreen: React.FC<Props> = ({ navigation, route }) => {
           // Show non-blocking toast
           if (Platform.OS === 'android') {
             import('react-native').then(({ ToastAndroid }) => {
-              ToastAndroid.show(`Payment Successful! Added ${coinsAdded} coins.`, ToastAndroid.LONG);
+              if (isSuccess) {
+                ToastAndroid.show(`Payment Successful! Added ${coinsAdded} coins.`, ToastAndroid.LONG);
+              } else {
+                ToastAndroid.show('Payment Failed or Cancelled.', ToastAndroid.SHORT);
+              }
             });
           }
           // Navigate immediately with all original parameters
@@ -100,28 +111,31 @@ const PhonePeWebViewScreen: React.FC<Props> = ({ navigation, route }) => {
         }
       }
 
-      // Navigate back to Wallet with result params
-      navigation.navigate('Wallet' as any, {
-        paymentResult: {
-          success: isSuccess,
-          coinsAdded,
-          newBalance,
-          transactionId,
-        },
-      } as any);
+      // Save result for WalletScreen to pick up
+      await AsyncStorage.setItem('hima_payment_result', JSON.stringify({
+        success: isSuccess,
+        coinsAdded,
+        newBalance,
+        transactionId,
+      }));
+
+      // Go back cleanly to WalletScreen (which is below us in the stack)
+      navigation.goBack();
     } catch (err: any) {
       if (err.response?.status !== 404) {
         console.error('Verify payment error:', err.message);
       }
       await AsyncStorage.removeItem('hima_pending_payment');
-      navigation.navigate('Wallet', {
-        paymentResult: {
-          success: false,
-          coinsAdded: 0,
-          newBalance: 0,
-          transactionId,
-        },
-      } as any);
+      
+      // Save failure result for WalletScreen
+      await AsyncStorage.setItem('hima_payment_result', JSON.stringify({
+        success: false,
+        coinsAdded: 0,
+        newBalance: 0,
+        transactionId,
+      }));
+      
+      navigation.goBack();
     }
   };
 
@@ -143,7 +157,7 @@ const PhonePeWebViewScreen: React.FC<Props> = ({ navigation, route }) => {
         {
           text: 'Yes, Cancel',
           style: 'destructive',
-          onPress: () => navigation.navigate('Wallet', {} as any),
+          onPress: () => navigation.goBack(),
         },
       ]
     );

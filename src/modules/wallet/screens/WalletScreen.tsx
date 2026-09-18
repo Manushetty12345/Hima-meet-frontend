@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { ArrowLeft, Coins, CheckCircle2, XCircle } from 'lucide-react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import apiClient from '../../../api/apiClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -118,13 +119,45 @@ const WalletScreen: React.FC<Props> = ({ navigation, route }) => {
   }, [selectedPackageId]);
 
   // Show payment result banner when coming back from PhonePe (normal flow)
-  useEffect(() => {
-    const result = route.params?.paymentResult;
-    if (result) {
-      fetchWalletData();
-      showResultBanner(result);
-    }
-  }, [route.params?.paymentResult]);
+  useFocusEffect(
+    useCallback(() => {
+      const checkPaymentResult = async () => {
+        try {
+          const resultStr = await AsyncStorage.getItem('hima_payment_result');
+          if (resultStr) {
+            const result = JSON.parse(resultStr);
+            await AsyncStorage.removeItem('hima_payment_result');
+            
+            fetchWalletData();
+            showResultBanner(result);
+
+            // Always return to the call screen if we were in one, even if payment failed
+            const returnScreen = await AsyncStorage.getItem('hima_returnToScreen');
+            const callParamsStr = await AsyncStorage.getItem('hima_call_params');
+            if (returnScreen) {
+              await AsyncStorage.removeItem('hima_returnToScreen');
+              await AsyncStorage.removeItem('hima_call_params');
+              
+              const params = callParamsStr ? JSON.parse(callParamsStr) : {};
+              if (Platform.OS === 'android') {
+                import('react-native').then(({ ToastAndroid }) => {
+                  if (result.success) {
+                    ToastAndroid.show(`Payment Successful! Added ${result.coinsAdded} coins.`, ToastAndroid.LONG);
+                  } else {
+                    ToastAndroid.show('Payment Failed.', ToastAndroid.SHORT);
+                  }
+                });
+              }
+              navigation.navigate(returnScreen as any, params);
+            }
+          }
+        } catch (e) {
+          console.error("Error reading payment result", e);
+        }
+      };
+      checkPaymentResult();
+    }, [fetchWalletData, navigation])
+  );
 
   useEffect(() => {
     if (route.params?.showWarning === 'insufficient_coins') {
@@ -137,9 +170,19 @@ const WalletScreen: React.FC<Props> = ({ navigation, route }) => {
       navigation.setParams({ showWarning: undefined, requiredCoins: undefined, callType: undefined });
     }
   }, [route.params?.showWarning, route.params?.requiredCoins, route.params?.callType, navigation]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchWalletData();
+      // Auto refresh every 10 seconds while focused
+      const interval = setInterval(() => {
+        fetchWalletData();
+      }, 10000);
+      return () => clearInterval(interval);
+    }, [fetchWalletData])
+  );
+
   useEffect(() => {
     StatusBar.setBarStyle('dark-content');
-    fetchWalletData();
     checkPendingPayment();
     Animated.parallel([
       Animated.timing(ctaOpacity, {
@@ -204,6 +247,27 @@ const WalletScreen: React.FC<Props> = ({ navigation, route }) => {
 
       // Refresh balance
       fetchWalletData();
+
+      // Always return to the call screen if we were in one, even if payment failed
+      const returnScreen = await AsyncStorage.getItem('hima_returnToScreen');
+      const callParamsStr = await AsyncStorage.getItem('hima_call_params');
+      if (returnScreen) {
+        await AsyncStorage.removeItem('hima_returnToScreen');
+        await AsyncStorage.removeItem('hima_call_params');
+        
+        const params = callParamsStr ? JSON.parse(callParamsStr) : {};
+        if (Platform.OS === 'android') {
+          import('react-native').then(({ ToastAndroid }) => {
+            if (isSuccess) {
+              ToastAndroid.show(`Payment Successful! Added ${data?.coins_added ?? savedCoins ?? 0} coins.`, ToastAndroid.LONG);
+            } else {
+              ToastAndroid.show('Payment Failed.', ToastAndroid.SHORT);
+            }
+          });
+        }
+        navigation.navigate(returnScreen as any, params);
+      }
+
     } catch (err: any) {
       // Silent — don't bother user if recovery fails
       if (err.response?.status !== 404) {

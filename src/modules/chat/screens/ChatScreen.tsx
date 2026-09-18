@@ -167,6 +167,16 @@ const ChatScreen = () => {
         return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
+    const formatDateHeader = (dateString: string) => {
+        const d = new Date(dateString);
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+        if (d.toDateString() === today.toDateString()) return 'Today';
+        if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
+        return d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+    };
+
     const formatLastSeen = (dateString: string | null) => {
         if (!dateString) return 'last seen recently';
         const date = new Date(dateString);
@@ -236,10 +246,19 @@ const ChatScreen = () => {
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-                    <ArrowLeft size={24} color={TEXT_DARK} />
+                    <ArrowLeft size={18} color="#2A1240" />
                 </TouchableOpacity>
 
-                <Image source={{ uri: targetAvatar }} style={styles.headerAvatar} />
+                <LinearGradient
+                    colors={['#8E2DE2', '#4A0F6E']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.headerAvatarRing}
+                >
+                    <View style={styles.headerAvatarInner}>
+                        <Image source={{ uri: targetAvatar }} style={styles.headerAvatar} />
+                    </View>
+                </LinearGradient>
 
                 <View style={styles.headerInfo}>
                     <Text style={styles.headerName}>{targetName}</Text>
@@ -290,11 +309,11 @@ const ChatScreen = () => {
                 </View>
             )}
 
-            {/* Chat Area */}
-            <ImageBackground
-                source={{ uri: 'https://www.transparenttextures.com/patterns/cubes.png' }}
-                style={styles.chatBackground}
-                imageStyle={{ opacity: 0.05 }}
+            {/* Chat Area & Input Area wrapped in KeyboardAvoidingView */}
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 20}
+                style={{ flex: 1, backgroundColor: '#F4EDFB' }}
             >
                 <ScrollView
                     style={styles.chatScrollView}
@@ -305,49 +324,64 @@ const ChatScreen = () => {
                     {messages.map((msg, index) => {
                         const isMe = msg.sender_id.toString() !== targetId.toString();
 
-                        return (
-                            <View
-                                key={msg.message_id || index}
-                                style={[styles.messageBubble, isMe ? styles.messageRight : styles.messageLeft]}
-                            >
-                                <Text style={[styles.messageText, isMe ? styles.messageTextRight : styles.messageTextLeft]}>
-                                    {msg.content}
-                                </Text>
+                        let showDate = false;
+                        if (index === 0) {
+                            showDate = true;
+                        } else {
+                            const prevMsg = messages[index - 1];
+                            if (prevMsg.timestamp && msg.timestamp) {
+                                const prevDate = new Date(prevMsg.timestamp).toDateString();
+                                const currDate = new Date(msg.timestamp).toDateString();
+                                if (prevDate !== currDate) showDate = true;
+                            }
+                        }
 
-                                <View style={styles.messageFooter}>
-                                    <Text style={[styles.messageTime, isMe ? styles.messageTimeRight : styles.messageTimeLeft]}>
-                                        {formatTime(msg.timestamp)}
+                        return (
+                            <View key={msg.message_id || index}>
+                                {showDate && msg.timestamp && (
+                                    <View style={styles.dateHeaderWrap}>
+                                        <Text style={styles.dateHeaderText}>{formatDateHeader(msg.timestamp)}</Text>
+                                    </View>
+                                )}
+                                <View
+                                    style={[styles.messageBubble, isMe ? styles.messageRight : styles.messageLeft]}
+                                >
+                                    <Text style={[styles.messageText, isMe ? styles.messageTextRight : styles.messageTextLeft]}>
+                                        {msg.content}
                                     </Text>
 
-                                    {isMe && (
-                                        <View style={styles.tickContainer}>
-                                            {msg.status === 'read' ? (
-                                                <CheckCheck size={14} color="#34B7F1" /> // WhatsApp Blue
-                                            ) : msg.status === 'delivered' ? (
-                                                <CheckCheck size={14} color="#9CA3AF" />
-                                            ) : (
-                                                <Check size={14} color="#9CA3AF" />
-                                            )}
-                                        </View>
-                                    )}
+                                    <View style={styles.messageFooter}>
+                                        <Text style={[styles.messageTime, isMe ? styles.messageTimeRight : styles.messageTimeLeft]}>
+                                            {formatTime(msg.timestamp)}
+                                        </Text>
+
+                                        {isMe && (
+                                            <View style={styles.tickContainer}>
+                                                {msg.status === 'read' ? (
+                                                    <CheckCheck size={14} color="#34B7F1" /> // WhatsApp Blue
+                                                ) : msg.status === 'delivered' ? (
+                                                    <CheckCheck size={14} color="#9CA3AF" />
+                                                ) : (
+                                                    <Check size={14} color="#9CA3AF" />
+                                                )}
+                                            </View>
+                                        )}
+                                    </View>
                                 </View>
                             </View>
                         );
                     })}
                 </ScrollView>
-            </ImageBackground>
 
-            {/* Input Area */}
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                style={styles.keyboardView}
-            >
+                {/* Input Area */}
                 <View style={styles.inputContainer}>
-                    <View style={styles.inputWrapper}>
-                        <TouchableOpacity style={styles.emojiBtn} onPress={() => setShowEmojiPicker(!showEmojiPicker)}>
-                            <Smile size={28} color={showEmojiPicker ? PINK : "#8B7F98"} />
-                        </TouchableOpacity>
+                    <TouchableOpacity style={styles.emojiBtnGradientWrap} activeOpacity={0.8} onPress={() => setShowEmojiPicker(!showEmojiPicker)}>
+                        <View style={styles.emojiBtnInner}>
+                            <Smile size={16} color="#9C27B0" />
+                        </View>
+                    </TouchableOpacity>
 
+                    <View style={styles.inputWrapper}>
                         <TextInput
                             style={styles.input}
                             placeholder="Type a message..."
@@ -359,15 +393,10 @@ const ChatScreen = () => {
                         />
                     </View>
 
-                    <TouchableOpacity style={styles.sendBtnWrap} activeOpacity={0.8} onPress={handleSendMessage}>
-                        <LinearGradient
-                            colors={[PINK, '#C90E62']}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={styles.sendBtn}
-                        >
-                            <Send size={18} color="#FFFFFF" style={{ marginLeft: 2 }} />
-                        </LinearGradient>
+                    <TouchableOpacity style={styles.sendBtnGradientWrap} activeOpacity={0.8} onPress={handleSendMessage}>
+                        <View style={styles.sendBtnInner}>
+                            <Send size={16} color="#9C27B0" style={{ marginLeft: 2 }} />
+                        </View>
                     </TouchableOpacity>
                 </View>
 
@@ -388,32 +417,52 @@ const ChatScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#F4EDFB',
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingTop: Platform.OS === 'ios' ? 50 : 20,
+        paddingTop: Platform.OS === 'ios' ? 70 : 50,
         paddingBottom: 15,
         paddingHorizontal: 15,
         backgroundColor: '#FFFFFF',
-        borderBottomWidth: 1,
-        borderBottomColor: '#F0EAF6',
-        elevation: 3,
+        // removed bottom border
+    },
+    backBtn: {
+        width: 32,
+        height: 32,
+        borderRadius: 10,
+        backgroundColor: '#FFFFFF',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
-        shadowRadius: 3,
+        shadowRadius: 4,
+        elevation: 2,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
     },
-    backBtn: {
-        padding: 5,
+    headerAvatarRing: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        alignItems: 'center',
+        justifyContent: 'center',
         marginRight: 10,
     },
-    headerAvatar: {
+    headerAvatarInner: {
         width: 40,
         height: 40,
         borderRadius: 20,
-        marginRight: 12,
+        backgroundColor: '#FFFFFF',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 2,
+    },
+    headerAvatar: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
     },
     headerInfo: {
         flex: 1,
@@ -434,7 +483,7 @@ const styles = StyleSheet.create({
     },
     dropdownMenu: {
         position: 'absolute',
-        top: Platform.OS === 'ios' ? 90 : 70,
+        top: Platform.OS === 'ios' ? 115 : 95,
         right: 15,
         backgroundColor: '#FFFFFF',
         borderRadius: 16,
@@ -477,42 +526,51 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     chatContentContainer: {
-        padding: 15,
-        paddingBottom: 20,
+        padding: 16,
+        justifyContent: 'flex-end',
+        flexGrow: 1,
+    },
+    dateHeaderWrap: {
+        alignSelf: 'center',
+        backgroundColor: '#F0EAF6',
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 12,
+        marginVertical: 16,
+    },
+    dateHeaderText: {
+        fontSize: 12,
+        color: '#8B7F98',
+        fontWeight: '500',
     },
     messageBubble: {
-        maxWidth: '80%',
         paddingHorizontal: 14,
         paddingVertical: 10,
-        borderRadius: 20,
-        marginBottom: 8,
+        borderRadius: 18,
+        maxWidth: '80%',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 1,
+        elevation: 1,
+        marginBottom: 12,
     },
     messageLeft: {
         alignSelf: 'flex-start',
         backgroundColor: '#FFFFFF',
-        borderBottomLeftRadius: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 1,
+        borderBottomLeftRadius: 4,
     },
     messageRight: {
         alignSelf: 'flex-end',
-        backgroundColor: '#FF1493',
-        borderBottomRightRadius: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 1,
+        backgroundColor: '#9C27B0',
+        borderBottomRightRadius: 4,
     },
     messageText: {
         fontSize: 15,
-        lineHeight: 20,
+        marginBottom: 4,
     },
     messageTextLeft: {
-        color: TEXT_DARK,
+        color: '#4A0F6E',
     },
     messageTextRight: {
         color: '#FFFFFF',
@@ -522,13 +580,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'flex-end',
         marginTop: 4,
-        minWidth: 60,
     },
     messageTime: {
-        fontSize: 11,
+        fontSize: 10,
     },
     messageTimeLeft: {
-        color: TEXT_MUTED,
+        color: '#9B9BAD',
     },
     messageTimeRight: {
         color: 'rgba(255, 255, 255, 0.7)',
@@ -541,43 +598,69 @@ const styles = StyleSheet.create({
     },
     inputContainer: {
         flexDirection: 'row',
-        alignItems: 'flex-end',
-        padding: 12,
-        paddingBottom: Platform.OS === 'ios' ? 24 : 12,
-        backgroundColor: '#FFFFFF',
+        alignItems: 'center',
+        backgroundColor: 'transparent',
+        paddingHorizontal: 12,
+        paddingTop: 12,
+        paddingBottom: Platform.OS === 'ios' ? 30 : 20,
         borderTopWidth: 1,
-        borderTopColor: '#F0EAF6',
+        borderTopColor: 'rgba(235, 229, 242, 0.4)',
+        gap: 10,
     },
     inputWrapper: {
         flex: 1,
         flexDirection: 'row',
-        alignItems: 'flex-end',
-        backgroundColor: '#F7F3FA',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
         borderRadius: 24,
-        paddingHorizontal: 12,
-        marginRight: 10,
-        minHeight: 48,
-    },
-    emojiBtn: {
-        paddingBottom: 10,
-        paddingRight: 10,
+        minHeight: 40,
+        maxHeight: 120,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04,
+        shadowRadius: 4,
+        elevation: 2,
     },
     input: {
         flex: 1,
+        minHeight: 40,
+        paddingHorizontal: 16,
+        paddingTop: Platform.OS === 'ios' ? 10 : 8,
+        paddingBottom: Platform.OS === 'ios' ? 10 : 8,
         fontSize: 15,
-        color: TEXT_DARK,
-        maxHeight: 100,
-        paddingTop: 14,
-        paddingBottom: 14,
+        color: '#2A1240',
     },
-    sendBtnWrap: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        overflow: 'hidden',
+    emojiBtnGradientWrap: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: '#FFFFFF',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 6,
+        elevation: 2,
     },
-    sendBtn: {
+    emojiBtnInner: {
         flex: 1,
+        borderRadius: 18,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    sendBtnGradientWrap: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: '#FFFFFF',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 6,
+        elevation: 2,
+    },
+    sendBtnInner: {
+        flex: 1,
+        borderRadius: 18,
         alignItems: 'center',
         justifyContent: 'center',
     },

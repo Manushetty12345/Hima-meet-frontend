@@ -97,7 +97,7 @@ const FriendCard: React.FC<FriendCardProps> = ({ item, onPress, onCall, onVideoC
     <View style={styles.card}>
       {/* Avatar with purple ring */}
       <LinearGradient
-        colors={['#EC4899', '#A855F7']}
+        colors={['#9C27B0', '#5B0E8B']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.avatarRing}

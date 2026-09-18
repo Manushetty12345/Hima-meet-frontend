@@ -196,6 +196,14 @@ const CreatorFullProfileScreen: React.FC<Props> = ({ navigation, route }) => {
       setIsBlocked(false);
       await fetchProfile();
       showToast('User unblocked successfully');
+
+      if (navigation) {
+        navigation.navigate('ChatScreen', {
+          targetId: creatorId,
+          targetName: creator?.name || 'User',
+          targetAvatar: creator?.avatar_url || 'https://i.pravatar.cc/150',
+        });
+      }
     } catch (error) {
       console.error('Failed to unblock user', error);
       showToast('Failed to unblock user');

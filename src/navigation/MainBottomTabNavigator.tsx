@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, View } from 'react-native';
+import { Platform, View, TouchableOpacity } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Home as HomeIcon, Clock, Users, UserCircle2 } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
@@ -33,11 +33,13 @@ const MainBottomTabNavigator = () => {
         tabBarActiveTintColor: PLUM_ROYAL,
         tabBarInactiveTintColor: TEXT_MUTED,
         tabBarShowLabel: false,
+        tabBarButton: (props) => <TouchableOpacity {...props} activeOpacity={1} />,
+        tabBarPressColor: 'transparent', // removes android ripple / shadow when tapped
         tabBarStyle: {
           backgroundColor: LILAC_WHITE,
-          paddingTop: 16,
-          paddingBottom: Platform.OS === 'ios' ? 38 : 28,
-          height: Platform.OS === 'ios' ? 110 : 100,
+          paddingTop: 8,
+          paddingBottom: Platform.OS === 'ios' ? 52 : 48,
+          height: Platform.OS === 'ios' ? 112 : 106,
           borderTopWidth: 0,
           borderTopLeftRadius: 30,
           borderTopRightRadius: 30,
@@ -59,14 +61,10 @@ const MainBottomTabNavigator = () => {
               <View style={{
                 height: 48,
                 width: 48,
-                borderRadius: 24,
-                backgroundColor: focused ? 'rgba(91, 14, 139, 0.12)' : 'transparent',
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderWidth: focused ? 1.5 : 0,
-                borderColor: focused ? 'rgba(91, 14, 139, 0.3)' : 'transparent',
               }}>
-                <Icon size={26} color={focused ? PLUM_ROYAL : TEXT_MUTED} />
+                <Icon size={28} color={focused ? GOLD_DEEP : TEXT_MUTED} strokeWidth={focused ? 2.5 : 2} />
               </View>
               {focused && (
                 <View style={{
@@ -74,9 +72,9 @@ const MainBottomTabNavigator = () => {
                   height: 6,
                   borderRadius: 3,
                   backgroundColor: GOLD_DEEP,
-                  marginTop: 6,
+                  marginTop: 4,
                   position: 'absolute',
-                  bottom: -12
+                  bottom: -8
                 }} />
               )}
             </View>

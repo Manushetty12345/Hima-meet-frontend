@@ -24,6 +24,7 @@ import EmojiSelector, { Categories } from 'react-native-emoji-selector';
 import { launchCamera, launchImageLibrary, ImagePickerResponse } from 'react-native-image-picker';
 import { ArrowLeft, Phone, Video, MoreVertical, UserPlus, User, Coins, Send, Image as ImageIcon, Smile, Camera, Mic, Ban, Eraser, Trash2, Lock, Check, CheckCheck } from 'lucide-react-native';
 import { initSocket, disconnectSocket, getSocket } from '../../../api/socketClient';
+import { useNavigation } from '@react-navigation/native';
 
 const PLUM_ROYAL = '#5B0E8B';
 const GOLD = '#F5C542';
@@ -79,8 +80,9 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
   onCall,
   onVideoCall,
 }) => {
+  const navigation = useNavigation<any>();
   const [menuVisible, setMenuVisible] = useState(false);
-  const [friendStatus, setFriendStatus] = useState<'none' | 'pending' | 'friends' | 'blocked'>('none');
+  const [friendStatus, setFriendStatus] = useState<'none' | 'pending' | 'friends' | 'blocked' | 'blocked_by_them'>('none');
   const [isLoadingStatus, setIsLoadingStatus] = useState(true);
   
   // Real-time online status state
@@ -342,6 +344,15 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
       await apiClient.post(`/api/creator/${creator.id}/unblock`);
       await fetchStatus();
       showToast('User unblocked successfully');
+      
+      // Close modal and navigate to chat screen
+      onClose();
+      navigation.navigate('ChatScreen', {
+        targetId: creator.id,
+        targetName: creator.name || 'User',
+        targetAvatar: creator.avatarUri || 'https://i.pravatar.cc/150',
+      });
+      
     } catch (e) {
       console.error('Failed to unblock user', e);
       showToast('Failed to unblock user');
@@ -676,6 +687,11 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
                   </LinearGradient>
                 </TouchableOpacity>
               </View>
+          ) : friendStatus === 'blocked_by_them' ? (
+            <View style={styles.footer}>
+              <Text style={[styles.footerTitle, { color: '#E74C3C' }]}>User Unavailable</Text>
+              <Text style={styles.footerSubtitle}>You cannot interact with this user.</Text>
+            </View>
           ) : (
             <View style={styles.chatFooterContainer}>
               <TouchableOpacity style={styles.emojiBtnGradientWrap} activeOpacity={0.8} onPress={() => setShowEmojiPicker(!showEmojiPicker)}>

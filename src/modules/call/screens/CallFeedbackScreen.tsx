@@ -33,6 +33,10 @@ const CallFeedbackScreen: React.FC<Props> = ({ navigation, route }) => {
   const [isFavorited, setIsFavorited] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const showToast = (msg: string) => {
+    ToastAndroid.showWithGravityAndOffset(msg, ToastAndroid.SHORT, ToastAndroid.TOP, 0, 150);
+  };
+
   const handleAddFriend = async () => {
     if (!creatorId) return;
     try {
@@ -40,15 +44,16 @@ const CallFeedbackScreen: React.FC<Props> = ({ navigation, route }) => {
         // Cancel the request
         await apiClient.post('/api/friends/cancel', { target_user_id: creatorId });
         setIsFriendRequested(false);
-        ToastAndroid.show('Friend request cancelled', ToastAndroid.SHORT);
+        showToast('Friend request cancelled');
       } else {
         // Send the request
         await apiClient.post('/api/friends/request', { target_user_id: creatorId });
         setIsFriendRequested(true);
-        ToastAndroid.show('Friend request sent!', ToastAndroid.SHORT);
+        showToast('Friend request sent!');
       }
-    } catch (error) {
-      ToastAndroid.show('Something went wrong', ToastAndroid.SHORT);
+    } catch (error: any) {
+      const msg = error.response?.data?.message || 'Something went wrong';
+      showToast(msg);
     }
   };
 
@@ -59,21 +64,22 @@ const CallFeedbackScreen: React.FC<Props> = ({ navigation, route }) => {
         // Remove from favourites
         await apiClient.post(`/api/friends/${creatorId}/favourite`, { is_favourite: false });
         setIsFavorited(false);
-        ToastAndroid.show('Removed from favourites', ToastAndroid.SHORT);
+        showToast('Removed from favourites');
       } else {
         // Add to favourites
         await apiClient.post(`/api/friends/${creatorId}/favourite`, { is_favourite: true });
         setIsFavorited(true);
-        ToastAndroid.show('Added to favourites!', ToastAndroid.SHORT);
+        showToast('Added to favourites!');
       }
-    } catch (error) {
-      ToastAndroid.show('Something went wrong', ToastAndroid.SHORT);
+    } catch (error: any) {
+      const msg = error.response?.data?.message || 'Something went wrong';
+      showToast(msg);
     }
   };
 
   const handleSubmit = async () => {
     if (rating === 0) {
-      ToastAndroid.show('Please select a rating', ToastAndroid.SHORT);
+      showToast('Please select a rating');
       return;
     }
 
@@ -88,7 +94,7 @@ const CallFeedbackScreen: React.FC<Props> = ({ navigation, route }) => {
         likeText,
         comments,
       });
-      ToastAndroid.show('Feedback submitted successfully!', ToastAndroid.SHORT);
+      showToast('Feedback submitted successfully!');
     } catch (error) {
       console.log('Error submitting feedback', error);
       // Still navigate away — don't trap the user on this screen
@@ -219,7 +225,7 @@ const CallFeedbackScreen: React.FC<Props> = ({ navigation, route }) => {
 
           {/* Submit Button */}
           <View style={styles.footer}>
-            <TouchableOpacity activeOpacity={0.8} onPress={handleSubmit} style={styles.submitWrapper}>
+            <TouchableOpacity activeOpacity={0.8} onPress={handleSubmit} style={styles.submitBtnWrapper}>
               <LinearGradient 
                 colors={['#5B0E8B', '#2A1240']} 
                 start={{ x: 0, y: 0 }} 
@@ -378,7 +384,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingHorizontal: 24,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 30,
+    paddingBottom: Platform.OS === 'ios' ? 120 : 110,
     paddingTop: 16,
   },
   submitBtnWrapper: {

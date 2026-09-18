@@ -49,6 +49,7 @@ const RandomMatchModal: React.FC<RandomMatchModalProps> = ({
   const [userAvatar, setUserAvatar] = useState('https://hima-bucket.s3.amazonaws.com/default-avatar.png');
   const [displayAvatar, setDisplayAvatar] = useState('https://i.pravatar.cc/300?img=47');
   const [statusText, setStatusText] = useState('Connecting');
+  const [matchedName, setMatchedName] = useState<string | null>(null);
   const [showDndBlock, setShowDndBlock] = useState(false);
   
   const [toastMessage, setToastMessage] = useState('');
@@ -136,6 +137,7 @@ const RandomMatchModal: React.FC<RandomMatchModalProps> = ({
       ripple2.setValue(0);
       ripple3.setValue(0);
       toastAnim.setValue(0);
+      setMatchedName(null);
       if (roamingInterval.current) clearInterval(roamingInterval.current);
     }
   }, [visible]);
@@ -162,6 +164,7 @@ const RandomMatchModal: React.FC<RandomMatchModalProps> = ({
   const proceedWithCall = () => {
     if (targetUser) {
       setDisplayAvatar(targetUser.avatarUri);
+      setMatchedName(targetUser.name);
       setStatusText('Request Sent');
       if (onProceedWithDirectCall) onProceedWithDirectCall();
     } else {
@@ -192,6 +195,8 @@ const RandomMatchModal: React.FC<RandomMatchModalProps> = ({
         if (roamingInterval.current) clearInterval(roamingInterval.current);
         const finalAvatar = matchedData.avatarUri || 'https://i.pravatar.cc/300';
         setDisplayAvatar(finalAvatar);
+        const name = matchedData.name || 'Random Match';
+        setMatchedName(name);
         setStatusText('Waiting for response');
 
         if (onMatchFound) {
@@ -269,12 +274,18 @@ const RandomMatchModal: React.FC<RandomMatchModalProps> = ({
                   <Animated.View style={[styles.scanLine, { transform: [{ translateY: slideAnim }] }]} />
                 </View>
               )}
-              <View style={styles.targetLabel}>
-                <Search size={12} color="#FFF" style={{marginRight: 4}} />
-                <Text style={styles.targetLabelText}>
-                  {statusText === 'Connecting' ? 'Searching...' : 'Found Match'}
-                </Text>
-              </View>
+              {statusText === 'Connecting' ? (
+                <View style={styles.targetLabel}>
+                  <Search size={12} color="#FFF" style={{marginRight: 4}} />
+                  <Text style={styles.targetLabelText}>Searching...</Text>
+                </View>
+              ) : (
+                <View style={styles.targetNameBadge}>
+                  <LinearGradient colors={[NEON_PINK, '#FF1493']} style={styles.targetNameGradient}>
+                    <Text style={styles.targetNameText}>{matchedName || 'Found Match'}</Text>
+                  </LinearGradient>
+                </View>
+              )}
             </View>
 
             {/* Connection stream / Chevrons */}
@@ -493,6 +504,26 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontWeight: '700',
     letterSpacing: 0.5,
+  },
+  targetNameBadge: {
+    position: 'absolute',
+    bottom: -10,
+    borderRadius: 20,
+    backgroundColor: '#0F0817', // outer border illusion
+    padding: 3,
+  },
+  targetNameGradient: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  targetNameText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    fontWeight: '800',
+    letterSpacing: 1,
   },
   
   // Connection Stream

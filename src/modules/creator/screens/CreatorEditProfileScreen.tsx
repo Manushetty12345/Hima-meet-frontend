@@ -35,9 +35,10 @@ const CreatorEditProfileScreen = ({ navigation }: Props) => {
   const [about, setAbout] = useState('');
   
   // Read-only fields
-  const [gender, setGender] = useState('Female');
-  const [age, setAge] = useState('24');
-  const [interests, setInterests] = useState('Astrology, Music, Travel');
+  const [gender, setGender] = useState('');
+  const [age, setAge] = useState('');
+  const [language, setLanguage] = useState('');
+  const [interests, setInterests] = useState('');
   
   const [avatars, setAvatars] = useState<AvatarItem[]>([]);
   const [selectedAvatarId, setSelectedAvatarId] = useState('');
@@ -52,8 +53,12 @@ const CreatorEditProfileScreen = ({ navigation }: Props) => {
         if (res.data?.data) {
           const profile = res.data.data;
           setUsername(profile.username || '');
-          setGender(profile.gender === 'female' ? 'Female' : 'Male');
+          setGender(profile.gender === 'female' ? 'Female' : profile.gender === 'male' ? 'Male' : 'Not specified');
           setAbout(profile.bio || 'Hi! Let\'s chat!');
+          
+          setAge(profile.age ? String(profile.age) : 'Not specified');
+          setLanguage(profile.language_name || 'Not specified');
+          setInterests(profile.interests || 'No interests selected');
           
           if (profile.avatar_id) {
             setSelectedAvatarId(profile.avatar_id.toString());
@@ -176,6 +181,10 @@ const CreatorEditProfileScreen = ({ navigation }: Props) => {
             </View>
           </View>
           <View style={styles.readOnlyCellSingle}>
+            <Text style={styles.readOnlyLabel}>Language</Text>
+            <Text style={styles.readOnlyValue}>{language}</Text>
+          </View>
+          <View style={styles.readOnlyCellSingle}>
             <Text style={styles.readOnlyLabel}>Interests / Topics</Text>
             <Text style={styles.readOnlyValue}>{interests}</Text>
           </View>
@@ -229,8 +238,8 @@ const styles = StyleSheet.create({
   readOnlyCellSingle: { backgroundColor: '#F9FAFB', borderRadius: 12, padding: 12, marginBottom: 8 },
   readOnlyLabel: { fontSize: 12, color: TEXT_MUTED, textTransform: 'uppercase', marginBottom: 4 },
   readOnlyValue: { fontSize: 16, fontWeight: '700', color: TEXT_PLUM },
-  footer: { paddingHorizontal: 20, paddingBottom: Platform.OS === 'ios' ? 34 : 20, paddingTop: 16, backgroundColor: IVORY, borderTopWidth: 1, borderTopColor: IVORY_LINE },
-  updateButtonWrapper: { borderRadius: 999, overflow: 'hidden' },
+  footer: { paddingHorizontal: 20, paddingBottom: Platform.OS === 'ios' ? 44 : 40, paddingTop: 16, backgroundColor: IVORY, borderTopWidth: 1, borderTopColor: IVORY_LINE },
+  updateButtonWrapper: { borderRadius: 14, overflow: 'hidden' },
   updateButton: { paddingVertical: 18, alignItems: 'center' },
   updateButtonText: { fontSize: 16, fontWeight: '700', color: '#1A0733' },
   updateButtonDisabled: { backgroundColor: '#E5E7EB' },

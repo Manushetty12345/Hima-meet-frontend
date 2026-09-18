@@ -838,7 +838,7 @@ const styles = StyleSheet.create({
   },
   toastContainer: {
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 100 : 80,
+    bottom: Platform.OS === 'ios' ? 160 : 140,
     alignSelf: 'center',
     backgroundColor: '#9B5DE5', // Light purple requested by user
     borderRadius: 24,

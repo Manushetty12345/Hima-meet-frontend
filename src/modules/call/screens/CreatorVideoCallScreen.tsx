@@ -32,6 +32,7 @@ import createAgoraRtcEngine, {
 import { request, PERMISSIONS } from 'react-native-permissions';
 import FaceDetector from '@react-native-ml-kit/face-detection';
 import { getSocket } from '../../../api/socketClient';
+import apiClient from '../../../api/apiClient';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'CreatorVideoCallScreen'>;
 
@@ -45,11 +46,18 @@ const CreatorVideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
     callId,
     rate = 0,
     agoraToken = '',
+    targetId,
   } = route.params || {};
 
   // Coin & Timer State
   const [coinsEarned, setCoinsEarned] = useState<number>(0);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
+
+  const elapsedTimeRef = useRef(0);
+  const coinsEarnedRef = useRef(0);
+
+  useEffect(() => { elapsedTimeRef.current = elapsedTime; }, [elapsedTime]);
+  useEffect(() => { coinsEarnedRef.current = coinsEarned; }, [coinsEarned]);
 
   // Call Control State
   const [isMuted, setIsMuted] = useState(false);
@@ -69,10 +77,26 @@ const CreatorVideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
   const faceWarningTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const snapshotInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const [fetchedMyName, setFetchedMyName] = useState('Creator');
+  const [fetchedMyAvatar, setFetchedMyAvatar] = useState('https://hima-bucket.s3.amazonaws.com/default-avatar.png');
+
   const engine = useRef<IRtcEngine>(null);
   const channelName = callId ? `call_${callId}` : 'test-video-channel';
 
   useEffect(() => {
+    // Fetch own profile for avatar display when video is off
+    apiClient.get('/api/user/me')
+      .then(res => {
+        if (res.data?.data) {
+          const user = res.data.data;
+          setFetchedMyName(user.username || user.full_name || 'Creator');
+          if (user.avatar_url) {
+            setFetchedMyAvatar(user.avatar_url);
+          }
+        }
+      })
+      .catch(err => console.log('Error fetching creator profile', err));
+
     setupAgoraEngine();
     setupSocketListeners();
     return () => {
@@ -248,6 +272,12 @@ const CreatorVideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
     return () => clearInterval(timer);
   }, [isJoined]);
 
+  useEffect(() => {
+    if (isJoined) {
+      setCoinsEarned(Number(rate)); // First minute is charged immediately
+    }
+  }, [isJoined, rate]);
+
   // Coin earning calculation
   useEffect(() => {
     if (elapsedTime > 0 && elapsedTime % 60 === 0) {
@@ -270,11 +300,14 @@ const CreatorVideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
   const handleCallCleanup = () => {
     setShowEndCallModal(false);
     engine.current?.leaveChannel();
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-    } else {
-      navigation.replace('MainTabs');
-    }
+    // Navigate to Summary Screen
+    navigation.replace('CreatorCallSummaryScreen', {
+      callerId: targetId,
+      callerName,
+      callerAvatar,
+      coinsEarned: coinsEarnedRef.current,
+      callDurationSeconds: elapsedTimeRef.current,
+    });
   };
 
   const emitLeaveCall = () => {
@@ -295,7 +328,6 @@ const CreatorVideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
 
   return (
     <View style={styles.container}>
-      {/* @ts-ignore */}
       {/* @ts-ignore */}
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
@@ -332,7 +364,7 @@ const CreatorVideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
           </Text>
         </View>
         <View style={styles.coinPill}>
-          <Text style={styles.coinText}>+{coinsEarned} Coins Earned</Text>
+          <Text style={styles.coinText}>+{coinsEarned} Coins</Text>
         </View>
       </View>
 
@@ -353,11 +385,14 @@ const CreatorVideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
           />
         ) : (
           <View style={styles.pipVideoOff}>
-            <VideoOff size={28} color="#FFF" />
+            <Image
+              source={{ uri: fetchedMyAvatar }}
+              style={styles.pipVideo}
+            />
           </View>
         )}
         <View style={styles.pipNameBadge}>
-          <Text style={styles.pipName}>You</Text>
+          <Text style={styles.pipName}>{fetchedMyName}</Text>
         </View>
       </View>
 
@@ -365,14 +400,14 @@ const CreatorVideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
       <View style={styles.bottomSection}>
         <View style={styles.controlsDock}>
           <LinearGradient
-            colors={['rgba(40, 30, 60, 0.65)', 'rgba(20, 15, 30, 0.85)']}
+            colors={['#FFFFFF', '#FBF7FF']}
             style={styles.controlsPill}
           >
             <TouchableOpacity
               style={[styles.controlBtn, isMuted && styles.controlBtnActive]}
               onPress={handleMute}
             >
-              {isMuted ? <MicOff size={24} color="#FFFFFF" /> : <Mic size={24} color="#B9AFC4" />}
+              {isMuted ? <MicOff size={24} color="#5B0E8B" /> : <Mic size={24} color="#8B7F98" />}
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -384,13 +419,9 @@ const CreatorVideoCallScreen: React.FC<Props> = ({ navigation, route }) => {
                 <PhoneOff size={28} color="#FFFFFF" fill="#FFFFFF" />
               </LinearGradient>
             </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.controlBtn, isVideoOff && styles.controlBtnActive]}
-              onPress={handleVideoToggle}
-            >
-              {isVideoOff ? <VideoOff size={24} color="#FFFFFF" /> : <VideoIcon size={24} color="#B9AFC4" />}
-            </TouchableOpacity>
+            
+            {/* Empty placeholder to keep the UI centered if needed, or just let space-between handle it */}
+            <View style={{ width: 54, height: 54 }} />
           </LinearGradient>
         </View>
       </View>
@@ -439,19 +470,23 @@ const styles = StyleSheet.create({
   },
   timerGlassPill: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 18, paddingVertical: 9,
     borderRadius: 30, borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)', gap: 8,
+    borderColor: '#EBDFC4', gap: 8,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
   },
-  timerText: { color: '#FFF', fontSize: 15, fontWeight: '700', letterSpacing: 1 },
+  timerText: { color: '#5B0E8B', fontSize: 15, fontWeight: '700', letterSpacing: 1 },
   coinPill: {
-    backgroundColor: 'rgba(0, 223, 216, 0.15)',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 16, paddingVertical: 9,
     borderRadius: 30, borderWidth: 1,
-    borderColor: 'rgba(0, 223, 216, 0.3)',
+    borderColor: '#EBDFC4', flexDirection: 'row', alignItems: 'center', gap: 6,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
   },
-  coinText: { color: '#00DFD8', fontSize: 14, fontWeight: '700' },
+  coinText: { color: '#2A1240', fontSize: 14, fontWeight: '700' },
   calleeBadge: {
     position: 'absolute', left: 18,
     flexDirection: 'row', alignItems: 'center', gap: 8, zIndex: 10,
@@ -471,13 +506,13 @@ const styles = StyleSheet.create({
     position: 'absolute', right: 16,
     width: 112, height: 162, borderRadius: 18,
     overflow: 'hidden', borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.25)',
+    borderColor: '#F5C542',
     backgroundColor: '#1A1025', elevation: 12,
     shadowColor: '#000', shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.5, shadowRadius: 8, zIndex: 10,
   },
   pipVideo: { width: '100%', height: '100%', resizeMode: 'cover' },
-  pipVideoOff: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2A1D3A' },
+  pipVideoOff: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FBF6EC' },
   pipNameBadge: {
     position: 'absolute', bottom: 6, left: 6,
     backgroundColor: 'rgba(0,0,0,0.55)',
@@ -487,30 +522,31 @@ const styles = StyleSheet.create({
   bottomSection: { position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10 },
   controlsDock: {
     paddingHorizontal: 24,
-    paddingBottom: Platform.OS === 'ios' ? 42 : 28,
+    paddingBottom: Platform.OS === 'ios' ? 84 : 72,
   },
   controlsPill: {
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20, paddingVertical: 10,
     borderRadius: 40, borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: '#EBDFC4',
   },
   controlBtn: {
     width: 54, height: 54, borderRadius: 27,
-    backgroundColor: 'rgba(255,255,255,0.07)',
+    backgroundColor: '#FBF6EC',
+    borderWidth: 1, borderColor: '#EBDFC4',
     alignItems: 'center', justifyContent: 'center',
   },
-  controlBtnActive: { backgroundColor: 'rgba(255,255,255,0.22)' },
+  controlBtnActive: { backgroundColor: 'rgba(91, 14, 139, 0.1)', borderColor: '#5B0E8B' },
   endCallBtnWrapper: {
-    shadowColor: '#FF4D4D',
+    shadowColor: '#EC1372',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.45, shadowRadius: 14, elevation: 10,
+    shadowOpacity: 0.3, shadowRadius: 14, elevation: 10,
   },
   endCallBtn: {
     width: 70, height: 70, borderRadius: 35,
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)',
+    borderWidth: 2, borderColor: '#FFFFFF',
   },
   faceWarningOverlay: {
     position: 'absolute',
@@ -530,24 +566,46 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: 'rgba(255,80,80,0.5)',
   },
-  faceWarningEmoji: { fontSize: 48, marginBottom: 12 },
+  faceWarningEmoji: {
+    fontSize: 48,
+    marginBottom: 12,
+  },
   faceWarningTitle: {
-    color: '#FFF', fontSize: 22, fontWeight: '800', textAlign: 'center',
-    letterSpacing: 0.3, marginBottom: 8,
+    color: '#FFF',
+    fontSize: 22,
+    fontWeight: '800',
+    textAlign: 'center',
+    letterSpacing: 0.3,
+    marginBottom: 8,
   },
   faceWarningSubtitle: {
-    color: 'rgba(255,255,255,0.75)', fontSize: 14, textAlign: 'center',
-    marginBottom: 28, lineHeight: 20,
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 28,
+    lineHeight: 20,
   },
   faceWarningCircle: {
-    width: 80, height: 80, borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.4)', alignItems: 'center',
-    justifyContent: 'center', marginBottom: 16,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
   },
-  faceWarningCountdownNum: { color: '#FFF', fontSize: 38, fontWeight: '900' },
+  faceWarningCountdownNum: {
+    color: '#FFF',
+    fontSize: 38,
+    fontWeight: '900',
+  },
   faceWarningEndText: {
-    color: 'rgba(255,220,220,0.9)', fontSize: 14, fontWeight: '600', letterSpacing: 0.5,
+    color: 'rgba(255,220,220,0.9)',
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
 });
 

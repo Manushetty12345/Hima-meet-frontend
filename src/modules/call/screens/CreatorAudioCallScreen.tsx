@@ -31,13 +31,20 @@ const CreatorAudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
     callerAvatar = 'https://ui-avatars.com/api/?name=User&background=random',
     callId,
     rate = 0,
-    agoraToken = ''
+    agoraToken = '',
+    targetId,
   } = route.params || {};
 
   // Coin & Timer State
   const [coinsEarned, setCoinsEarned] = useState<number>(0);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [isJoined, setIsJoined] = useState(false);
+
+  const elapsedTimeRef = useRef(0);
+  const coinsEarnedRef = useRef(0);
+
+  useEffect(() => { elapsedTimeRef.current = elapsedTime; }, [elapsedTime]);
+  useEffect(() => { coinsEarnedRef.current = coinsEarned; }, [coinsEarned]);
   
   const engine = useRef<IRtcEngine>(null);
 
@@ -160,6 +167,12 @@ const CreatorAudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
     return () => clearInterval(timer);
   }, [isJoined]);
 
+  useEffect(() => {
+    if (isJoined) {
+      setCoinsEarned(Number(rate)); // First minute is charged immediately
+    }
+  }, [isJoined, rate]);
+
   // Coin earning calculation (client-side visual sync, actual is handled in backend)
   useEffect(() => {
     if (elapsedTime > 0 && elapsedTime % 60 === 0) {
@@ -182,12 +195,14 @@ const CreatorAudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
   const handleCallCleanup = () => {
     setShowEndCallModal(false);
     engine.current?.leaveChannel();
-    // Return back to Dashboard
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-    } else {
-      navigation.replace('MainTabs');
-    }
+    // Navigate to Summary Screen
+    navigation.replace('CreatorCallSummaryScreen', {
+      callerId: targetId,
+      callerName,
+      callerAvatar,
+      coinsEarned: coinsEarnedRef.current,
+      callDurationSeconds: elapsedTimeRef.current,
+    });
   };
 
   const emitLeaveCall = () => {
@@ -207,73 +222,62 @@ const CreatorAudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
   return (
     <View style={styles.container}>
       {/* @ts-ignore */}
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
 
-      <Image 
-        source={{ uri: callerAvatar }} 
-        style={[StyleSheet.absoluteFill, { opacity: 0.5 }]} 
-        blurRadius={40} 
-      />
-
+      {/* Main Layout Gradient */}
       <LinearGradient 
-        colors={['rgba(18, 10, 30, 0.6)', 'rgba(10, 5, 20, 0.9)', '#000000']} 
-        style={styles.container} 
+        colors={['#FBF7FF', '#EFDFFB', '#FBF6EC']} 
+        style={styles.container}
       >
         <View style={styles.safeArea}>
-          <View style={styles.header}>
-            <View style={styles.timerGlassPill}>
-              <Clock size={16} color="#00DFD8" />
+          
+          {/* Top Bar: Coin Balance & Timer */}
+          <View style={styles.topBar}>
+            <View style={styles.coinPill}>
+              <View style={styles.coinDotSmall} />
+              <Text style={styles.coinText}>+{coinsEarned} Coins</Text>
+            </View>
+            <View style={styles.timerPill}>
+              <Clock size={14} color="#5B0E8B" />
               <Text style={styles.timerText}>
                 {isJoined ? formatTime(elapsedTime) : 'Connecting...'}
               </Text>
             </View>
-            <View style={styles.coinPill}>
-               <Text style={styles.coinText}>+{coinsEarned} Coins</Text>
-            </View>
           </View>
-          <Text style={{ color: 'red', textAlign: 'center', marginTop: 10, fontSize: 12 }}>DEBUG CHANNEL: {channelName}</Text>
-          {debugError ? <Text style={{ color: 'yellow', textAlign: 'center', fontSize: 10 }}>ERR: {debugError}</Text> : null}
+          
+          {/* Center Avatar & Ripples */}
+          <View style={styles.centerContent}>
+            <View style={styles.avatarContainer}>
+              <Animated.View style={[styles.rippleOuter, { transform: [{ scale: pulseAnim }] }]} />
+              <Animated.View style={[styles.rippleInner, { transform: [{ scale: pulseAnim }] }]} />
+              
+              <View style={styles.avatarCore}>
+                <Image source={{ uri: callerAvatar }} style={styles.avatarImg} />
+              </View>
+            </View>
 
-          <View style={styles.avatarsContainer}>
-            {/* Caller Avatar (Male) */}
-            <Animated.View style={[styles.avatarWrapper, { zIndex: 2 }]}>
-              <Animated.View style={[styles.glowRingContainer, { transform: [{ scale: pulseAnim }] }]}>
-                <LinearGradient colors={['#00DFD8', '#007CF0']} style={styles.avatarGlowRing} />
-              </Animated.View>
-              <View style={styles.avatarInner}>
-                <Image source={{ uri: callerAvatar }} style={styles.avatarImage} />
-              </View>
-              <View style={[styles.nameBadge, { backgroundColor: 'rgba(0, 124, 240, 0.3)' }]}>
-                <Text style={[styles.avatarName, { color: '#E0F7FA' }]}>{callerName}</Text>
-              </View>
-            </Animated.View>
-            
-            {/* Creator Avatar (Female) */}
-            <Animated.View style={[styles.avatarWrapper, { marginLeft: -25, transform: [{ scale: 0.95 }], zIndex: 1 }]}>
-              <Animated.View style={[styles.glowRingContainer, { transform: [{ scale: pulseAnim }] }]}>
-                <LinearGradient colors={['#FF007A', '#7928CA']} style={styles.avatarGlowRing} />
-              </Animated.View>
-              <View style={styles.avatarInner}>
-                <Image source={{ uri: fetchedMyAvatar }} style={styles.avatarImage} />
-              </View>
-              <View style={styles.nameBadge}>
-                <Text style={styles.avatarName}>{fetchedMyName}</Text>
-              </View>
-            </Animated.View>
+            <View style={styles.nameBadge}>
+              <Text style={styles.avatarName}>{callerName}</Text>
+            </View>
           </View>
 
           <View style={{ flex: 1 }} />
 
+          {/* Floating Controls Dock */}
           <View style={styles.controlsDock}>
             <LinearGradient 
-              colors={['rgba(40, 30, 60, 0.6)', 'rgba(20, 15, 30, 0.8)']} 
+              colors={['#FFFFFF', '#FBF7FF']} 
               style={styles.controlsPill}
             >
               <TouchableOpacity 
                 style={[styles.controlBtn, isMuted && styles.controlBtnActive]} 
                 onPress={handleMute}
               >
-                {isMuted ? <MicOff size={24} color="#FFFFFF" /> : <Mic size={24} color="#B9AFC4" />}
+                {isMuted ? (
+                  <MicOff size={24} color="#5B0E8B" />
+                ) : (
+                  <Mic size={24} color="#8B7F98" />
+                )}
               </TouchableOpacity>
 
               <TouchableOpacity 
@@ -290,7 +294,11 @@ const CreatorAudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
                 style={[styles.controlBtn, isSpeakerOn && styles.controlBtnActive]}
                 onPress={handleSpeaker}
               >
-                {isSpeakerOn ? <Volume2 size={24} color="#FFFFFF" /> : <VolumeX size={24} color="#B9AFC4" />}
+                {isSpeakerOn ? (
+                  <Volume2 size={24} color="#5B0E8B" />
+                ) : (
+                  <VolumeX size={24} color="#8B7F98" />
+                )}
               </TouchableOpacity>
             </LinearGradient>
           </View>
@@ -307,36 +315,186 @@ const CreatorAudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000000' },
-  safeArea: { flex: 1 },
-  header: {
-    flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
-    marginTop: Platform.OS === 'android' ? StatusBar.currentHeight! + 20 : 50,
-    paddingHorizontal: 20, gap: 12,
+  container: {
+    flex: 1,
+    backgroundColor: '#FBF6EC',
   },
-  timerGlassPill: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: 20, paddingVertical: 10, borderRadius: 30, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)', gap: 8,
+  safeArea: {
+    flex: 1,
+    paddingTop: Platform.OS === 'ios' ? 40 : StatusBar.currentHeight ?? 24,
   },
-  timerText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700', letterSpacing: 1 },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    marginTop: 16,
+  },
   coinPill: {
-    backgroundColor: 'rgba(0, 223, 216, 0.15)', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 30, borderWidth: 1, borderColor: 'rgba(0, 223, 216, 0.3)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#EBDFC4',
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  coinText: { color: '#00DFD8', fontSize: 14, fontWeight: '700' },
-  avatarsContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: height * 0.15, gap: 30 },
-  avatarWrapper: { alignItems: 'center' },
-  glowRingContainer: { position: 'absolute', top: -6, bottom: -6, left: -6, right: -6, borderRadius: 100 },
-  avatarGlowRing: { flex: 1, borderRadius: 100, opacity: 0.85 },
-  avatarInner: { width: 140, height: 140, borderRadius: 70, borderWidth: 4, borderColor: '#1A1025', overflow: 'hidden', backgroundColor: '#333' },
-  avatarImage: { width: '100%', height: '100%' },
-  nameBadge: { marginTop: 16, backgroundColor: 'rgba(255, 0, 122, 0.25)', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.1)' },
-  avatarName: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.5 },
-  controlsDock: { paddingHorizontal: 24, paddingBottom: Platform.OS === 'ios' ? 40 : 30 },
-  controlsPill: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 40, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)' },
-  controlBtn: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(255, 255, 255, 0.05)', alignItems: 'center', justifyContent: 'center' },
-  controlBtnActive: { backgroundColor: 'rgba(255, 255, 255, 0.2)' },
-  endCallBtnWrapper: { shadowColor: '#FF4D4D', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 16, elevation: 10 },
-  endCallBtn: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255, 255, 255, 0.2)' },
+  coinDotSmall: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#F5C542',
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+  },
+  coinText: {
+    color: '#2A1240',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  timerPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#EBDFC4',
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  timerText: {
+    color: '#5B0E8B',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  centerContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  avatarContainer: {
+    width: 220,
+    height: 220,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rippleOuter: {
+    position: 'absolute',
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    borderWidth: 1,
+    borderColor: '#F5C542',
+    backgroundColor: 'rgba(245, 197, 66, 0.1)',
+  },
+  rippleInner: {
+    position: 'absolute',
+    width: 170,
+    height: 170,
+    borderRadius: 85,
+    borderWidth: 2,
+    borderColor: '#5B0E8B',
+    backgroundColor: 'rgba(91, 14, 139, 0.1)',
+  },
+  avatarCore: {
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    overflow: 'hidden',
+    borderWidth: 4,
+    borderColor: '#FFFFFF',
+    shadowColor: '#5B0E8B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  avatarImg: {
+    width: '100%',
+    height: '100%',
+  },
+  nameBadge: {
+    marginTop: 24,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#EBDFC4',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  avatarName: {
+    color: '#2A1240',
+    fontSize: 18,
+    fontWeight: '800',
+    fontFamily: 'PlayfairDisplay-Bold',
+  },
+  controlsDock: {
+    paddingHorizontal: 24,
+    paddingBottom: Platform.OS === 'ios' ? 80 : 70,
+  },
+  controlsPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 40,
+    borderWidth: 1,
+    borderColor: '#EBDFC4',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  controlBtn: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FBF6EC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#EBDFC4',
+  },
+  controlBtnActive: {
+    backgroundColor: 'rgba(91, 14, 139, 0.1)',
+    borderColor: '#5B0E8B',
+  },
+  endCallBtnWrapper: {
+    shadowColor: '#EC1372',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  endCallBtn: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
 });
 
 export default CreatorAudioCallScreen;

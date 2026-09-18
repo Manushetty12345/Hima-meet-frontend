@@ -24,6 +24,7 @@ import {
   ChevronRight,
   Pencil,
   AlertOctagon,
+  Ban,
 } from 'lucide-react-native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { logout } from '../../auth/api/authApi';
@@ -44,8 +45,8 @@ const IVORY = '#FBF6EC';
 
 const SETTINGS_ITEMS = [
   { id: 'rates', title: 'My Call Rates', subtitle: 'View your voice & video rates', icon: Phone, iconColor: PLUM_ROYAL, iconBg: 'rgba(91, 14, 139, 0.10)' },
-  { id: 'notifications', title: 'Manage Notifications', subtitle: 'Control alerts and preferences', icon: BellRing, iconColor: GOLD_DEEP, iconBg: 'rgba(245, 197, 66, 0.16)' },
   { id: 'warnings', title: 'My Warnings', subtitle: 'View warnings from admins', icon: AlertCircle, iconColor: PLUM_ROYAL, iconBg: 'rgba(91, 14, 139, 0.10)' },
+  { id: 'blocked_users', title: 'Blocked Users', subtitle: 'Manage people you have blocked', icon: Ban, iconColor: PLUM_ROYAL, iconBg: 'rgba(91, 14, 139, 0.10)' },
   { id: 'help', title: 'Help & Support', subtitle: 'Get help and contact support', icon: Headphones, iconColor: GOLD_DEEP, iconBg: 'rgba(245, 197, 66, 0.16)' },
   { id: 'guidelines', title: 'Community Guidelines', subtitle: 'Policies and community standards', icon: BadgeCheck, iconColor: PLUM_ROYAL, iconBg: 'rgba(91, 14, 139, 0.10)' },
   { id: 'terms', title: 'Terms & Conditions', subtitle: 'Read our terms and conditions', icon: FileText, iconColor: GOLD_DEEP, iconBg: 'rgba(245, 197, 66, 0.16)' },
@@ -161,6 +162,9 @@ const CreatorProfileScreen = ({ navigation }: Props) => {
                     } else if (item.id === 'warnings') {
                       // @ts-ignore
                       navigation.navigate('MyWarnings');
+                    } else if (item.id === 'blocked_users') {
+                      // @ts-ignore
+                      navigation.navigate('BlockedUsers');
                     } else if (item.id === 'notifications') {
                       // @ts-ignore
                       navigation.navigate('ManageNotifications');

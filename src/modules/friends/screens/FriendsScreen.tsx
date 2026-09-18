@@ -10,7 +10,11 @@ import {
   ActivityIndicator,
   Animated,
   TextInput,
- Alert, Image } from 'react-native';
+  Alert,
+  Image,
+  Dimensions,
+  RefreshControl,
+} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {  UserPlus, Search, Bell } from 'lucide-react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -121,6 +125,9 @@ const FriendsScreen: React.FC<Props> = () => {
   const [randomMatchTarget, setRandomMatchTarget] = useState<any>(undefined);
   const [coinBalance, setCoinBalance] = useState(0);
 
+  const randomMatchTypeRef = React.useRef<'audio' | 'video'>('audio');
+  const randomMatchTargetRef = React.useRef<any>(undefined);
+
   const [globalAudioRate, setGlobalAudioRate] = useState(20);
   const [globalVideoRate, setGlobalVideoRate] = useState(40);
 
@@ -167,8 +174,8 @@ const FriendsScreen: React.FC<Props> = () => {
 
       const handleInsufficientCoins = () => {
         setShowRandomMatch(false);
-        const type = randomMatchType;
-        const creator = randomMatchTarget;
+        const type = randomMatchTypeRef.current;
+        const creator = randomMatchTargetRef.current;
         const rate = type === 'audio' ? creator?.callRate : creator?.videoRate;
         const requiredCoins = rate || (type === 'audio' ? globalAudioRate : globalVideoRate);
         navigation.navigate('Wallet', { 
@@ -178,15 +185,17 @@ const FriendsScreen: React.FC<Props> = () => {
         } as any);
       };
 
-      const handleCallAccepted = (data: { callId: number, agoraToken?: string, rate?: number, maxSeconds?: number }) => {
+      const handleCallAccepted = (data: { callId: number, agoraToken?: string, rate?: number, maxSeconds?: number, callType?: 'audio' | 'video' }) => {
         setShowRandomMatch(false);
-        navigation.navigate(randomMatchType === 'audio' ? 'AudioCallScreen' : 'VideoCallScreen', {
+        const type = data.callType || randomMatchTypeRef.current;
+        const target = randomMatchTargetRef.current;
+        navigation.navigate(type === 'audio' ? 'AudioCallScreen' : 'VideoCallScreen', {
           callId: data.callId,
-          targetId: randomMatchTarget?.id,
-          calleeName: randomMatchTarget?.name,
-          calleeAvatar: randomMatchTarget?.avatarUri,
+          targetId: target?.id,
+          calleeName: target?.name,
+          calleeAvatar: target?.avatarUri,
           agoraToken: data.agoraToken || '',
-          callRate: data.rate || (randomMatchType === 'audio' ? globalAudioRate : globalVideoRate),
+          callRate: data.rate || (type === 'audio' ? globalAudioRate : globalVideoRate),
           maxSeconds: data.maxSeconds,
         } as any);
       };
@@ -213,7 +222,7 @@ const FriendsScreen: React.FC<Props> = () => {
           socket.off('call_accepted', handleCallAccepted);
       }
     };
-  }, [navigation, randomMatchType, randomMatchTarget]);
+  }, [navigation, globalAudioRate, globalVideoRate]);
 
   const initiateCallWithChecks = async (creator: any, type: 'audio' | 'video') => {
     if (!creator.isOnline) {
@@ -234,6 +243,8 @@ const FriendsScreen: React.FC<Props> = () => {
 
     setRandomMatchTarget(creator);
     setRandomMatchType(type);
+    randomMatchTargetRef.current = creator;
+    randomMatchTypeRef.current = type;
     setShowRandomMatch(true);
 
     let socket = getSocket();
@@ -256,7 +267,11 @@ const FriendsScreen: React.FC<Props> = () => {
     requests: [],
     sent: [],
   });
+  const [pages, setPages] = useState<Record<TabKey, number>>({ friends: 1, favourite: 1, requests: 1, sent: 1 });
+  const [hasMore, setHasMore] = useState<Record<TabKey, boolean>>({ friends: true, favourite: true, requests: true, sent: true });
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [refreshToggle, setRefreshToggle] = useState(0);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
@@ -274,71 +289,86 @@ const FriendsScreen: React.FC<Props> = () => {
     fetchMe();
   }, []);
 
-  React.useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        let res;
-        let type: 'friend' | 'favourite' | 'received' | 'sent' = 'friend';
-        switch (activeTab) {
-          case 'friends':
-            res = await getFriends();
-            type = 'friend';
-            break;
-          case 'favourite':
-            res = await getFavourites();
-            type = 'favourite';
-            break;
-          case 'requests':
-            res = await getRequestsReceived();
-            type = 'received';
-            break;
-          case 'sent':
-            res = await getRequestsSent();
-            type = 'sent';
-            break;
-        }
-
-        if (res?.data?.data) {
-          let formatted = res.data.data.map((item: any) => ({
-            id: item.user_id?.toString() || item.id?.toString(),
-            name: item.name || item.full_name,
-            avatarUri: item.avatar_url || 'https://hima-bucket.s3.amazonaws.com/default-avatar.png',
-            isOnline: Boolean(item.isOnline !== undefined ? item.isOnline : item.is_online),
-            callAvailable: Boolean(item.isVoiceOnline),
-            callRate: item.voice_rate,
-            videoAvailable: Boolean(item.isVideoOnline),
-            videoRate: item.video_rate,
-            lastMessage: item.lastMessage,
-            lastMessageStatus: item.lastMessageStatus,
-            lastMessageSenderId: item.lastMessageSenderId,
-            lastMessageTime: item.lastMessageTime,
-              is_pinned: !!item.is_pinned,
-            lastSeen: item.lastSeen,
-            // For requests tab, use the status from API (can be 'received' or 'accepted_by_receiver')
-            type: activeTab === 'requests' ? (item.status || type) : type,
-          }));
-            formatted.sort((a: any, b: any) => {
-              if (a.is_pinned && !b.is_pinned) return -1;
-              if (!a.is_pinned && b.is_pinned) return 1;
-              return 0;
-            });
-          setData(prev => ({ ...prev, [activeTab]: formatted }));
-        }
-      } catch (err) {
-        console.error('Failed to fetch data for tab:', activeTab, err);
-      } finally {
-        setIsLoading(false);
+  const fetchData = useCallback(async (pageToFetch = 1, append = false, targetTab = activeTab) => {
+    if (pageToFetch === 1) setIsLoading(true);
+    else setIsFetchingMore(true);
+    try {
+      let res;
+      let type: 'friend' | 'favourite' | 'received' | 'sent' = 'friend';
+      switch (targetTab) {
+        case 'friends':
+          res = await getFriends(pageToFetch);
+          type = 'friend';
+          break;
+        case 'favourite':
+          res = await getFavourites(pageToFetch);
+          type = 'favourite';
+          break;
+        case 'requests':
+          res = await getRequestsReceived(pageToFetch);
+          type = 'received';
+          break;
+        case 'sent':
+          res = await getRequestsSent(pageToFetch);
+          type = 'sent';
+          break;
       }
-    };
-    fetchData();
+
+      if (res?.data?.data) {
+        let formatted = res.data.data.map((item: any) => ({
+          id: item.user_id?.toString() || item.id?.toString(),
+          name: item.name || item.full_name,
+          avatarUri: item.avatar_url || 'https://hima-bucket.s3.amazonaws.com/default-avatar.png',
+          isOnline: Boolean(item.isOnline !== undefined ? item.isOnline : item.is_online),
+          callAvailable: Boolean(item.isVoiceOnline !== undefined ? item.isVoiceOnline : item.is_voice_online),
+          callRate: item.voice_rate,
+          videoAvailable: Boolean(item.isVideoOnline !== undefined ? item.isVideoOnline : item.is_video_online),
+          videoRate: item.video_rate,
+          lastMessage: item.lastMessage,
+          lastMessageStatus: item.lastMessageStatus,
+          lastMessageSenderId: item.lastMessageSenderId,
+          lastMessageTime: item.lastMessageTime,
+          is_pinned: !!item.is_pinned,
+          lastSeen: item.lastSeen,
+          type: targetTab === 'requests' ? (item.status || type) : type,
+        }));
+        
+        formatted.sort((a: any, b: any) => {
+          if (a.is_pinned && !b.is_pinned) return -1;
+          if (!a.is_pinned && b.is_pinned) return 1;
+          return 0;
+        });
+
+        setData(prev => ({
+          ...prev,
+          [targetTab]: append ? [...prev[targetTab], ...formatted] : formatted,
+        }));
+        setHasMore(prev => ({ ...prev, [targetTab]: formatted.length >= 20 }));
+        setPages(prev => ({ ...prev, [targetTab]: pageToFetch }));
+      }
+    } catch (err) {
+      console.error('Failed to fetch data for tab:', targetTab, err);
+    } finally {
+      setIsLoading(false);
+      setIsFetchingMore(false);
+    }
+  }, [activeTab]);
+
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    await fetchData(1, false, activeTab);
+    setRefreshing(false);
+  }, [activeTab, fetchData]);
+
+  React.useEffect(() => {
+    fetchData(1, false, activeTab);
     
     // WebSocket auto-refresh
     const socket = getSocket();
     if (socket) {
       socket.off('friend_update').on('friend_update', () => {
         console.log('?? [WebSocket] friend_update received - automatically refreshing Friends tab!');
-        fetchData();
+        fetchData(1, false, activeTab);
       });
 
       socket.off('availability_changed').on('availability_changed', (payload: any) => {
@@ -347,10 +377,14 @@ const FriendsScreen: React.FC<Props> = () => {
           (Object.keys(newData) as Array<keyof typeof newData>).forEach(tab => {
             newData[tab] = newData[tab].map(item => {
               if (item.id === payload.userId?.toString()) {
+                // If they turn availability on, they must be online.
+                const newCallAvailable = payload.call_type === 'voice' ? payload.is_online : item.callAvailable;
+                const newVideoAvailable = payload.call_type === 'video' ? payload.is_online : item.videoAvailable;
                 return {
                   ...item,
-                  callAvailable: payload.call_type === 'voice' ? payload.is_online : item.callAvailable,
-                  videoAvailable: payload.call_type === 'video' ? payload.is_online : item.videoAvailable
+                  callAvailable: newCallAvailable,
+                  videoAvailable: newVideoAvailable,
+                  isOnline: (newCallAvailable || newVideoAvailable) ? true : item.isOnline
                 };
               }
               return item;
@@ -539,9 +573,36 @@ const FriendsScreen: React.FC<Props> = () => {
               }}
               contentContainerStyle={styles.listContent}
               showsVerticalScrollIndicator={false}
+              onEndReached={() => {
+                if (hasMore[activeTab] && !isFetchingMore && !isLoading) {
+                  fetchData(pages[activeTab] + 1, true, activeTab);
+                }
+              }}
+              onEndReachedThreshold={0.5}
+              ListFooterComponent={isFetchingMore ? <ActivityIndicator size="small" color={GOLD_DEEP} style={{ marginVertical: 16 }} /> : undefined}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  colors={[GOLD_DEEP]}
+                  tintColor={GOLD_DEEP}
+                />
+              }
             />
           ) : (
-            renderEmptyState(activeTab)
+            <ScrollView
+              contentContainerStyle={{ flex: 1, justifyContent: 'center' }}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  colors={[GOLD_DEEP]}
+                  tintColor={GOLD_DEEP}
+                />
+              }
+            >
+              {renderEmptyState(activeTab)}
+            </ScrollView>
           )}
         </View>
       )}

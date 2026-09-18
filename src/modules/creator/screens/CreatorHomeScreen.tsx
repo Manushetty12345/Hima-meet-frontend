@@ -124,6 +124,16 @@ const CreatorHomeScreen = () => {
       }
       if (socket) {
         socket.on('incoming_call', handleIncoming);
+        socket.on('call_cancelled', (data: any) => {
+          if (data && data.callId) {
+            setPendingRequests((prev) => prev.filter(r => r.request_id !== data.callId));
+          }
+        });
+        socket.on('call_timeout', (data: any) => {
+          if (data && data.callId) {
+            setPendingRequests((prev) => prev.filter(r => r.request_id !== data.callId));
+          }
+        });
       }
     };
 
@@ -132,6 +142,8 @@ const CreatorHomeScreen = () => {
     return () => {
       if (socket) {
         socket.off('incoming_call', handleIncoming);
+        socket.off('call_cancelled');
+        socket.off('call_timeout');
       }
     };
   }, []);
@@ -231,31 +243,38 @@ const CreatorHomeScreen = () => {
   return (
     <View style={styles.flex}>
       <StatusBar barStyle="dark-content" />
-      <View style={styles.statusBarSpacer} />
+      <LinearGradient
+        colors={['#FBF7FF', '#EFDFFB']}
+        start={{ x: 0.15, y: 0 }}
+        end={{ x: 0.85, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.statusBarSpacer} />
 
-      {/* ── Header ── */}
-      <View style={styles.headerRow}>
-        <Image
-          source={require('../../../assets/images/logo1.png')}
-          style={styles.brandIcon}
-          resizeMode="contain"
-        />
-        <View style={styles.brandTextBlock}>
-          <Text style={styles.brandTitle}>Himameet</Text>
-          <Text style={styles.brandSubtitle}>Creator Dashboard</Text>
+        {/* ── Header ── */}
+        <View style={styles.headerRow}>
+          <Image
+            source={require('../../../assets/images/logo1.png')}
+            style={styles.brandIcon}
+            resizeMode="contain"
+          />
+          <View style={styles.brandTextBlock}>
+            <Text style={styles.brandTitle}>Himameet</Text>
+            <Text style={styles.brandSubtitle}>Creator Dashboard</Text>
+          </View>
+          <View style={styles.greetingBlock}>
+            <LinearGradient
+              colors={['#F91970', '#9C27B0']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.namePill}
+            >
+              <Text style={styles.greetingText}>{username}</Text>
+            </LinearGradient>
+            <Image source={{ uri: avatarUrl }} style={styles.userAvatar} />
+          </View>
         </View>
-        <View style={styles.greetingBlock}>
-          <LinearGradient
-            colors={['#F91970', '#9C27B0']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.namePill}
-          >
-            <Text style={styles.greetingText}>{username}</Text>
-          </LinearGradient>
-          <Image source={{ uri: avatarUrl }} style={styles.userAvatar} />
-        </View>
-      </View>
+      </LinearGradient>
 
       {loading ? (
         <View style={styles.loadingContainer}>
@@ -272,10 +291,10 @@ const CreatorHomeScreen = () => {
 
           {/* ── 1. Live Status Banner ── */}
           <LinearGradient
-            colors={isLive ? ['#10B981', '#059669'] : ['#94A3B8', '#64748B']}
+            colors={isLive ? ['#059669', '#10B981'] : ['#94A3B8', '#64748B']}
             start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.liveBanner}
+            end={{ x: 1, y: 1 }}
+            style={[styles.liveBanner, isLive && styles.liveBannerActive]}
           >
             <View style={[styles.liveDotWrap, { backgroundColor: isLive ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.15)' }]}>
               <View style={[styles.liveDot, { backgroundColor: isLive ? '#FFFFFF' : 'rgba(255,255,255,0.5)' }]} />
@@ -294,7 +313,7 @@ const CreatorHomeScreen = () => {
           </LinearGradient>
 
           {/* ── 2. Pending Requests ── */}
-          <View style={styles.card}>
+          <LinearGradient colors={['#FFFAFC', '#F6F3FA']} style={styles.card}>
             <Text style={styles.cardHeader}>Pending Requests</Text>
             <Text style={styles.cardSubHeader}>
               Users waiting for you to answer right now
@@ -338,10 +357,10 @@ const CreatorHomeScreen = () => {
                 );
               })
             )}
-          </View>
+          </LinearGradient>
 
           {/* ── 3. My Availability Toggles ── */}
-          <View style={styles.card}>
+          <LinearGradient colors={['#FFFAFC', '#F6F3FA']} style={styles.card}>
             <Text style={styles.cardHeader}>My Availability</Text>
             <Text style={styles.cardSubHeader}>
               When ON, users see you as available and can call you
@@ -384,20 +403,25 @@ const CreatorHomeScreen = () => {
                 thumbColor="#FFFFFF"
               />
             </View>
-          </View>
+          </LinearGradient>
 
           {/* ── 4. Premium Earnings Dashboard ── */}
           {(() => {
-            const percentChange = yesterdayEarningsCoins > 0 
-              ? (((todayEarningsCoins - yesterdayEarningsCoins) / yesterdayEarningsCoins) * 100).toFixed(0)
-              : todayEarningsCoins > 0 ? 100 : 0;
-            const isPositiveChange = Number(percentChange) >= 0;
             const hours = Math.floor(totalTimeSeconds / 3600);
             const minutes = Math.floor((totalTimeSeconds % 3600) / 60);
-            const formattedTime = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+            const seconds = totalTimeSeconds % 60;
+            
+            let formattedTime;
+            if (hours > 0) {
+              formattedTime = `${hours}h ${minutes}m`;
+            } else if (minutes > 0) {
+              formattedTime = `${minutes}m ${seconds}s`;
+            } else {
+              formattedTime = `${seconds}s`;
+            }
 
             return (
-              <LinearGradient colors={['#1E132D', '#120B1C']} style={[styles.card, styles.premiumEarningsCard]}>
+              <LinearGradient colors={['#FFFAFC', '#F6F3FA']} style={[styles.card, styles.premiumEarningsCard]}>
                 <View style={styles.earningsHeaderRow}>
                   <View style={styles.earningsIconBg}>
                     <Wallet size={16} color="#D4AF37" />
@@ -408,12 +432,6 @@ const CreatorHomeScreen = () => {
                 
                 <View style={styles.earningsMainContent}>
                   <Text style={styles.premiumEarningsAmount}>₹{todayEarningsInr.toFixed(2)}</Text>
-                  <View style={[styles.earningsStatPill, !isPositiveChange && { backgroundColor: 'rgba(239, 68, 68, 0.15)' }]}>
-                    <TrendingUp size={12} color={isPositiveChange ? "#10B981" : "#EF4444"} style={!isPositiveChange && { transform: [{ rotate: '180deg' }] }} />
-                    <Text style={[styles.earningsStatText, !isPositiveChange && { color: '#EF4444' }]}>
-                      {isPositiveChange ? '+' : ''}{percentChange}% vs yesterday
-                    </Text>
-                  </View>
                 </View>
 
                 <View style={styles.earningsDivider} />
@@ -452,7 +470,6 @@ const styles = StyleSheet.create({
   },
   statusBarSpacer: {
     height: STATUSBAR_HEIGHT,
-    backgroundColor: '#FFFFFF',
   },
   loadingContainer: {
     flex: 1,
@@ -461,13 +478,24 @@ const styles = StyleSheet.create({
   },
 
   // ── Header ─────────────────────────────────────────────
+  headerGradient: {
+    overflow: 'hidden',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    paddingBottom: 12,
+    shadowColor: '#3A0F63',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 4,
+  },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
+    paddingTop: 16,
+    paddingBottom: 20,
+    backgroundColor: 'transparent',
   },
   brandIcon: {
     width: 42,
@@ -506,29 +534,44 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   userAvatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     borderWidth: 2.5,
-    borderColor: '#F91970',
+    borderColor: '#9C27B0',
   },
 
   // ── Body ───────────────────────────────────────────────
   container: {
     padding: 16,
     paddingTop: 16,
+    paddingBottom: 140,
     flexGrow: 1,
     gap: 14,
   },
 
   // Live banner
   liveBanner: {
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    borderRadius: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 18,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  liveBannerActive: {
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    elevation: 10,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
   },
   liveDotWrap: {
     width: 14,
@@ -553,19 +596,19 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // Cards
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowColor: '#4A0F6E',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(91, 14, 139, 0.04)',
   },
   cardHeader: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '800',
     color: '#2A1240',
     marginBottom: 4,
@@ -617,13 +660,13 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     paddingHorizontal: 20,
     borderRadius: 24,
-    shadowColor: '#000',
+    shadowColor: '#4A0F6E',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
     shadowRadius: 16,
     elevation: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(212, 175, 55, 0.3)', // Gold accent border
   },
   earningsHeaderRow: {
     flexDirection: 'row',
@@ -637,9 +680,9 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   premiumEarningsLabel: {
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: '#8B7F98',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   earningsActionBtn: {
     flexDirection: 'row',
@@ -662,7 +705,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   premiumEarningsAmount: {
-    color: '#FFFFFF',
+    color: '#2A1240',
     fontSize: 38,
     fontWeight: '800',
     lineHeight: 42,
@@ -684,7 +727,7 @@ const styles = StyleSheet.create({
   },
   earningsDivider: {
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: 'rgba(91, 14, 139, 0.08)',
     marginBottom: 16,
   },
   earningsFooterRow: {
@@ -695,15 +738,15 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   earningsFooterLabel: {
-    color: 'rgba(255, 255, 255, 0.4)',
-    fontSize: 11,
-    fontWeight: '500',
+    color: '#8B7F98',
+    fontSize: 12,
+    fontWeight: '600',
     marginBottom: 4,
   },
   earningsFooterValue: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
+    color: '#2A1240',
+    fontSize: 15,
+    fontWeight: '800',
   },
   earningsCoinRow: {
     flexDirection: 'row',
@@ -715,44 +758,60 @@ const styles = StyleSheet.create({
   requestRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    padding: 16,
+    backgroundColor: 'rgba(246, 243, 250, 0.6)',
+    borderRadius: 20,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(91, 14, 139, 0.05)',
   },
   requestAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 14,
   },
   requestInfo: {
     flex: 1,
   },
   requestName: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '800',
     color: '#2A1240',
   },
   requestTime: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#8B7F98',
     marginTop: 2,
+    fontWeight: '500',
   },
   callBackBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#10B981',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 24,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+    gap: 6,
   },
   declineBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#EF4444',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 24,
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+    gap: 6,
   },
   callBackText: {
     color: '#FFFFFF',

@@ -168,7 +168,7 @@ const FriendRequestCard: React.FC<FriendRequestCardProps> = ({ item, onRemove, o
             {rejecting ? (
               <ActivityIndicator size="small" color="#FF3B30" />
             ) : (
-              <X size={20} color="#FF3B30" strokeWidth={2.5} />
+              <X size={16} color="#FF3B30" strokeWidth={2.5} />
             )}
           </TouchableOpacity>
 
@@ -182,7 +182,7 @@ const FriendRequestCard: React.FC<FriendRequestCardProps> = ({ item, onRemove, o
             {accepting ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
-              <Check size={20} color="#FFFFFF" strokeWidth={2.5} />
+              <Check size={16} color="#FFFFFF" strokeWidth={2.5} />
             )}
           </TouchableOpacity>
         </View>
@@ -206,26 +206,26 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   avatarRing: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    marginRight: 14,
   },
   avatarInner: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 2,
   },
   avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
   },
   textContainer: {
     flex: 1,
@@ -268,27 +268,29 @@ const styles = StyleSheet.create({
     gap: 8,
     marginLeft: 8,
   },
-  rejectBtn: {
-      width: 44,
-      height: 40,
-      borderRadius: 10,
-      backgroundColor: '#FFE5E5',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
   acceptBtn: {
-      width: 44,
-      height: 40,
-      borderRadius: 10,
-      backgroundColor: '#00D15C',
-      alignItems: 'center',
-      justifyContent: 'center',
-      shadowColor: '#00D15C',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.2,
-      shadowRadius: 4,
-      elevation: 2,
-    },
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#10B981',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  rejectBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFF0F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#FFE0E0',
+  },
   onlineDot: {
     position: 'absolute',
     bottom: 2,

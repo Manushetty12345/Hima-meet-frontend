@@ -44,7 +44,7 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
   const initialMaxSeconds = route.params?.maxSeconds;
   const [coins, setCoins] = useState<number>(0);
   const [timeLeft, setTimeLeft] = useState<number | null>(initialMaxSeconds !== undefined ? initialMaxSeconds : null);
-  const [showLowBalance, setShowLowBalance] = useState(false);
+  
   
   // Fetched Caller Profile State (Fallback)
   const [fetchedCallerName, setFetchedCallerName] = useState<string | null>(null);
@@ -58,6 +58,8 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeakerOn, setIsSpeakerOn] = useState(true);
   const [showEndCallModal, setShowEndCallModal] = useState(false);
+  const [showLowBalance, setShowLowBalance] = useState(false);
+  const [isRecharging, setIsRecharging] = useState(false);
   const [isJoined, setIsJoined] = useState(false);
 
   const engine = useRef<IRtcEngine>(null);
@@ -114,10 +116,18 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
     if (socket) {
       socket.on('call_ended', handleEndCall);
       socket.on('insufficient_coins', handleEndCall);
+      socket.on('call_coins_deducted', (data: any) => {
+        setCoins(prev => Math.max(0, prev - data.coins_deducted));
+      });
     }
 
     const unsubscribeFocus = navigation.addListener('focus', () => {
-      fetchInitialData();
+      setIsRecharging(false);
+      fetchInitialData().then(() => {
+        if (!engine.current) {
+          setupAgoraEngine();
+        }
+      });
       const s = getSocket();
       if (s) s.emit('cancel_recharging_call', { callId });
     });
@@ -129,6 +139,7 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
       if (socket) {
         socket.off('call_ended', handleEndCall);
         socket.off('insufficient_coins', handleEndCall);
+        socket.off('call_coins_deducted');
       }
       unsubscribeFocus();
     };
@@ -219,7 +230,7 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
   // Countdown timer
   useEffect(() => {
     let timer: ReturnType<typeof setInterval>;
-    if (timeLeft !== null) {
+    if (timeLeft !== null && !isRecharging) {
       if (timeLeft <= 0) {
         handleEndCall(); // FORCE END CALL IMMEDIATELY AT 00:00
         return;
@@ -232,7 +243,7 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
       }, 1000);
     }
     return () => clearInterval(timer);
-  }, [timeLeft]);
+  }, [timeLeft, isRecharging]);
 
   const handleMute = () => {
     const nextMuteState = !isMuted;
@@ -256,37 +267,48 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
     navigation.replace('CallFeedbackScreen', { creatorName: calleeName, creatorId: targetId, callId: callId });
   };
 
-  const handleSendGift = async (gift: { id: string; name: string; price: number; icon: string; color: string }) => {
+  const handleSendGift = (gift: { id: string; name: string; price: number; icon: string; color: string }) => {
     if (coins < gift.price) {
       showToast('Not enough coins to send this gift.');
       return;
     }
 
-    try {
-      // Optimistic update
-      const newCoins = coins - gift.price;
-      setCoins(newCoins);
-      
-      // Update timer dynamically based on new coin balance
-      const newMaxSeconds = Math.floor((newCoins / callCostPerMinute) * 60);
-      
-      if (timeLeft && newMaxSeconds < timeLeft) {
-        setTimeLeft(newMaxSeconds);
-      }
+    Alert.alert(
+      'Send Gift',
+      `Are you sure you want to send ${gift.name} ${gift.icon} for ${gift.price} coins?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Send', 
+          style: 'default',
+          onPress: async () => {
+            try {
+              const newCoins = coins - gift.price;
+              setCoins(newCoins);
+              
+              if (callCostPerMinute > 0 && timeLeft !== null) {
+                const secondsToDeduct = Math.floor((gift.price / callCostPerMinute) * 60);
+                const newMaxSeconds = Math.max(0, timeLeft - secondsToDeduct);
+                setTimeLeft(newMaxSeconds);
 
-      if (newMaxSeconds <= 60 && newMaxSeconds > 0) {
-        setShowLowBalance(true);
-      } else if (newMaxSeconds <= 0) {
-         handleEndCall();
-      }
-      await apiClient.post('/api/call/gift', { giftId: gift.id, receiverId: targetId });
-      showToast(`Sent ${gift.name} ${gift.icon}`);
-    } catch (err) {
-      console.log('Error sending gift', err);
-      // Revert if API fails
-      setCoins(coins);
-      showToast('Failed to send gift');
-    }
+                if (newMaxSeconds <= 60 && newMaxSeconds > 0) {
+                  setShowLowBalance(true);
+                } else if (newMaxSeconds <= 0) {
+                  handleEndCall();
+                }
+              }
+
+              await apiClient.post('/api/call/gift', { giftId: gift.id, receiverId: targetId });
+              showToast(`Sent ${gift.name} ${gift.icon}`);
+            } catch (err) {
+              console.log('Error sending gift', err);
+              setCoins(coins); // Revert
+              showToast('Failed to send gift');
+            }
+          }
+        }
+      ]
+    );
   };
 
   const formatTime = (totalSeconds: number) => {
@@ -423,6 +445,14 @@ const AudioCallScreen: React.FC<Props> = ({ navigation, route }) => {
         onClose={() => setShowLowBalance(false)}
         onRecharge={() => {
           setShowLowBalance(false);
+          setIsRecharging(true);
+          
+          if (engine.current) {
+            engine.current.leaveChannel();
+            engine.current.release();
+            engine.current = null;
+          }
+
           const socket = getSocket();
           if (socket) socket.emit('recharging_call', { callId: route.params?.callId });
           import('@react-native-async-storage/async-storage').then(({ default: AsyncStorage }) => {
