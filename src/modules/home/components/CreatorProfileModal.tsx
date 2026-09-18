@@ -522,7 +522,7 @@ const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
             style={{ flex: 1, backgroundColor: '#F4EDFB' }}
           >
           <View style={styles.body}>
-          {friendStatus === 'friends' ? (
+          {(friendStatus === 'friends' || friendStatus === 'blocked_by_them') ? (
             <ScrollView 
               style={styles.chatScrollView}
               contentContainerStyle={styles.chatContentContainer}
